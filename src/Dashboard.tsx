@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Layout, FileText, Globe, Shield, Layers, Download, CheckCircle2, Clock, Plus, ArrowRight } from 'lucide-react';
-import { PortalType, PlanSection, UserAccount } from '../types';
+import { PortalType, PlanSection, UserAccount } from './types';
 
 interface DashboardProps {
   portalType: PortalType;

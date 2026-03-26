@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { User, Mail, Building2, Phone, Shield, Camera, Save, UserPlus, Trash2, X, Plus } from 'lucide-react';
-import { UserAccount, UserRole, PortalType, Invite } from '../types';
+import { UserAccount, UserRole, PortalType, Invite } from './types';
 
 interface ProfileProps {
   user: UserAccount;

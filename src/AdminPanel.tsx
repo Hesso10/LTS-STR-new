@@ -17,7 +17,7 @@ import {
   X,
   Layout
 } from 'lucide-react';
-import { SystemKnowledge, UserAccount, UserRole, PortalType, Invite } from '../types';
+import { SystemKnowledge, UserAccount, UserRole, PortalType, Invite } from './types';
 
 interface AdminPanelProps {
   users: UserAccount[];

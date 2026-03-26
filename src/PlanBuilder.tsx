@@ -51,10 +51,10 @@ import {
   BuyerPersona,
   UserAccount,
   UserRole
-} from '../types';
-import { auth, db, handleFirestoreError, OperationType } from '../firebase';
+} from './types';
+import { auth, db, handleFirestoreError, OperationType } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useLanguage } from './LanguageContext';
 
 interface BasicsData {
   companyForm: string;

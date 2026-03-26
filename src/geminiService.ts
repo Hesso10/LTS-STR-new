@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { PortalType } from "../types";
+import { PortalType } from "./types";
 
 // Mock service for now as user will connect real logic later
 export const getGeminiResponse = async (prompt: string, portalType: PortalType, sections: string[]) => {

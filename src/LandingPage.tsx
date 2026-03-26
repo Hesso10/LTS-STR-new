@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { PortalType } from '../types';
+import { PortalType } from './types';
 import { Layout, Shield, ArrowRight, Play } from 'lucide-react';
 
 interface LandingPageProps {

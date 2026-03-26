@@ -13,7 +13,7 @@ WORKDIR /app
 # Kopioidaan vain tarvittavat tiedostot tuotantoon koon minimoimiseksi
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package*.json ./
-COPY --from=build /app/server.ts ./
+COPY --from=build /app/src/server.ts ./src/
 
 # Asennetaan vain tuotantoriippuvuudet ja tsx palvelimen ajoa varten
 RUN npm install --omit=dev && npm install -g tsx
