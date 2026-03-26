@@ -13,8 +13,8 @@ import {
   Clock,
   Plus
 } from 'lucide-react';
-import { PortalType, UserAccount, UserRole } from '../types';
-import { db, auth } from '../firebase';
+import { PortalType, UserAccount, UserRole } from './types';
+import { db, auth } from './firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
 interface StrategyPortalProps {

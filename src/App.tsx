@@ -4,19 +4,19 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { LanguageProvider } from './contexts/LanguageContext';
-import { LandingPage } from './components/LandingPage';
-import { Auth } from './components/Auth';
-import { Sidebar } from './components/Sidebar';
-import { Dashboard } from './components/Dashboard';
-import { StrategyPortal } from './components/StrategyPortal';
-import { PlanBuilder } from './components/PlanBuilder';
-import { AdminPanel } from './components/AdminPanel';
-import { Profile } from './components/Profile';
-import { Payment } from './components/Payment';
-import { VerificationScreen } from './components/VerificationScreen';
-import { AIChat } from './components/AIChat';
-import { CookieBanner } from './components/CookieBanner';
+import { LanguageProvider } from './LanguageContext';
+import { LandingPage } from './LandingPage';
+import { Auth } from './Auth';
+import { Sidebar } from './Sidebar';
+import { Dashboard } from './Dashboard';
+import { StrategyPortal } from './StrategyPortal';
+import { PlanBuilder } from './PlanBuilder';
+import { AdminPanel } from './AdminPanel';
+import { Profile } from './Profile';
+import { Payment } from './Payment';
+import { VerificationScreen } from './VerificationScreen';
+import { AIChat } from './AIChat';
+import { CookieBanner } from './CookieBanner';
 import { PortalType, UserRole, UserAccount, SystemKnowledge } from './types';
 import { MessageSquare, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';

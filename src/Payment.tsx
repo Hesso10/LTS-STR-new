@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { CreditCard, ShieldCheck, ArrowRight, X, CheckCircle2, Mail } from 'lucide-react';
-import { PortalType, UserRole } from '../types';
-import { auth, db } from '../firebase';
+import { PortalType, UserRole } from './types';
+import { auth, db } from './firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, collection, addDoc } from 'firebase/firestore';
 

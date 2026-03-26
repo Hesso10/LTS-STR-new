@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useLanguage } from './LanguageContext';
 import { 
   Layout, 
   Shield, 
@@ -22,7 +22,7 @@ import {
   Calculator,
   Calendar
 } from 'lucide-react';
-import { PortalType, UserRole, PlanSection, UserAccount } from '../types';
+import { PortalType, UserRole, PlanSection, UserAccount } from './types';
 
 interface SidebarProps {
   portalType: PortalType;

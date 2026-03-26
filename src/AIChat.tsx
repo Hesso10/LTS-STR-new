@@ -14,7 +14,7 @@ import {
   Eye,
   Loader2
 } from 'lucide-react';
-import { PortalType, PlanSection, SystemKnowledge, UserAccount } from '../types';
+import { PortalType, PlanSection, SystemKnowledge, UserAccount } from './types';
 import ReactMarkdown from 'react-markdown';
 import { GoogleGenAI } from '@google/genai';
 

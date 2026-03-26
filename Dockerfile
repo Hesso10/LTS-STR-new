@@ -14,7 +14,7 @@ WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package*.json ./
 
-# MUUTETTU: Kopioidaan server.ts src-kansioista, koska se siirrettiin sinne
+# Kopioidaan server.ts src-kansiosta
 COPY --from=build /app/src/server.ts ./src/server.ts
 
 # Asennetaan vain tuotantoriippuvuudet
@@ -24,5 +24,5 @@ ENV PORT=8080
 ENV NODE_ENV=production
 EXPOSE 8080
 
-# Käynnistetään palvelin (Varmista että package.json start-skripti on: "tsx src/server.ts")
+# Käynnistetään palvelin
 CMD ["npm", "start"]
