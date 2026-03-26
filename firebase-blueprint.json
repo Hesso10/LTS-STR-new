@@ -1,0 +1,116 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and role information",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "User's email address"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "teacher", "student"],
+          "description": "User's role in the system"
+        },
+        "invitedBy": {
+          "type": "string",
+          "description": "UID of the user who invited this user (optional)"
+        },
+        "companyName": {
+          "type": "string",
+          "description": "Name of the user's company (optional)"
+        },
+        "portalType": {
+          "type": "string",
+          "enum": ["LTS", "STRATEGY"],
+          "description": "Type of portal the user has access to (optional)"
+        },
+        "canInviteTeamMembers": {
+          "type": "boolean",
+          "description": "Whether the user is allowed to invite team members"
+        }
+      },
+      "required": ["email", "role"]
+    },
+    "Invite": {
+      "title": "Invite",
+      "description": "An invitation sent to a user",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Email address of the invited user"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Name of the invited user"
+        },
+        "role": {
+          "type": "string",
+          "description": "Role assigned to the invited user"
+        },
+        "invitedBy": {
+          "type": "string",
+          "description": "UID of the user who sent the invite"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the invite was created"
+        },
+        "used": {
+          "type": "boolean",
+          "description": "Whether the invite has been used"
+        },
+        "canInviteTeamMembers": {
+          "type": "boolean",
+          "description": "Whether the invited user will be allowed to invite team members"
+        }
+      },
+      "required": ["email", "role", "invitedBy", "createdAt", "used"]
+    },
+    "BusinessPlan": {
+      "title": "BusinessPlan",
+      "description": "User's business plan data",
+      "type": "object",
+      "properties": {
+        "products": { "type": "array", "description": "Products and services" },
+        "personnel": { "type": "array", "description": "Personnel expenses" },
+        "marketing": { "type": "array", "description": "Marketing expenses" },
+        "admin": { "type": "array", "description": "Administrative expenses" },
+        "investments": { "type": "array", "description": "Investments" },
+        "externalEnv": { "type": "array", "description": "External environment phenomena" },
+        "internalEnv": { "type": "array", "description": "Internal environment phenomena" },
+        "strategy": { "type": "object", "description": "Strategy data" },
+        "businessModel": { "type": "object", "description": "Business model data" },
+        "project": { "type": "object", "description": "Project data" },
+        "basics": { "type": "object", "description": "Basic business information" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last updated timestamp" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "Stores user profiles and roles"
+    },
+    "/users/{userId}/businessPlan/{planId}": {
+      "schema": {
+        "$ref": "#/entities/BusinessPlan"
+      },
+      "description": "Stores user's business plans"
+    },
+    "/invites/{inviteId}": {
+      "schema": {
+        "$ref": "#/entities/Invite"
+      },
+      "description": "Stores user invitations"
+    }
+  }
+}

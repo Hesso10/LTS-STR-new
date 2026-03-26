@@ -1,0 +1,170 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: userId (matches auth.uid)
+    // Fields:
+    //   - email: string (required, email format)
+    //   - role: string (required, 'admin', 'teacher', 'student')
+    //   - invitedBy: string (optional)
+    //   - companyName: string (optional)
+    //   - portalType: string (optional, 'LTS', 'STRATEGY')
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (request.auth.token.email == "johannes@hessonpaja.com" ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'admin'));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidRole(role) {
+      return role in ['admin', 'teacher', 'student', 'user', 'team_member'];
+    }
+
+    function isValidPortalType(portalType) {
+      return portalType in ['LTS', 'STRATEGY'];
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'role']) &&
+             data.keys().hasOnly(['email', 'role', 'invitedBy', 'companyName', 'portalType', 'displayName', 'teamMembers', 'inviteId', 'canInviteTeamMembers']) &&
+             isValidEmail(data.email) &&
+             isValidRole(data.role) &&
+             (!('invitedBy' in data) || data.invitedBy is string) &&
+             (!('companyName' in data) || data.companyName is string) &&
+             (!('portalType' in data) || isValidPortalType(data.portalType)) &&
+             (!('displayName' in data) || data.displayName is string) &&
+             (!('teamMembers' in data) || data.teamMembers is list) &&
+             (!('inviteId' in data) || data.inviteId is string) &&
+             (!('canInviteTeamMembers' in data) || data.canInviteTeamMembers is bool);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      // Users can read their own profile, admins can read all profiles, and users can read their inviter's profile
+      allow read: if isOwner(userId) || isAdmin() || (
+        isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.invitedBy == userId
+      );
+      
+      // Users can create their own profile, but only as a student unless they are an admin or a demo user
+      allow create: if isAuthenticated() && (
+        (isOwner(userId) && isValidUser(request.resource.data) && (
+          request.resource.data.role == 'student' || 
+          request.resource.data.role == 'user' || 
+          request.auth.token.email.matches("^demo_.*@example\\.com$") ||
+          (
+            'inviteId' in request.resource.data &&
+            exists(/databases/$(database)/documents/invites/$(request.resource.data.inviteId)) &&
+            get(/databases/$(database)/documents/invites/$(request.resource.data.inviteId)).data.email == request.auth.token.email &&
+            get(/databases/$(database)/documents/invites/$(request.resource.data.inviteId)).data.role == request.resource.data.role
+          )
+        )) ||
+        isAdmin()
+      );
+      
+      // Users can update their own profile, but cannot change their role unless they are an admin or a demo user, or upgrading to 'user'
+      allow update: if isAuthenticated() && (
+        (isOwner(userId) && isValidUser(request.resource.data) && (
+          ((request.resource.data.role == resource.data.role || request.resource.data.role == 'user') && 
+           (!('canInviteTeamMembers' in request.resource.data) || request.resource.data.canInviteTeamMembers == resource.data.canInviteTeamMembers)) || 
+          request.auth.token.email.matches("^demo_.*@example\\.com$") ||
+          (
+            'inviteId' in request.resource.data &&
+            exists(/databases/$(database)/documents/invites/$(request.resource.data.inviteId)) &&
+            get(/databases/$(database)/documents/invites/$(request.resource.data.inviteId)).data.email == request.auth.token.email &&
+            get(/databases/$(database)/documents/invites/$(request.resource.data.inviteId)).data.role == request.resource.data.role
+          )
+        )) ||
+        isAdmin() ||
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.invitedBy == userId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['teamMembers'])
+        )
+      );
+      
+      // Only admins can delete users
+      allow delete: if isAdmin();
+
+      // Business plans subcollection
+      match /businessPlan/{planId} {
+        allow read, write: if isAuthenticated() && (
+          request.auth.uid == userId || 
+          request.auth.token.email == "johannes@hessonpaja.com" ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'admin') ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('invitedBy', '') == userId)
+        );
+      }
+    }
+
+    match /invites/{inviteId} {
+      allow read: if isAdmin();
+      allow read: if isAuthenticated() && 'email' in resource.data && resource.data.email == request.auth.token.email;
+      allow read: if isAuthenticated() && 'invitedBy' in resource.data && resource.data.invitedBy == request.auth.uid;
+      allow create: if isAuthenticated() && (
+        isAdmin() || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' || 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.canInviteTeamMembers == true
+        ))
+      );
+      allow update: if isAuthenticated() && (isAdmin() || resource.data.email == request.auth.token.email);
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.invitedBy == request.auth.uid);
+    }
+
+    match /mail/{mailId} {
+      // Allow authenticated users to create emails (to invite others)
+      // Only Admin or users with canInviteTeamMembers can invite team members. Teachers can invite students.
+      allow create: if isAuthenticated() && (
+        isAdmin() || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+          (
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' && 
+            request.resource.data.invitedRole == 'student'
+          ) ||
+          (
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.canInviteTeamMembers == true &&
+            request.resource.data.invitedRole == 'team_member'
+          )
+        ))
+      );
+      // Prevent reading, updating, or deleting to protect email privacy
+      allow read, update, delete: if false;
+    }
+
+    match /test/connection {
+      allow read: if true;
+    }
+
+    match /settings/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}
