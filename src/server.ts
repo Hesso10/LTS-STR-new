@@ -9,49 +9,34 @@ async function startServer() {
   const app = express();
   const PORT = process.env.PORT || '8080';
 
-  // --- API Routes (Your Chat Logic) ---
-  app.post('/api/chat', (req, res) => { /* ... existing logic ... */ res.send("AI logic here"); });
+  // --- 1. Your API Routes (Chat logic goes here) ---
+  app.post('/api/chat', async (req, res) => {
+    // Your existing OpenAI/Gemini logic
+    res.json({ message: "AI response here" });
+  });
 
-  // --- STATIC FILE SOLVER ---
-  const isProduction = process.env.NODE_ENV === 'production';
+  // --- 2. Static File Serving (The Fix) ---
+  // process.cwd() in Docker is '/app'
+  const distPath = path.resolve(process.cwd(), 'dist');
 
-  if (isProduction) {
-    // List of possible places where Vite might have put 'index.html'
-    const root = process.cwd(); // Should be /app
-    const possiblePaths = [
-      path.join(root, 'dist'),
-      path.join(root, 'build'),
-      path.join(__dirname, 'dist'),
-      path.join(__dirname, '..', 'dist')
-    ];
+  if (fs.existsSync(distPath)) {
+    console.log(`✅ Production: Serving static files from ${distPath}`);
+    app.use(express.static(distPath));
 
-    let finalPath = null;
-    for (const p of possiblePaths) {
-      if (fs.existsSync(path.join(p, 'index.html'))) {
-        finalPath = p;
-        break;
-      }
-    }
-
-    if (finalPath) {
-      console.log(`✅ FOUND FRONTEND AT: ${finalPath}`);
-      app.use(express.static(finalPath));
-      app.get('*', (req, res) => res.sendFile(path.join(finalPath, 'index.html')));
-    } else {
-      // THIS IS THE FAIL-SAFE: If it can't find the files, it prints the directory tree
-      console.error(`❌ ERROR: Could not find index.html.`);
-      console.log(`Current Dir: ${root}`);
-      console.log(`Root Contents: ${fs.readdirSync(root)}`);
-      
-      app.get('*', (req, res) => {
-        const tree = fs.readdirSync(root).join(', ');
-        res.status(404).send(`Frontend missing. Files found in /app: ${tree}`);
-      });
-    }
+    // Support for Single Page Apps (React/Vite routing)
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  } else {
+    console.error(`❌ Critical Error: 'dist' folder not found at ${distPath}`);
+    // Fallback so the page isn't just "Cannot GET /"
+    app.get('*', (req, res) => {
+      res.status(404).send("Frontend build files missing in container.");
+    });
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server listening on ${PORT}`);
+    console.log(`🚀 Server listening on port ${PORT}`);
   });
 }
 
