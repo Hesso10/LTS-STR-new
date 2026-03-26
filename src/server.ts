@@ -3,6 +3,7 @@ import { VertexAI } from '@google-cloud/vertexai';
 import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -12,7 +13,7 @@ async function startServer() {
 
   app.use(express.json());
 
-  // --- API Routes ---
+  // --- 1. Your Original API Routes ---
   app.post('/api/chat', async (req, res) => {
     try {
       const { messages, systemInstruction } = req.body;
@@ -56,12 +57,34 @@ async function startServer() {
     }
   });
 
-  // --- Static File Serving (The Fix) ---
+  // --- 2. The New Production Path Logic ---
   const isProduction = process.env.NODE_ENV === 'production';
 
-  if (!isProduction) {
+  if (isProduction) {
+    // Force path to /app/dist regardless of file location
+    const distPath = path.resolve(process.cwd(), 'dist');
+    
+    console.log(`Checking for static files in: ${distPath}`);
+    
+    // Check if dist folder exists before serving
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath));
+      
+      app.get('*', (req, res) => {
+        const indexPath = path.join(distPath, 'index.html');
+        res.sendFile(indexPath, (err) => {
+          if (err) {
+            console.error("ERROR: index.html not found at", indexPath);
+            res.status(404).send("Frontend files missing. Check Docker build.");
+          }
+        });
+      });
+    } else {
+      console.error("CRITICAL ERROR: dist folder not found at", distPath);
+    }
+  } else {
+    // --- 3. Your Original Vite Dev Logic ---
     try {
-      // Dynamic import to prevent production crashes when vite is missing
       const { createServer: createViteServer } = await import('vite');
       const vite = await createViteServer({
         server: { middlewareMode: true },
@@ -71,16 +94,6 @@ async function startServer() {
     } catch (err) {
       console.warn('Vite not found, serving static if possible');
     }
-  } else {
-    // BECAUSE OF THE NEW DOCKERFILE:
-    // server.ts is at /app/server.ts
-    // dist is at /app/dist/
-    const distPath = path.join(__dirname, 'dist'); 
-    
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
   }
 
   app.listen(PORT, '0.0.0.0', () => {
