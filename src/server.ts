@@ -4,6 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+// Define __dirname for ESM
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function startServer() {
@@ -12,7 +13,7 @@ async function startServer() {
 
   app.use(express.json());
 
-  // API Routes
+  // --- API Routes ---
   app.post('/api/chat', async (req, res) => {
     try {
       const { messages, systemInstruction } = req.body;
@@ -20,11 +21,11 @@ async function startServer() {
       res.setHeader('Content-Type', 'text/plain');
       res.setHeader('Transfer-Encoding', 'chunked');
 
-      // If GEMINI_API_KEY is provided, use the standard Gemini API
+      // 1. Use Gemini API Key if present
       if (process.env.GEMINI_API_KEY) {
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
         const responseStream = await ai.models.generateContentStream({
-          model: 'gemini-3.1-pro-preview',
+          model: 'gemini-1.5-pro', // Updated to a standard stable model name
           contents: messages,
           config: {
             systemInstruction: systemInstruction,
@@ -37,34 +38,30 @@ async function startServer() {
             res.write(chunk.text);
           }
         }
-      } else {
-        // Otherwise, fallback to Vertex AI (Enterprise SDK) using IAM credentials
+      } 
+      // 2. Fallback to Vertex AI (IAM-based)
+      else {
         const project = process.env.GOOGLE_CLOUD_PROJECT;
-        const location = process.env.GOOGLE_CLOUD_REGION;
+        const location = process.env.GOOGLE_CLOUD_REGION || 'europe-north1';
         
-        if (!project || !location) {
-          throw new Error("Missing GOOGLE_CLOUD_PROJECT or GOOGLE_CLOUD_REGION environment variables for Vertex AI.");
+        if (!project) {
+          throw new Error("Missing GOOGLE_CLOUD_PROJECT environment variable.");
         }
 
         const vertexAI = new VertexAI({ project, location });
         const generativeModel = vertexAI.getGenerativeModel({
-          model: 'gemini-3.1-pro-preview',
+          model: 'gemini-1.5-pro',
           systemInstruction: systemInstruction,
         });
 
-        const request = {
+        const responseStream = await generativeModel.generateContentStream({
           contents: messages,
-          generationConfig: {
-            temperature: 0.7,
-          },
-        };
-
-        const responseStream = await generativeModel.generateContentStream(request);
+          generationConfig: { temperature: 0.7 },
+        });
 
         for await (const chunk of responseStream.stream) {
-          if (chunk.candidates?.[0]?.content?.parts?.[0]?.text) {
-            res.write(chunk.candidates[0].content.parts[0].text);
-          }
+          const text = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) res.write(text);
         }
       }
       
@@ -72,32 +69,49 @@ async function startServer() {
     } catch (error) {
       console.error('Chat API Error:', error);
       if (!res.headersSent) {
-        res.status(500).json({ error: 'Failed to generate response' });
+        res.status(500).json({ error: 'Internal Server Error' });
       } else {
         res.end();
       }
     }
   });
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== 'production') {
-    const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
+  // --- Static File Serving & Environment Logic ---
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (!isProduction) {
+    // Development Mode: Dynamic Import of Vite to prevent Production crashes
+    console.log('Detected Development Mode. Loading Vite...');
+    try {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } catch (err) {
+      console.error('Failed to load Vite. Ensure vite is installed in devDependencies.', err);
+    }
   } else {
-    const distPath = path.join(__dirname, '..', 'dist');
+    // Production Mode: Serve the pre-built 'dist' folder
+    // Note: Since server.ts is in /src, we go up one level to find /dist
+    const distPath = path.resolve(__dirname, '..', 'dist');
+    console.log(`Serving static files from: ${distPath}`);
+    
     app.use(express.static(distPath));
+    
+    // SPA Fallback: Serve index.html for any route not caught by API or static files
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`🚀 Server listening on port ${PORT} (Mode: ${process.env.NODE_ENV || 'development'})`);
   });
 }
 
-startServer();
+startServer().catch(err => {
+  console.error('Critical Server Startup Error:', err);
+  process.exit(1);
+});
