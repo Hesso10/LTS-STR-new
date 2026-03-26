@@ -10,18 +10,19 @@ RUN npm run build
 FROM node:22-slim
 WORKDIR /app
 
-# Kopioidaan vain tarvittavat tiedostot tuotantoon koon minimoimiseksi
+# Kopioidaan buildattu frontend
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package*.json ./
-COPY --from=build /app/server.ts ./
 
-# Asennetaan vain tuotantoriippuvuudet ja tsx palvelimen ajoa varten
+# MUUTETTU: Kopioidaan server.ts src-kansioista, koska se siirrettiin sinne
+COPY --from=build /app/src/server.ts ./src/server.ts
+
+# Asennetaan vain tuotantoriippuvuudet
 RUN npm install --omit=dev && npm install -g tsx
 
-# Cloud Run vaatii portin 8080
 ENV PORT=8080
 ENV NODE_ENV=production
 EXPOSE 8080
 
-# Käynnistetään palvelin
+# Käynnistetään palvelin (Varmista että package.json start-skripti on: "tsx src/server.ts")
 CMD ["npm", "start"]
