@@ -1,10 +1,27 @@
+# This file specifies which files and directories should NOT be 
+# uploaded to Google Cloud Build.
+
+# --- CRITICAL: MUST BE REMOVED/COMMENTED OUT ---
+# dist/   <-- We want Cloud Build to see this!
+# build/  <-- We want Cloud Build to see this!
+
+# --- IGNORE LOCAL FILES (Security & Speed) ---
 .git
 .gitignore
 node_modules/
-dist/
-.env*
-!.env.example
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env*.local
+
+# --- IGNORE FIREBASE/CONFIG FILES ---
 firebase-applet-config.json
 firebase-blueprint.json
 firestore.rules
 README.md
+
+# --- IGNORE OS SPECIFIC FILES ---
+.DS_Store
+Thumbs.db
