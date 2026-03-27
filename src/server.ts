@@ -2,10 +2,10 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import { VertexAI } from '@google-cloud/vertexai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 
-// Ladataan ympäristömuuttujat .env-tiedostosta paikallista kehitystä varten
+// Ladataan ympäristömuuttujat .env-tiedostosta (paikallista ajoa varten)
 dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -17,14 +17,9 @@ async function startServer() {
   // --- MIDDLEWARE ---
   app.use(express.json());
 
-  // --- VERTEX AI (ENTERPRISE) ALUSTUS ---
-  const project = process.env.GOOGLE_CLOUD_PROJECT || 'superb-firefly-489705-g3';
-  const location = process.env.GOOGLE_CLOUD_REGION || 'europe-north1';
-
-  const vertexAI = new VertexAI({
-    project: project,
-    location: location
-  });
+  // --- GEMINI AI ALUSTUS ---
+  // Varmista, että olet lisännyt GOOGLE_API_KEY Cloud Runin asetuksiin!
+  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
   // --- AI CHAT ENDPOINT ---
   app.post('/api/chat', async (req, res) => {
@@ -35,46 +30,42 @@ async function startServer() {
         return res.status(400).json({ error: "Messages array is required" });
       }
 
-      // Valitaan malli. Käytetään tarkkaa versio-ID:tä 404-virheen välttämiseksi.
-      const model = vertexAI.getGenerativeModel({
-        model: 'gemini-1.5-flash-002', 
-        systemInstruction: {
-          role: 'system',
-          parts: [{ text: systemInstruction }]
-        }
+      // Alustetaan malli ja ohjeistus
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        systemInstruction: systemInstruction || "Olet avulias assistentti."
       });
 
-      // Muotoillaan keskusteluhistoria Vertex AI -yhteensopivaksi
+      // Muunnetaan keskusteluhistoria uuden SDK:n muotoon
+      // (role 'assistant' muuttuu muotoon 'model')
       const history = messages.slice(0, -1).map((m: any) => ({
-        role: m.role,
+        role: m.role === 'assistant' ? 'model' : 'user',
         parts: m.parts
       }));
 
-      // Viimeisin käyttäjän viesti
-      const userMessage = messages[messages.length - 1].parts[0].text;
+      // Haetaan viimeisin viesti
+      const lastMessage = messages[messages.length - 1];
+      const userText = lastMessage.parts[0].text;
 
       // Asetetaan Headerit striimausta varten
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       res.setHeader('Transfer-Encoding', 'chunked');
 
-      // Käynnistetään chatti historialla
+      // Käynnistetään chatti historialla ja lähetetään viesti striiminä
       const chat = model.startChat({ history });
-      const streamResult = await chat.sendMessageStream(userMessage);
+      const result = await chat.sendMessageStream(userText);
 
-      // Luetaan striimiä ja lähetetään palat suoraan frontendille
-      for await (const item of streamResult.stream) {
-        if (item.candidates && item.candidates[0]?.content?.parts?.[0]?.text) {
-          const chunk = item.candidates[0].content.parts[0].text;
-          res.write(chunk);
-        }
+      // Luetaan striimi ja kirjoitetaan se suoraan vastaukseen
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        res.write(chunkText);
       }
 
       res.end();
 
     } catch (error: any) {
-      console.error("Vertex AI Error:", error);
+      console.error("Gemini AI Error:", error);
       
-      // Jos virhe on 404, se tarkoittaa usein ettei malli ole saatavilla kyseisellä alueella
       if (!res.headersSent) {
         res.status(500).json({ 
           error: "AI-yhteysvirhe.", 
@@ -101,7 +92,7 @@ async function startServer() {
   } else {
     console.warn(`⚠️ Warning: 'dist' folder not found at ${distPath}.`);
     app.get('*', (req, res) => {
-      res.status(404).send("Frontend build missing.");
+      res.status(404).send("Frontend build missing. Muista ajaa npm run build.");
     });
   }
 
