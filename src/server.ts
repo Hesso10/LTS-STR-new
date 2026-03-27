@@ -2,10 +2,10 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { VertexAI } from '@google-cloud/vertexai';
 import dotenv from 'dotenv';
 
-// Ladataan ympäristömuuttujat .env-tiedostosta (paikallista ajoa varten)
+// Ladataan ympäristömuuttujat .env-tiedostosta paikallista kehitystä varten
 dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -17,9 +17,15 @@ async function startServer() {
   // --- MIDDLEWARE ---
   app.use(express.json());
 
-  // --- GEMINI AI ALUSTUS ---
-  // Varmista, että olet lisännyt GOOGLE_API_KEY Cloud Runin asetuksiin!
-  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
+  // --- VERTEX AI (ENTERPRISE) ALUSTUS ---
+  // Käytetään us-central1 aluetta, koska se on vakain Geminille
+  const project = process.env.GOOGLE_CLOUD_PROJECT || 'superb-firefly-489705-g3';
+  const location = process.env.GOOGLE_CLOUD_REGION || 'us-central1';
+
+  const vertexAI = new VertexAI({
+    project: project,
+    location: location
+  });
 
   // --- AI CHAT ENDPOINT ---
   app.post('/api/chat', async (req, res) => {
@@ -30,75 +36,21 @@ async function startServer() {
         return res.status(400).json({ error: "Messages array is required" });
       }
 
-      // Alustetaan malli ja ohjeistus
-      const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
-        systemInstruction: systemInstruction || "Olet avulias assistentti."
+      // VALITAAN TARKKA MALLI-ID (Tämä korjaa 404-virheen Vertex AI:ssa)
+      const model = vertexAI.getGenerativeModel({
+        model: 'gemini-1.5-flash-002', 
+        systemInstruction: {
+          role: 'system',
+          parts: [{ text: systemInstruction || "Olet avulias assistentti." }]
+        }
       });
 
-      // Muunnetaan keskusteluhistoria uuden SDK:n muotoon
-      // (role 'assistant' muuttuu muotoon 'model')
+      // Muotoillaan keskusteluhistoria Vertex AI -yhteensopivaksi
+      // Otetaan kaikki paitsi viimeinen viesti historiaksi
       const history = messages.slice(0, -1).map((m: any) => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
+        role: m.role,
         parts: m.parts
       }));
 
-      // Haetaan viimeisin viesti
-      const lastMessage = messages[messages.length - 1];
-      const userText = lastMessage.parts[0].text;
-
-      // Asetetaan Headerit striimausta varten
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      res.setHeader('Transfer-Encoding', 'chunked');
-
-      // Käynnistetään chatti historialla ja lähetetään viesti striiminä
-      const chat = model.startChat({ history });
-      const result = await chat.sendMessageStream(userText);
-
-      // Luetaan striimi ja kirjoitetaan se suoraan vastaukseen
-      for await (const chunk of result.stream) {
-        const chunkText = chunk.text();
-        res.write(chunkText);
-      }
-
-      res.end();
-
-    } catch (error: any) {
-      console.error("Gemini AI Error:", error);
-      
-      if (!res.headersSent) {
-        res.status(500).json({ 
-          error: "AI-yhteysvirhe.", 
-          details: error.message 
-        });
-      } else {
-        res.end();
-      }
-    }
-  });
-
-  // --- STAATTISTEN TIEDOSTOJEN TARJOILU (FRONTEND) ---
-  const root = process.cwd(); 
-  const distPath = path.resolve(root, 'dist');
-
-  if (fs.existsSync(distPath)) {
-    console.log(`✅ Production: Serving static files from ${distPath}`);
-    app.use(express.static(distPath));
-
-    // Kaikki muut reitit ohjataan Reactin index.html:ään
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  } else {
-    console.warn(`⚠️ Warning: 'dist' folder not found at ${distPath}.`);
-    app.get('*', (req, res) => {
-      res.status(404).send("Frontend build missing. Muista ajaa npm run build.");
-    });
-  }
-
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-  });
-}
-
-startServer().catch(console.error);
+      // Viimeisin käyttäjän viesti (aina listan viimeinen)
+      const userMessage = messages[messages.length -
