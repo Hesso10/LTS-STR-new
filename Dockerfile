@@ -16,9 +16,9 @@ COPY --from=build /app/dist ./dist
 # 2. Kopioidaan package-tiedostot riippuvuuksien asennusta varten
 COPY --from=build /app/package*.json ./
 
-# 3. Kopioidaan server.ts suoraan juureen (/app/server.ts)
-# Tämä helpottaa polkujen hallintaa, jotta 'dist' löytyy helposti
-COPY --from=build /app/src/server.ts ./server.ts
+# 3. KORJATTU: Kopioidaan server.ts JUURESTA (/app/server.ts)
+# Koska tiedostolistauksesi mukaan se on juuressa, ei src-kansiossa
+COPY --from=build /app/server.ts ./server.ts
 
 # 4. Asennetaan vain tuotantoriippuvuudet ja työkalu TypeScriptin ajoon
 RUN npm install --omit=dev && npm install -g tsx
@@ -28,6 +28,6 @@ ENV PORT=8080
 ENV NODE_ENV=production
 EXPOSE 8080
 
-# 5. Käynnistetään palvelin suoraan tsx-komennolla
-# Koska server.ts on nyt juuressa, polku on yksinkertainen
+# 5. Käynnistetään palvelin tsx:llä
+# Tsx lukee suoraan server.ts:n ja huolehtii reitityksestä dist-kansioon
 CMD ["tsx", "server.ts"]
