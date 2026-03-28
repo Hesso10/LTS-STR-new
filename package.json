@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "Hessonpaja Enterprise AI Chat",
   "type": "module",
-  "main": "dist/server.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build": "npm install && echo 'Build complete'",
+    "build": "vite build",
     "dev": "tsx watch server.ts"
   },
   "dependencies": {
@@ -20,6 +20,8 @@
     "@types/node": "^20.12.7",
     "@types/cors": "^2.8.17",
     "typescript": "^5.4.5",
-    "tsx": "^4.7.2"
+    "tsx": "^4.7.2",
+    "vite": "^6.0.0",
+    "@vitejs/plugin-react": "^4.0.0"
   }
 }
