@@ -1,56 +1,52 @@
 import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
-import { VertexAI } from '@google-cloud/vertexai';
+import { ConversationalSearchServiceClient } from "@google-cloud/discoveryengine";
 import dotenv from 'dotenv';
 
-// Ladataan ympäristömuuttujat .env-tiedostosta paikallista kehitystä varten
 dotenv.config();
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const app = express();
+app.use(express.json());
 
-async function startServer() {
-  const app = express();
-  const PORT = process.env.PORT || '8080';
+// CONFIGURATION - MUST MATCH YOUR EU SETUP
+const PROJECT_ID = "superb-firefly-489705-g3"; 
+const LOCATION = "eu"; // Changed from us-central1
+const DATA_STORE_ID = "YOUR_DATA_STORE_ID_HERE"; // Find this in Agent Builder > Data Stores
 
-  // --- MIDDLEWARE ---
-  app.use(express.json());
+const client = new ConversationalSearchServiceClient({
+  apiEndpoint: 'eu-discoveryengine.googleapis.com'
+});
 
-  // --- VERTEX AI (ENTERPRISE) ALUSTUS ---
-  // Käytetään us-central1 aluetta, koska se on vakain Geminille
-  const project = process.env.GOOGLE_CLOUD_PROJECT || 'superb-firefly-489705-g3';
-  const location = process.env.GOOGLE_CLOUD_REGION || 'us-central1';
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { message, portalType, sections } = req.body;
 
-  const vertexAI = new VertexAI({
-    project: project,
-    location: location
-  });
+    const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/dataStores/${DATA_STORE_ID}/servingConfigs/default_config`;
 
-  // --- AI CHAT ENDPOINT ---
-  app.post('/api/chat', async (req, res) => {
-    try {
-      const { messages, systemInstruction } = req.body;
-
-      if (!messages || !Array.isArray(messages)) {
-        return res.status(400).json({ error: "Messages array is required" });
-      }
-
-      // VALITAAN TARKKA MALLI-ID (Tämä korjaa 404-virheen Vertex AI:ssa)
-      const model = vertexAI.getGenerativeModel({
-        model: 'gemini-1.5-flash-002', 
-        systemInstruction: {
-          role: 'system',
-          parts: [{ text: systemInstruction || "Olet avulias assistentti." }]
+    const request = {
+      servingConfig,
+      query: { text: message },
+      // Summary configuration ensures you get the "Blended" result
+      summarySpec: {
+        summaryResultCount: 5,
+        includeCitations: true,
+        modelPromptSpec: {
+          preamble: `Toimi asiantuntijana ${portalType}-portaalissa. Aihealueet: ${sections.join(', ')}. Vastaa suomeksi.`
         }
-      });
+      }
+    };
 
-      // Muotoillaan keskusteluhistoria Vertex AI -yhteensopivaksi
-      // Otetaan kaikki paitsi viimeinen viesti historiaksi
-      const history = messages.slice(0, -1).map((m: any) => ({
-        role: m.role,
-        parts: m.parts
-      }));
+    const [response] = await client.converseConversation(request);
 
-      // Viimeisin käyttäjän viesti (aina listan viimeinen)
-      const userMessage = messages[messages.length -
+    // Get the summary generated from your bucket data
+    const aiResponse = response.reply?.summary?.summaryText || "Pahoittelut, en löytänyt tietoa arkistoista.";
+
+    res.json({ text: aiResponse });
+
+  } catch (error: any) {
+    console.error("Discovery Engine Error:", error);
+    res.status(500).json({ error: "Yhteysvirhe yrityshakuun." });
+  }
+});
+
+const PORT = process.env.PORT || '8080';
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
