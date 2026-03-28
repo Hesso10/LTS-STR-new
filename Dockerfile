@@ -1,4 +1,4 @@
-# Vaihe 1: Rakennusvaihe (Build)
+# Vaihe 1: Rakennusvaihe
 FROM node:22-slim AS build
 WORKDIR /app
 COPY package*.json ./
@@ -6,28 +6,23 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-# Vaihe 2: Suoritusvaihe (Production)
+# Vaihe 2: Suoritusvaihe
 FROM node:22-slim
 WORKDIR /app
 
-# 1. Kopioidaan buildattu frontend (Vite tuottaa tämän /app/dist kansioon)
+# Kopioidaan buildattu frontend
 COPY --from=build /app/dist ./dist
-
-# 2. Kopioidaan package-tiedostot riippuvuuksien asennusta varten
+# Kopioidaan package-tiedostot
 COPY --from=build /app/package*.json ./
-
-# 3. KORJATTU: Kopioidaan server.ts JUURESTA (/app/server.ts)
-# Koska tiedostolistauksesi mukaan se on juuressa, ei src-kansiossa
+# Kopioidaan uusi server.ts
 COPY --from=build /app/server.ts ./server.ts
 
-# 4. Asennetaan vain tuotantoriippuvuudet ja työkalu TypeScriptin ajoon
+# Asennetaan tuotantoriippuvuudet ja tsx
 RUN npm install --omit=dev && npm install -g tsx
 
-# Ympäristömuuttujat Cloud Runia varten
 ENV PORT=8080
 ENV NODE_ENV=production
 EXPOSE 8080
 
-# 5. Käynnistetään palvelin tsx:llä
-# Tsx lukee suoraan server.ts:n ja huolehtii reitityksestä dist-kansioon
+# Käynnistetään uusi Enterprise-palvelin
 CMD ["tsx", "server.ts"]
