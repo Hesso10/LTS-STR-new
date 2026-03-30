@@ -8,20 +8,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig({
-  // ADD THIS LINE BELOW
-  root: 'public', 
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, '../src'), // Added '../' because root is now 'public'
+      '@': path.resolve(__dirname, './src'),
     },
   },
   build: {
-    // We must tell Vite to put the build back in the main 'dist' folder
-    outDir: '../dist',
+    outDir: 'dist',
     emptyOutDir: true,
     sourcemap: false,
-    chunkSizeWarningLimit: 2000,
   },
   server: {
     port: 8080,
