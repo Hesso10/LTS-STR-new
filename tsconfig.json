@@ -24,5 +24,13 @@
     "noEmit": true,
     "types": ["vite/client"]
   },
-  "include": ["src"]
+  "include": [
+    "src/**/*.ts",   // Includes all TypeScript files
+    "src/**/*.tsx",  // Includes all TypeScript React files
+    "src/**/*.d.ts"  // <--- This line is crucial for your custom .d.ts files
+  ],
+  "exclude": [
+    "node_modules", // Excludes the node_modules directory from TypeScript's checks
+    "dist"          // Often good to exclude build output directories as well
+  ]
 }
