@@ -8,6 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig({
+  // No "root" property here - it defaults to project root
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
@@ -19,5 +20,9 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: false,
     chunkSizeWarningLimit: 2000,
+  },
+  server: {
+    port: 8080,
+    host: true
   }
 });
