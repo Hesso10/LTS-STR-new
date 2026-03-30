@@ -18,9 +18,6 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     sourcemap: false,
-  },
-  server: {
-    port: 8080,
-    host: true
+    chunkSizeWarningLimit: 2000,
   }
 });
