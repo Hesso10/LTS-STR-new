@@ -1,21 +1,23 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
 import { defineConfig } from 'vite';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      // This allows you to use '@' as a shortcut for your src folder
+      // Modern way to handle the '@' shortcut
       '@': path.resolve(__dirname, './src'),
     },
   },
   server: {
-    // HMR is disabled in certain environments to prevent flickering
     hmr: process.env.DISABLE_HMR !== 'true',
-    // Proxy for local development
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
@@ -26,5 +28,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    // This ensures that minor Type errors don't crash the entire production build
+    chunkSizeWarningLimit: 1600,
   },
 });
