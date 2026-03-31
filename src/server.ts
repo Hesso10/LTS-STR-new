@@ -1,9 +1,9 @@
-import express from 'express';
+import express from "express";
 import { ConversationalSearchServiceClient } from "@google-cloud/discoveryengine";
-import path from 'path';
-import { fileURLToPath } from 'url';
-import cors from 'cors';
-import dotenv from 'dotenv';
+import path from "path";
+import { fileURLToPath } from "url";
+import cors from "cors";
+import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -15,52 +15,62 @@ app.use(express.json());
 
 // --- 1. CONFIGURATION ---
 const PROJECT_ID = "superb-firefly-489705-g3";
-const LOCATION = "eu"; 
-const ENGINE_ID = "gemini-enterprise-17730377_1773037734676";
+const LOCATION = "eu";
 const DATA_STORE_ID = "gemini-enterprise-17730377_1773037734676";
 
 const client = new ConversationalSearchServiceClient({
-  apiEndpoint: 'eu-discoveryengine.googleapis.com'
+  apiEndpoint: "eu-discoveryengine.googleapis.com",
 });
 
+// Optional: health endpoint (useful for debugging)
+app.get("/healthz", (_req, res) => res.status(200).send("ok"));
+
 // --- 2. CHAT ENDPOINT ---
-app.post('/api/chat', async (req, res) => {
+app.post("/api/chat", async (req, res) => {
   try {
-    const { message } = req.body;
-    const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/dataStores/${DATA_STORE_ID}/servingConfigs/default_config`;
+    const message = String(req.body?.message ?? "").trim();
+    if (!message) {
+      return res.status(400).json({ error: "Missing 'message' in request body" });
+    }
+
+    const servingConfig =
+      `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/` +
+      `dataStores/${DATA_STORE_ID}/servingConfigs/default_config`;
 
     const [response] = await client.answerQuery({
       servingConfig,
       query: { text: message },
       answerGenerationSpec: {
         modelSpec: { modelVersion: "stable" },
-        promptSpec: { 
-          preamble: "Olet Hessonpaja-yrityksen asiantuntija-avustaja. Vastaa ystävällisesti suomeksi PDF-lähteiden pohjalta." 
+        promptSpec: {
+          preamble:
+            "Olet Hessonpaja-yrityksen asiantuntija-avustaja. Vastaa ystävällisesti suomeksi PDF-lähteiden pohjalta.",
         },
-        includeCitations: true
-      }
+        includeCitations: true,
+      },
     });
 
-    res.json({ text: response.answer?.answerText || "Pahoittelut, en löytänyt vastausta." });
+    res.json({
+      text: response.answer?.answerText || "Pahoittelut, en löytänyt vastausta.",
+    });
   } catch (err: any) {
-    console.error("API ERROR:", err.message);
-    res.status(500).json({ error: err.message });
+    console.error("API ERROR:", err?.message || err);
+    res.status(500).json({ error: err?.message || "Internal server error" });
   }
 });
 
 // --- 3. SERVE FRONTEND ---
-// The 'dist' folder is one level up from the 'src' folder in the final container
-const distPath = path.join(__dirname, '..', 'dist');
+const distPath = path.join(__dirname, "..", "dist");
 app.use(express.static(distPath));
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(distPath, "index.html"));
 });
 
 // --- 4. START SERVER ---
-const PORT = process.env.PORT || 8080;
+const PORT = Number(process.env.PORT) || 8080;
 
-// CRITICAL FIX: Must listen on 0.0.0.0 for Cloud Run Health Checks
-app.listen(Number(PORT), '0.0.0.0', () => {
-  console.log(`🚀 Hessonpaja AI Live on 0.0.0.0:${PORT}`);
+// Must listen on 0.0.0.0 for Cloud Run
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Hessonpaja AI Live on 0.0.0.0:${PORT}`);
 });
