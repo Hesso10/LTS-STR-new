@@ -2,36 +2,33 @@
 FROM node:22-slim AS build
 WORKDIR /app
 
-# 1. Install dependencies
+# 1. Install all dependencies
 COPY package*.json ./
 RUN npm install
 
-# 2. Copy project files
+# 2. Copy project files and build the React frontend
 COPY . .
-
-# 3. Build the React frontend
 RUN npm run build
 
-# --- STAGE 2: Production Stage ---
+# --- STAGE 3: Production Stage ---
 FROM node:22-slim
 WORKDIR /app
 
-# 4. Copy the compiled frontend
+# 3. Copy the compiled frontend from Stage 1
 COPY --from=build /app/dist ./dist
 
-# 5. Copy source and package files
-# We need the 'src' folder for server.ts and imports
+# 4. Copy source and package files
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/src ./src
 
-# 6. Install production dependencies + tsx and typescript
-# tsx requires typescript to be present to execute .ts files
-RUN npm install --omit=dev && npm install -g tsx typescript
+# 5. Install production dependencies and global TS tools
+# We omit dev-deps to keep it slim, but add tsx/typescript for execution
+RUN npm install --omit=dev && npm install -g tsx typescript @types/node
 
-# 7. Set Environment Variables
+# 6. Set Environment Variables
 ENV PORT=8080
 ENV NODE_ENV=production
 EXPOSE 8080
 
-# 8. Start the server using the relative path from the app root
+# 7. Start the server using the internal path
 CMD ["tsx", "src/server.ts"]
