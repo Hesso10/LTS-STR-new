@@ -17,7 +17,7 @@ app.use(express.json());
 const PROJECT_ID = "superb-firefly-489705-g3";
 const LOCATION = "eu"; 
 const ENGINE_ID = "gemini-enterprise-17730377_1773037734676";
-const DATA_STORE_ID = "gemini-enterprise-17730377_1773037734676"; // Usually matches Engine ID
+const DATA_STORE_ID = "gemini-enterprise-17730377_1773037734676";
 
 // Initialize with the EU Endpoint
 const client = new ConversationalSearchServiceClient({
@@ -29,7 +29,6 @@ app.post('/api/chat', async (req, res) => {
   try {
     const { message } = req.body;
     
-    // Updated Path for Enterprise Search
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/dataStores/${DATA_STORE_ID}/servingConfigs/default_config`;
 
     const [response] = await client.answerQuery({
@@ -60,14 +59,19 @@ app.post('/api/chat', async (req, res) => {
 });
 
 // --- 3. SERVE FRONTEND ---
-app.use(express.static(path.join(__dirname, 'dist')));
+// We look for the 'dist' folder created by Vite in the root
+const distPath = path.join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 // --- 4. START SERVER ---
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
+
+// CRITICAL: Cloud Run requires listening on '0.0.0.0'
+app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`🚀 Hessonpaja Enterprise AI Live on Port ${PORT}`);
+  console.log(`🔗 Listening on 0.0.0.0 for Cloud Run health checks`);
 });
