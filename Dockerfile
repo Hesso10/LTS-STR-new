@@ -31,4 +31,4 @@ ENV NODE_ENV=production
 EXPOSE 8080
 
 # 7. Start the server using the internal path
-CMD ["tsx", "src/server.ts"]
+CMD ["npm", "start"]
