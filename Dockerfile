@@ -1,39 +1,38 @@
-# Vaihe 1: Rakennusvaihe (Build Stage)
+# --- STAGE 1: Build Stage ---
 FROM node:22-slim AS build
 WORKDIR /app
 
-# 1. Kopioidaan riippuvuustiedostot
+# 1. Install dependencies first (for faster caching)
 COPY package*.json ./
-
-# 2. Asennetaan kaikki riippuvuudet (myös devDependencies)
 RUN npm install
 
-# 3. Kopioidaan koko projektin sisältö
+# 2. Copy the entire project
 COPY . .
 
-# --- DEBUG: Tulostetaan tiedostolistaus lokiin ---
-# Tämän avulla näemme, onko index.html juuressa
-RUN ls -la
-
-# 4. Rakennetaan frontend (Vite etsii index.html tiedostoa tässä vaiheessa)
+# 3. Build the React frontend
+# This uses Vite to create the /app/dist folder
 RUN npm run build
 
-# Vaihe 2: Suoritusvaihe (Production Stage)
+# --- STAGE 2: Production Stage ---
 FROM node:22-slim
 WORKDIR /app
 
-# Kopioidaan vain tarvittavat osat edellisestä vaiheesta
+# 4. Copy the compiled frontend from the build stage
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/package*.json ./
-COPY --from=build /app/server.ts ./server.ts
 
-# Asennetaan vain tuotantoriippuvuudet ja tsx-työkalu palvelimen ajoon
+# 5. Copy the source code and package files
+# We copy the 'src' folder because 'tsx' needs to read the source server.ts and its imports
+COPY --from=build /app/package*.json ./
+COPY --from=build /app/src ./src
+
+# 6. Install only production dependencies and the 'tsx' runner
 RUN npm install --omit=dev && npm install -g tsx
 
-# Ympäristömuuttujat Cloud Runia varten
+# 7. Set Environment Variables for Cloud Run
 ENV PORT=8080
 ENV NODE_ENV=production
 EXPOSE 8080
 
-# Käynnistetään palvelin
-CMD ["tsx", "server.ts"]
+# 8. Start the server
+# We point to 'src/server.ts' because that is where your Express code lives
+CMD ["tsx", "src/server.ts"]
