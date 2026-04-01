@@ -1,5 +1,6 @@
 import express from "express";
-import { ConversationalSearchServiceClient } from "@google-cloud/discoveryengine";
+// FIX: Use v1 to avoid ESM SyntaxError
+import { v1 } from "@google-cloud/discoveryengine"; 
 import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
@@ -18,11 +19,12 @@ const PROJECT_ID = "superb-firefly-489705-g3";
 const LOCATION = "eu";
 const DATA_STORE_ID = "gemini-enterprise-17730377_1773037734676";
 
-const client = new ConversationalSearchServiceClient({
+// FIX: Instantiate from v1
+const client = new v1.ConversationalSearchServiceClient({
   apiEndpoint: "eu-discoveryengine.googleapis.com",
 });
 
-// Optional: health endpoint (useful for debugging)
+// Optional: health endpoint
 app.get("/healthz", (_req, res) => res.status(200).send("ok"));
 
 // --- 2. CHAT ENDPOINT ---
@@ -70,7 +72,6 @@ app.get("*", (_req, res) => {
 // --- 4. START SERVER ---
 const PORT = Number(process.env.PORT) || 8080;
 
-// Must listen on 0.0.0.0 for Cloud Run
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Hessonpaja AI Live on 0.0.0.0:${PORT}`);
 });
