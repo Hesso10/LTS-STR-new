@@ -2,13 +2,11 @@ import express from "express";
 // FIX: Use v1 to avoid ESM SyntaxError
 import { v1 } from "@google-cloud/discoveryengine"; 
 import path from "path";
-import { fileURLToPath } from "url";
 import cors from "cors";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 app.use(cors());
@@ -62,9 +60,17 @@ app.post("/api/chat", async (req, res) => {
 });
 
 // --- 3. SERVE FRONTEND ---
-const distPath = path.join(__dirname, "..", "dist");
+// Use process.cwd() to reliably point to the project root,
+// bypassing __dirname / import.meta.url build conflicts in CommonJS vs ESM.
+const distPath = path.join(process.cwd(), "dist");
 app.use(express.static(distPath));
 
+// Return 404 for unmatched /api requests so they don't accidentally return index.html
+app.use("/api", (_req, res) => {
+  res.status(404).json({ error: "API route not found" });
+});
+
+// Serve React frontend for all other fallback routes
 app.get("*", (_req, res) => {
   res.sendFile(path.join(distPath, "index.html"));
 });
