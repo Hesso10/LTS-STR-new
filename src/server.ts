@@ -1,6 +1,5 @@
 import express from "express";
-// FIX: Use v1 to avoid ESM SyntaxError
-import { v1 } from "@google-cloud/discoveryengine"; 
+import { ConversationalSearchServiceClient } from "@google-cloud/discoveryengine/build/src/v1";
 import path from "path";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -17,8 +16,7 @@ const PROJECT_ID = "superb-firefly-489705-g3";
 const LOCATION = "eu";
 const DATA_STORE_ID = "gemini-enterprise-17730377_1773037734676";
 
-// FIX: Instantiate from v1
-const client = new v1.ConversationalSearchServiceClient({
+const client = new ConversationalSearchServiceClient({
   apiEndpoint: "eu-discoveryengine.googleapis.com",
 });
 
