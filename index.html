@@ -1,3 +1,24 @@
-<body>
-  <div id="root"></div> <script type="module" src="/src/index.tsx"></script>
-</body>
+<!DOCTYPE html>
+<html lang="fi">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hessonpaja Portal</title>
+    
+    <script src="https://cloud.google.com/ai/gen-app-builder/client?hl=fi"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+
+    <gen-search-widget
+      configId="ce81dcac-d5b4-462e-9373-a15a8ecfb981"
+      location="eu"
+      auth-type="TOKEN"
+      triggerId="searchWidgetTrigger">
+    </gen-search-widget>
+
+    <button id="searchWidgetTrigger" style="display: none;"></button>
+  </body>
+</html>
