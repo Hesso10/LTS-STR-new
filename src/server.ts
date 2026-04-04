@@ -15,7 +15,7 @@ app.use(express.json());
 // --- 1. CONFIGURATION ---
 const PROJECT_ID = "superb-firefly-489705-g3";
 const LOCATION = "eu";
-const DATA_STORE_ID = "gemini-enterprise-17730377_1773037734676";
+const DATA_STORE_ID = "hessonpajayritysnro1_1773038098495";
 
 // FIX: Instantiate from v1
 const client = new ConversationalSearchServiceClient({
