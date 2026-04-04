@@ -1,7 +1,17 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import fallbackConfig from './firebase-applet-config.json';
+
+// Hardcoded fallback to prevent build crashes if the JSON file is missing
+const fallbackConfig = {
+  apiKey: "temp",
+  authDomain: "temp",
+  projectId: "temp",
+  appId: "temp",
+  storageBucket: "temp",
+  messagingSenderId: "temp",
+  measurementId: "temp"
+};
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || fallbackConfig.apiKey,
