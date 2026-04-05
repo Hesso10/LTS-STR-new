@@ -15,23 +15,24 @@ app.use(express.json());
 // --- 1. CONFIGURATION ---
 const PROJECT_ID = "superb-firefly-489705-g3";
 const LOCATION = "eu"; 
-const DATA_STORE_ID = "hessonpajayritysnro1_1773038098495";
+// TÄRKEÄÄ: Päivitetty vastaamaan Apps-sivulta löytynyttä ID:tä
+const ENGINE_ID = "lts-str-toimii_1775296715292";
 
-// Initialize the Auth client for the Token Handshake (Widget support)
+// Alustetaan Auth-asiakas (Widgetin tukea varten)
 const auth = new GoogleAuth({
   scopes: ['https://www.googleapis.com/auth/cloud-platform']
 });
 
-// Initialize the Discovery Client pointing to the EU endpoint
+// Alustetaan Discovery-asiakas EU-alueen rajapintaan
 const client = new ConversationalSearchServiceClient({
   apiEndpoint: "eu-discoveryengine.googleapis.com",
 });
 
-// Health check for Cloud Run
+// Cloud Run terveystarkistus
 app.get("/healthz", (_req, res) => res.status(200).send("ok"));
 
 // --- 2. TOKEN HANDSHAKE ENDPOINT ---
-// Use this if you decide to use the <gen-search-widget>
+// Käytetään jos tarvitaan <gen-search-widget> palikkaa
 app.get("/api/vertex-token", async (_req, res) => {
   try {
     const authClient = await auth.getClient();
@@ -50,16 +51,16 @@ app.get("/api/vertex-token", async (_req, res) => {
 });
 
 // --- 3. CUSTOM CHAT ENDPOINT ---
-// This connects your React chat bubbles to the AI
+// Tämä yhdistää React-sovelluksesi Vertex AI:hin
 app.post("/api/chat", async (req, res) => {
   try {
     const message = String(req.body?.message ?? "").trim();
-    const sessionId = req.body?.sessionId; // Optional: keeps conversation thread alive
+    const sessionId = req.body?.sessionId; // Pitää keskustelulangan elossa
 
     if (!message) return res.status(400).json({ error: "Missing message" });
 
-    // CRITICAL: The path must use 'engines' for the Conversational API
-    const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${DATA_STORE_ID}/servingConfigs/default_config`;
+    // REITTI: Nyt polku käyttää oikeaa ENGINE_ID:tä
+    const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_config`;
 
     const [response] = await client.answerQuery({
       servingConfig,
@@ -76,7 +77,7 @@ app.post("/api/chat", async (req, res) => {
 
     res.json({ 
       text: response.answer?.answerText || "Pahoittelut, en löytänyt vastausta kysymykseesi dokumenteista.",
-      sessionId: response.session?.name // Return this to the frontend to continue the thread
+      sessionId: response.session?.name // Palautetaan sessio-ID frontendiin
     });
 
   } catch (err: any) {
@@ -89,7 +90,7 @@ app.post("/api/chat", async (req, res) => {
 const distPath = path.join(process.cwd(), "dist");
 app.use(express.static(distPath));
 
-// SPA Support: Redirect all other traffic to React index.html
+// SPA Support: Ohjataan kaikki muu liikenne Reactin index.html:ään
 app.get("*", (req, res) => {
   if (req.path.startsWith('/api')) return res.status(404).json({error: "Not found"});
   res.sendFile(path.join(distPath, "index.html"));
@@ -99,5 +100,5 @@ app.get("*", (req, res) => {
 const PORT = Number(process.env.PORT) || 8080;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Hessonpaja AI Backend running on port ${PORT}`);
-  console.log(`Targeting Data Store: ${DATA_STORE_ID} in ${LOCATION}`);
+  console.log(`Targeting Engine: ${ENGINE_ID} in ${LOCATION}`);
 });
