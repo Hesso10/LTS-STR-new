@@ -2,27 +2,18 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// Hardcoded fallback to prevent build crashes if the JSON file is missing
-const fallbackConfig = {
-  apiKey: "temp",
-  authDomain: "temp",
-  projectId: "temp",
-  appId: "temp",
-  storageBucket: "temp",
-  messagingSenderId: "temp",
-  measurementId: "temp"
-};
-
+// Hardcoded with your verified project credentials to bypass "temp" environment issues
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || fallbackConfig.apiKey,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || fallbackConfig.authDomain,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || fallbackConfig.projectId,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || fallbackConfig.appId,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || fallbackConfig.storageBucket,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || fallbackConfig.messagingSenderId,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || fallbackConfig.measurementId,
+  projectId: "superb-firefly-489705-g3",
+  appId: "1:16978149266:web:41987cbf5121df8db18b4b",
+  apiKey: "AIzaSyB9pQvDsOdmI5UFvIKlABYz1Ulap0UbJfc",
+  authDomain: "superb-firefly-489705-g3.firebaseapp.com",
+  storageBucket: "superb-firefly-489705-g3.firebasestorage.app",
+  messagingSenderId: "16978149266",
+  measurementId: "G-LYM92JJCR6"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
