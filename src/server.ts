@@ -1,71 +1,47 @@
-import express from "express";
-import cors from "cors";
-import { ConversationalSearchServiceClient } from "@google-cloud/discoveryengine";
+import express from 'express';
+import cors from 'cors';
+import { DiscoveryEngineServiceClient } from '@google-cloud/discoveryengine';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- KONFIGURAATIO (GLOBAL AREA) ---
-const PROJECT_ID = "superb-firefly-489705-g3";
-const LOCATION = "global"; 
-const ENGINE_ID = "lts-str_1775463023606";
+// --- PÄIVITETYT ASETUKSET ---
+const client = new DiscoveryEngineServiceClient();
+const PROJECT_ID = "16978149266";
+const LOCATION = "global"; // Varmistettu globaali sijainti
+const ENGINE_ID = "lts-str_1775467703431"; // Uusi Engine ID
+// ----------------------------
 
-// Discovery Engine Client - HUOM: Ei eu-etuliitettä endpointissa
-const client = new ConversationalSearchServiceClient({
-  apiEndpoint: "discoveryengine.googleapis.com",
-});
-
-app.post("/api/chat", async (req, res) => {
+app.post('/api/chat', async (req, res) => {
   try {
-    const message = String(req.body?.message ?? "").trim();
-    const sessionId = req.body?.sessionId;
+    const { message } = req.body;
 
-    if (!message) {
-      return res.status(400).json({ error: "Viesti puuttuu" });
-    }
-
-    // Luodaan polku oikeaan hakukoneeseen (Global location)
-    const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
-
-    console.log(`--- AI Kysely: "${message}" ---`);
+    const parent = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
 
     const [response] = await client.answerQuery({
-      servingConfig,
-      query: { text: message },
-      session: sessionId ? { name: sessionId } : undefined,
-      answerGenerationSpec: {
-        modelSpec: { 
-          modelVersion: "stable" 
+      answerConfig: {
+        answerGenerationSpec: {
+          modelSpec: { modelVariant: 'LONG_EXPECTATION' },
+          promptSpec: { preamble: 'Olet asiantunteva avustaja. Vastaa suomeksi annettujen dokumenttien ja Google-haun perusteella.' },
+          includeCitations: true,
         },
-        // AKTIVOI GOOGLE-HAUN (Grounding)
-        groundingConfig: {
-          sources: [{ googleSearchSpec: {} }]
-        },
-        promptSpec: {
-          preamble: "Olet Hessonpaja-avustaja. Vastaa suomeksi yhdistämällä tietoa annetuista verkkosivustoista ja reaaliaikaisesta Google-hausta. Ole asiantunteva ja selkeä.",
-        },
-        includeCitations: true,
       },
+      query: { text: message },
+      servingConfig: parent,
+      // Tämä aktivoi Google-haun PDF-tiedostojen rinnalle
+      contentSearchSpec: {
+        extractiveContentSpec: { maxNextTokenCount: 1000 },
+        googleSearchSpec: {} 
+      }
     });
 
-    // Palautetaan vastaus ja istunnon ID (jatkokeskusteluja varten)
-    res.json({ 
-      text: response.answer?.answerText || "En löytänyt vastausta kysymykseesi.",
-      sessionId: response.session?.name 
-    });
-
-  } catch (err: any) {
-    console.error("❌ VERTEX AI ERROR:", err);
-    res.status(500).json({ 
-      error: "AI-yhteysvirhe", 
-      details: err.message 
-    });
+    res.json({ answer: response.answer?.answerText || "Pahoittelut, en löytänyt vastausta." });
+  } catch (error: any) {
+    console.error("Vertex AI Error:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log(`🚀 Hessonpaja-bäkendi rullaa portissa ${PORT}`);
-  console.log(`📍 Alue: ${LOCATION}, Engine: ${ENGINE_ID}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
