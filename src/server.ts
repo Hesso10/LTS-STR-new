@@ -11,16 +11,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- CONFIGURATION (Päivitetty uusi ID ja sijainti) ---
+// --- CONFIGURATION ---
 const PROJECT_ID = "16978149266"; 
-const LOCATION = "global"; // Uusi App on globaali
-const ENGINE_ID = "lts-str_1775467703431"; // Uusi ID
+const LOCATION = "global"; 
+const ENGINE_ID = "lts-str_1775467703431"; // Advanced Website Engine ID
 
 const auth = new GoogleAuth({
   scopes: ['https://www.googleapis.com/auth/cloud-platform']
 });
 
-// HUOM: apiEndpoint on nyt global
 const client = new ConversationalSearchServiceClient({
   apiEndpoint: "discoveryengine.googleapis.com",
 });
@@ -47,7 +46,7 @@ app.post("/api/chat", async (req, res) => {
 
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
 
-    console.log(`--- AI Kysely (Web + PDF Mode): "${message}" ---`);
+    console.log(`--- 🚀 AI Kysely (Yhdistetty PDF + Google Search): "${message}" ---`);
 
     const [response] = await client.answerQuery({
       servingConfig,
@@ -58,25 +57,42 @@ app.post("/api/chat", async (req, res) => {
           modelVersion: "preview" 
         },
         promptSpec: {
-          preamble: "Olet Hessonpaja-avustaja. Vastaa suomeksi annettujen PDF-dokumenttien JA Google-haun perusteella.",
+          preamble: "Olet Hessonpaja-avustaja. Vastaa suomeksi. Käytä ensisijaisesti PDF-dokumentteja (Bucket). Jos vastausta ei löydy niistä (esim. sää tai yleinen tieto), käytä Google-hakua vastauksen muodostamiseen.",
         },
         includeCitations: true,
       },
-      // LISÄTTY: Tämä aktivoi Google-haun lennosta
+      // TÄMÄ ON SE RATKAISEVA OSA: Aktivoi Google Search Groundingin
       contentSearchSpec: {
-        extractiveContentSpec: { maxNextTokenCount: 1000 },
-        googleSearchSpec: {} 
+        extractiveContentSpec: { 
+          maxNextTokenCount: 1000 
+        },
+        snippetSpec: {
+          maxSnippetCount: 5
+        },
+        googleSearchSpec: {
+          dynamicRetrievalConfig: {
+            predictor: {
+              // Threshold 0.1 pakottaa mallin käyttämään Google-hakua erittäin herkästi
+              threshold: 0.1 
+            }
+          }
+        }
       }
     });
 
+    const answerText = response.answer?.answerText || "En löytänyt vastausta lähteistäni.";
+
     res.json({ 
-      text: response.answer?.answerText || "En löytänyt vastausta.",
+      text: answerText,
       sessionId: response.session?.name 
     });
 
   } catch (err: any) {
     console.error("❌ BACKEND ERROR:", err.message);
-    res.status(500).json({ error: "AI-yhteysvirhe", details: err.message });
+    res.status(500).json({ 
+      error: "AI-yhteysvirhe", 
+      details: err.message 
+    });
   }
 });
 
@@ -90,5 +106,5 @@ app.get("*", (req, res) => {
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Hessonpaja Master running on port ${PORT}`);
+  console.log(`🚀 Hessonpaja Master (Grounding Enabled) running on port ${PORT}`);
 });
