@@ -1,54 +1,34 @@
 import express from "express";
-import { ConversationalSearchServiceClient } from "@google-cloud/discoveryengine";
-import { GoogleAuth } from 'google-auth-library';
-import path from "path";
 import cors from "cors";
-import dotenv from "dotenv";
-
-dotenv.config();
+import { ConversationalSearchServiceClient } from "@google-cloud/discoveryengine";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- 1. CONFIGURATION ---
-const PROJECT_ID = process.env.PROJECT_ID || "superb-firefly-489705-g3";
-const LOCATION = process.env.LOCATION || "eu"; 
-const ENGINE_ID = process.env.ENGINE_ID || "lts-str-toimii_1775296715292";
+// --- KONFIGURAATIO (GLOBAL AREA) ---
+const PROJECT_ID = "superb-firefly-489705-g3";
+const LOCATION = "global"; 
+const ENGINE_ID = "lts-str_1775463023606";
 
-const auth = new GoogleAuth({
-  scopes: ['https://www.googleapis.com/auth/cloud-platform']
-});
-
+// Discovery Engine Client - HUOM: Ei eu-etuliitettä endpointissa
 const client = new ConversationalSearchServiceClient({
-  apiEndpoint: "eu-discoveryengine.googleapis.com",
+  apiEndpoint: "discoveryengine.googleapis.com",
 });
 
-app.get("/healthz", (_req, res) => res.status(200).send("ok"));
-
-// --- 2. TOKEN ENDPOINT ---
-app.get("/api/vertex-token", async (_req, res) => {
-  try {
-    const authClient = await auth.getClient();
-    const tokenResponse = await authClient.getAccessToken();
-    res.json({ token: tokenResponse.token, project: PROJECT_ID });
-  } catch (error: any) {
-    console.error("Token Error:", error.message);
-    res.status(500).json({ error: "Auth failed" });
-  }
-});
-
-// --- 3. CHAT ENDPOINT (PÄIVITETTY GROUNDINGILLA) ---
 app.post("/api/chat", async (req, res) => {
   try {
     const message = String(req.body?.message ?? "").trim();
-    const sessionId = req.body?.sessionId; 
+    const sessionId = req.body?.sessionId;
 
-    if (!message) return res.status(400).json({ error: "Missing message" });
+    if (!message) {
+      return res.status(400).json({ error: "Viesti puuttuu" });
+    }
 
+    // Luodaan polku oikeaan hakukoneeseen (Global location)
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
 
-    console.log(`--- AI Kysely (Search Enabled): "${message}" ---`);
+    console.log(`--- AI Kysely: "${message}" ---`);
 
     const [response] = await client.answerQuery({
       servingConfig,
@@ -56,46 +36,36 @@ app.post("/api/chat", async (req, res) => {
       session: sessionId ? { name: sessionId } : undefined,
       answerGenerationSpec: {
         modelSpec: { 
-          modelVersion: "preview" 
+          modelVersion: "stable" 
         },
-        
-        // --- TÄMÄ AKTIVOI GOOGLE-HAUN PDF-DATAN RINNALLE ---
+        // AKTIVOI GOOGLE-HAUN (Grounding)
         groundingConfig: {
-          sources: [
-            { googleSearchSpec: {} } 
-          ]
+          sources: [{ googleSearchSpec: {} }]
         },
-        
         promptSpec: {
-          // Ohjeistetaan yhdistämään omat dokumentit ja verkkotieto
-          preamble: "Olet Hessonpaja-avustaja. Vastaa suomeksi yhdistämällä tietoja annetuista PDF-dokumenteista sekä tuoretta tietoa Google-hausta. Jos kysymys koskee tulevaisuutta tai strategioita, analysoi tilannetta molempien lähteiden pohjalta. Luo asiantunteva ja selkeä yhteenveto.",
+          preamble: "Olet Hessonpaja-avustaja. Vastaa suomeksi yhdistämällä tietoa annetuista verkkosivustoista ja reaaliaikaisesta Google-hausta. Ole asiantunteva ja selkeä.",
         },
         includeCitations: true,
       },
     });
 
+    // Palautetaan vastaus ja istunnon ID (jatkokeskusteluja varten)
     res.json({ 
-      text: response.answer?.answerText || "Pahoittelut, en löytänyt vastausta kysymykseesi dokumenteista tai verkosta.",
+      text: response.answer?.answerText || "En löytänyt vastausta kysymykseesi.",
       sessionId: response.session?.name 
     });
 
   } catch (err: any) {
-    console.error("❌ AI API ERROR:", err.message);
-    res.status(500).json({ error: "AI-yhteysvirhe", details: err.message });
+    console.error("❌ VERTEX AI ERROR:", err);
+    res.status(500).json({ 
+      error: "AI-yhteysvirhe", 
+      details: err.message 
+    });
   }
 });
 
-// --- 4. STATIC FILES ---
-const distPath = path.join(process.cwd(), "dist");
-app.use(express.static(distPath));
-
-app.get("*", (req, res) => {
-  if (req.path.startsWith('/api')) return res.status(404).send("Not found");
-  res.sendFile(path.join(distPath, "index.html"));
-});
-
-// --- 5. START SERVER ---
-const PORT = process.env.PORT ? Number(process.env.PORT) : 8080;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Hessonpaja AI + Google Search on port ${PORT}`);
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log(`🚀 Hessonpaja-bäkendi rullaa portissa ${PORT}`);
+  console.log(`📍 Alue: ${LOCATION}, Engine: ${ENGINE_ID}`);
 });
