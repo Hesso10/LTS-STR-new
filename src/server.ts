@@ -38,7 +38,7 @@ app.get("/api/vertex-token", async (_req, res) => {
   }
 });
 
-// --- 3. CHAT ENDPOINT ---
+// --- 3. CHAT ENDPOINT (PÄIVITETTY GROUNDINGILLA) ---
 app.post("/api/chat", async (req, res) => {
   try {
     const message = String(req.body?.message ?? "").trim();
@@ -48,7 +48,7 @@ app.post("/api/chat", async (req, res) => {
 
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
 
-    console.log(`--- AI Kysely: "${message}" ---`);
+    console.log(`--- AI Kysely (Search Enabled): "${message}" ---`);
 
     const [response] = await client.answerQuery({
       servingConfig,
@@ -58,15 +58,24 @@ app.post("/api/chat", async (req, res) => {
         modelSpec: { 
           modelVersion: "preview" 
         },
+        
+        // --- TÄMÄ AKTIVOI GOOGLE-HAUN PDF-DATAN RINNALLE ---
+        groundingConfig: {
+          sources: [
+            { googleSearchSpec: {} } 
+          ]
+        },
+        
         promptSpec: {
-          preamble: "Olet Hessonpaja-yrityksen asiantuntija-avustaja. Vastaa ystävällisesti ja ammattimaisesti suomeksi annettujen PDF-lähteiden pohjalta.",
+          // Ohjeistetaan yhdistämään omat dokumentit ja verkkotieto
+          preamble: "Olet Hessonpaja-avustaja. Vastaa suomeksi yhdistämällä tietoja annetuista PDF-dokumenteista sekä tuoretta tietoa Google-hausta. Jos kysymys koskee tulevaisuutta tai strategioita, analysoi tilannetta molempien lähteiden pohjalta. Luo asiantunteva ja selkeä yhteenveto.",
         },
         includeCitations: true,
       },
     });
 
     res.json({ 
-      text: response.answer?.answerText || "Pahoittelut, en löytänyt vastausta kysymykseesi dokumenteista.",
+      text: response.answer?.answerText || "Pahoittelut, en löytänyt vastausta kysymykseesi dokumenteista tai verkosta.",
       sessionId: response.session?.name 
     });
 
@@ -88,5 +97,5 @@ app.get("*", (req, res) => {
 // --- 5. START SERVER ---
 const PORT = process.env.PORT ? Number(process.env.PORT) : 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 Hessonpaja AI + Google Search on port ${PORT}`);
 });
