@@ -26,7 +26,7 @@ const client = new ConversationalSearchServiceClient({
   apiEndpoint: "eu-discoveryengine.googleapis.com",
 });
 
-// Cloud Run Health Check
+// Cloud Run Health Check (Google käyttää tätä varmistamaan, että kontti on pystyssä)
 app.get("/healthz", (_req, res) => res.status(200).send("ok"));
 
 // --- 2. TOKEN ENDPOINT ---
@@ -49,43 +49,29 @@ app.post("/api/chat", async (req, res) => {
 
     if (!message) return res.status(400).json({ error: "Missing message" });
 
+    // Polku vastausten generointiin
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
+
+    console.log(`--- AI Kysely: "${message}" ---`);
 
     const [response] = await client.answerQuery({
       servingConfig,
       query: { text: message },
       session: sessionId ? { name: sessionId } : undefined,
       answerGenerationSpec: {
-        modelSpec: { modelVersion: "gemini-3-flash" },
+        modelSpec: { 
+          // KORJAUS: "gemini-3-flash" vaihdettu -> "preview"
+          // Tämä käyttää uusinta saatavilla olevaa Gemini-mallia Vertex AI Searchissa
+          modelVersion: "preview" 
+        },
         promptSpec: {
-          preamble: "Olet Hessonpaja-yrityksen asiantuntija-avustaja. Vastaa ystävällisesti suomeksi PDF-lähteiden pohjalta.",
+          preamble: "Olet Hessonpaja-yrityksen asiantuntija-avustaja. Vastaa ystävällisesti ja ammattimaisesti suomeksi annettujen PDF-lähteiden pohjalta. Jos vastausta ei löydy lähteistä, sano se kohteliaasti.",
         },
         includeCitations: true,
       },
     });
 
+    console.log("✅ AI vastaus generoitu onnistuneesti");
+
     res.json({ 
-      text: response.answer?.answerText || "En löytänyt vastausta dokumenteista.",
-      sessionId: response.session?.name 
-    });
-
-  } catch (err: any) {
-    console.error("AI Error:", err.message);
-    res.status(500).json({ error: "AI error", details: err.message });
-  }
-});
-
-// --- 4. STATIC FILES ---
-const distPath = path.join(process.cwd(), "dist");
-app.use(express.static(distPath));
-
-app.get("*", (req, res) => {
-  if (req.path.startsWith('/api')) return res.status(404).send("Not found");
-  res.sendFile(path.join(distPath, "index.html"));
-});
-
-// --- 5. START ---
-const PORT = process.env.PORT ? Number(process.env.PORT) : 8080;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server on port ${PORT}`);
-});
+      text: response.answer?.answerText ||
