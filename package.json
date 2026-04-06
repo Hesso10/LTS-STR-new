@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "@google-cloud/discoveryengine": "^2.6.0",
+    "google-auth-library": "^9.0.0",
     "@reduxjs/toolkit": "^2.0.1",
     "clsx": "^2.1.1",
     "cors": "^2.8.6",
