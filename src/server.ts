@@ -13,12 +13,12 @@ app.use(cors());
 app.use(express.json());
 
 // --- 1. CONFIGURATION ---
+// Varmista, että nämä tiedot ovat täsmälleen oikein Google Cloud -konsolista
 const PROJECT_ID = "superb-firefly-489705-g3";
 const LOCATION = "eu"; 
-// TÄRKEÄÄ: Päivitetty vastaamaan Apps-sivulta löytynyttä ID:tä
 const ENGINE_ID = "lts-str-toimii_1775296715292";
 
-// Alustetaan Auth-asiakas (Widgetin tukea varten)
+// Alustetaan Auth-asiakas
 const auth = new GoogleAuth({
   scopes: ['https://www.googleapis.com/auth/cloud-platform']
 });
@@ -32,20 +32,20 @@ const client = new ConversationalSearchServiceClient({
 app.get("/healthz", (_req, res) => res.status(200).send("ok"));
 
 // --- 2. TOKEN HANDSHAKE ENDPOINT ---
-// Käytetään jos tarvitaan <gen-search-widget> palikkaa
+// Käytetään jos tarvitaan <gen-search-widget> palikkaa frontendissä
 app.get("/api/vertex-token", async (_req, res) => {
   try {
     const authClient = await auth.getClient();
     const tokenResponse = await authClient.getAccessToken();
     
-    console.log("Successfully generated Vertex AI Access Token");
+    console.log("✅ Vertex AI Access Token generated successfully");
     
     res.json({ 
       token: tokenResponse.token,
       project: PROJECT_ID 
     });
   } catch (error: any) {
-    console.error("TOKEN GENERATION ERROR:", error.message);
+    console.error("❌ TOKEN GENERATION ERROR:", error.message);
     res.status(500).json({ error: "Failed to generate auth token" });
   }
 });
@@ -55,50 +55,25 @@ app.get("/api/vertex-token", async (_req, res) => {
 app.post("/api/chat", async (req, res) => {
   try {
     const message = String(req.body?.message ?? "").trim();
-    const sessionId = req.body?.sessionId; // Pitää keskustelulangan elossa
+    const sessionId = req.body?.sessionId; // Pitää keskustelulangan elossa (esim. projects/.../sessions/123)
 
-    if (!message) return res.status(400).json({ error: "Missing message" });
+    if (!message) {
+      return res.status(400).json({ error: "Missing message" });
+    }
 
-    // REITTI: Nyt polku käyttää oikeaa ENGINE_ID:tä
-    const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_config`;
+    // KORJAUS: Käytetään 'default_search' konfiguraatiota 'default_config' sijaan
+    const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
+
+    console.log(`--- Uusi kysymys: "${message}" ---`);
 
     const [response] = await client.answerQuery({
       servingConfig,
       query: { text: message },
       session: sessionId ? { name: sessionId } : undefined,
       answerGenerationSpec: {
-        modelSpec: { modelVersion: "stable" },
-        promptSpec: {
-          preamble: "Olet Hessonpaja-yrityksen asiantuntija-avustaja. Vastaa ystävällisesti ja ammattimaisesti suomeksi annettujen PDF-lähteiden pohjalta. Jos vastausta ei löydy lähteistä, sano se kohteliaasti.",
+        modelSpec: { 
+          // Valittu Gemini 3 Flash nopeuden ja suomen kielen sujuvuuden vuoksi
+          modelVersion: "gemini-3-flash" 
         },
-        includeCitations: true,
-      },
-    });
-
-    res.json({ 
-      text: response.answer?.answerText || "Pahoittelut, en löytänyt vastausta kysymykseesi dokumenteista.",
-      sessionId: response.session?.name // Palautetaan sessio-ID frontendiin
-    });
-
-  } catch (err: any) {
-    console.error("AI SEARCH API ERROR:", err.message);
-    res.status(500).json({ error: "Yhteys AI-palveluun epäonnistui." });
-  }
-});
-
-// --- 4. SERVE FRONTEND ---
-const distPath = path.join(process.cwd(), "dist");
-app.use(express.static(distPath));
-
-// SPA Support: Ohjataan kaikki muu liikenne Reactin index.html:ään
-app.get("*", (req, res) => {
-  if (req.path.startsWith('/api')) return res.status(404).json({error: "Not found"});
-  res.sendFile(path.join(distPath, "index.html"));
-});
-
-// --- 5. START SERVER ---
-const PORT = Number(process.env.PORT) || 8080;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Hessonpaja AI Backend running on port ${PORT}`);
-  console.log(`Targeting Engine: ${ENGINE_ID} in ${LOCATION}`);
-});
+        promptSpec: {
+          preamble: "Olet Hessonpaja-yrityksen asiantuntija-avustaja. Vastaa ystävällisesti ja ammattimaisesti suomeksi annettujen PDF-lähteiden
