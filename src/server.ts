@@ -48,33 +48,30 @@ app.post("/api/chat", async (req, res) => {
     let finalPreamble = "";
     let useGoogleSearchThreshold = 0.3;
 
-    // --- LOGIIKKA: TUNNUSANAT (LTS/STR) VS. VAPAA CHAT ---
+    // --- LOGIIKKA: MOODI A (LTS/STR) VS. MOODI B (KONSULTTI) ---
 
     if (messageUpper.startsWith("LTS-") || messageUpper.startsWith("STR-")) {
-      // MOODI A: ININSINÖÖRIMÄINEN TÄYTTÖAPU
-      const portal = messageUpper.startsWith("LTS-") ? "Liiketoimintasuunnitelma" : "Strategia";
+      // MOODI A: TEKNINEN TÄYTTÖAPU
       const file = messageUpper.startsWith("LTS-") ? "LTS LIIKETOIMINTASUUNNITELMA ohje.pdf" : "STRATEGIA ohje.pdf";
       
       finalPreamble = `
-        Olet tekninen avustaja ${portal}-portaalissa. 
-        TEHTÄVÄ: Anna tekninen ja insinöörimäinen täyttöohje PDF-tiedostosta '${file}'.
-        SÄÄNNÖT: 
-        1. Pysy tiukasti kyseisen lomakekohdan teknisessä ohjeessa.
-        2. Älä jaarittele tai käytä yleisiä esimerkkejä, elleivät ne ole PDF:ssä.
-        3. Ole lyhyt, suora ja muodollinen.
+        Olet tekninen avustaja. Tehtäväsi on antaa tarkkoja täyttöohjeita PDF-dokumentista '${file}'. 
+        SÄÄNNÖT:
+        1. Vastaa erittäin ytimekkäästi, enintään 3 lauseella tai lyhyellä listalla.
+        2. Pysy tiukasti dokumentin tekstissä ja teknisessä ohjeessa.
+        3. Älä käytä omia esimerkkejä tai mainitse ulkopuolisia yrityksiä tässä vaiheessa.
+        4. LOPETUS: Lopeta vastaus aina lyhyeen jatkokysymykseen, jossa tarjoat mahdollisuutta syventää aihetta ja oppia, miten kyseinen osa-alue tehdään hyvin ja miten siinä erotutaan kilpailijoista. Älä mainitse yritysten tai konsulttitalojen nimiä jatkokysymyksessä.
       `;
     } else {
-      // MOODI B: KONSULTTI & MAAILMANLUOKAN ESIMERKIT
+      // MOODI B: ASIANTUNTIJATASO (KONSULTTI)
       finalPreamble = `
-        Olet Hessonpajan kokenut liiketoimintakonsultti.
-        TEHTÄVÄ: Auta käyttäjää ymmärtämään liiketoiminnan ja strategian käsitteitä.
+        Olet kokenut liiketoimintakonsultti. Vastaa asiantuntevasti ja ytimekkäästi (max 5 bulletia).
         SÄÄNNÖT:
-        1. Käytä pohjana Hessonpajan PDF-dokumentteja, mutta JYKEVÖITÄ vastausta maailmanluokan esimerkeillä (kuten Apple, IKEA, Tesla, Southwest Airlines).
-        2. Hyödynnä aktiivisesti Google-hakua ja asiantuntijalähteitä (McKinsey, HBR, Strategyzer, Deloitte).
-        3. Älä sano 'Yhteenvetoa ei voitu luoda'. Jos PDF ei vastaa, vastaa nettilähteiden ja yleisen strategisen viisauden perusteella.
-        4. Vastaa inspiroivasti, asiantuntevasti ja ytimekkäästi (max 5 bulletia).
+        1. Hyödynnä PDF-dokumentteja pohjana, mutta laajenna vastausta teemaan parhaiten sopivilla asiantuntijalähteillä (esim. McKinsey, HBR, Strategyzer, Deloitte, Strategy&).
+        2. Käytä Google Searchia aktiivisesti löytääksesi parhaat metodit ja strategiset viisaudet.
+        3. LOPETUS: Lopeta vastaus aina lyhyeen jatkokysymykseen, jossa kysyt, haluaako käyttäjä syventää aihetta ja oppia lisää parhaista käytännöistä, strategisesta suunnittelusta ja kilpailuedun rakentamisesta. Älä mainitse yritysten tai konsulttitalojen nimiä jatkokysymyksessä.
       `;
-      useGoogleSearchThreshold = 0.15; // Sallivampi haku "konsultti-moodissa"
+      useGoogleSearchThreshold = 0.15; // Sallivampi haku konsultti-moodissa
     }
 
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
@@ -84,18 +81,27 @@ app.post("/api/chat", async (req, res) => {
       query: { text: message },
       session: sessionId ? { name: sessionId } : undefined,
       answerGenerationSpec: {
-        modelSpec: { modelVersion: "preview" },
+        modelSpec: { 
+          modelVersion: "preview" 
+        },
         promptSpec: { 
-          preamble: finalPreamble + " Vastaa suomeksi."
+          preamble: finalPreamble + " Vastaa suomeksi. Ole ytimekäs."
         },
         includeCitations: true,
+        summaryResultCount: 3, // Rajataan tietolähteiden määrää tiiviyden vuoksi
       },
       contentSearchSpec: {
-        extractiveContentSpec: { maxNextTokenCount: 500 },
-        snippetSpec: { maxSnippetCount: 5 },
+        extractiveContentSpec: { 
+          maxNextTokenCount: 500 
+        },
+        snippetSpec: { 
+          maxSnippetCount: 3 
+        },
         googleSearchSpec: {
           dynamicRetrievalConfig: {
-            predictor: { threshold: useGoogleSearchThreshold }
+            predictor: { 
+              threshold: useGoogleSearchThreshold 
+            }
           }
         }
       }
