@@ -57,10 +57,13 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="flex flex-col h-full min-h-[500px] bg-slate-900 text-white rounded-lg overflow-hidden border border-slate-700 shadow-2xl">
+    /* MUUTOS: Lisätty 'fixed', 'bottom-6', 'right-6', 'w-[400px]', 'h-[600px]', 'max-h-[85vh]' ja 'z-[9999]'.
+       Tämä lukitsee ikkunan ja estää taustan venymisen.
+    */
+    <div className="fixed bottom-6 right-6 w-[400px] h-[600px] max-h-[85vh] flex flex-col bg-slate-900 text-white rounded-xl overflow-hidden border border-slate-700 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[9999]">
       
       {/* Header */}
-      <div className="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center">
+      <div className="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center shrink-0">
         <div className="flex items-center gap-2">
           <div className="relative">
             <Bot className="text-blue-400" size={24} />
@@ -81,63 +84,13 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
         )}
       </div>
 
-      {/* Message Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+      {/* Message Area 
+          MUUTOS: Lisätty 'overscroll-contain' estämään taustan skrollaus kun chatin loppu saavutetaan.
+      */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar overscroll-contain bg-slate-900/50">
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`flex gap-2 max-w-[85%] ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
               <div className={`mt-1 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${m.role === 'user' ? 'bg-blue-600' : 'bg-slate-700'}`}>
                 {m.role === 'user' ? <span className="text-[10px] font-bold">ME</span> : <Sparkles size={12} className="text-blue-300" />}
               </div>
-              <div className={`p-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                m.role === 'user' 
-                  ? 'bg-blue-600 text-white rounded-tr-none' 
-                  : 'bg-slate-800 border border-slate-700 text-slate-100 rounded-tl-none'
-              }`}>
-                {m.text}
-              </div>
-            </div>
-          </div>
-        ))}
-        
-        {isTyping && (
-          <div className="flex justify-start">
-            <div className="bg-slate-800 border border-slate-700 p-3 rounded-2xl rounded-tl-none flex items-center gap-2">
-              <Loader2 className="animate-spin text-blue-400" size={16} />
-              <span className="text-xs text-slate-400 font-medium italic">Hessonpaja AI hakee vastausta...</span>
-            </div>
-          </div>
-        )}
-        <div ref={scrollRef} />
-      </div>
-
-      {/* Input Area */}
-      <div className="p-4 bg-slate-800/50 border-t border-slate-700">
-        <div className="relative flex items-center gap-2">
-          <input 
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Kirjoita kysymyksesi tähän..."
-            className="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all placeholder:text-slate-500"
-          />
-          <button 
-            onClick={handleSend}
-            disabled={!input.trim() || isTyping}
-            className={`p-3 rounded-xl transition-all ${
-              input.trim() && !isTyping 
-                ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/40" 
-                : "bg-slate-700 text-slate-500 cursor-not-allowed"
-            }`}
-          >
-            <Send size={18} />
-          </button>
-        </div>
-        <p className="text-[9px] text-center text-slate-500 mt-3 uppercase tracking-tighter">
-          Tekoäly voi erehtyä. Tarkista tärkeät tiedot alkuperäisistä PDF-dokumenteista.
-        </p>
-      </div>
-    </div>
-  );
-};
