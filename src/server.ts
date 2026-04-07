@@ -48,30 +48,32 @@ app.post("/api/chat", async (req, res) => {
     let finalPreamble = "";
     let useGoogleSearchThreshold = 0.3;
 
-    // --- LOGIIKKA: MOODI A (LTS/STR) VS. MOODI B (KONSULTTI) ---
+    // --- LOGIIKKA: MOODI A (TEKNINEN) VS. MOODI B (KONSULTTI) ---
 
     if (messageUpper.startsWith("LTS-") || messageUpper.startsWith("STR-")) {
-      // MOODI A: TEKNINEN TÄYTTÖAPU
+      // MOODI A: TEKNINEN TÄYTTÖAPU (Vain PDF-sisältö)
       const file = messageUpper.startsWith("LTS-") ? "LTS LIIKETOIMINTASUUNNITELMA ohje.pdf" : "STRATEGIA ohje.pdf";
       
       finalPreamble = `
-        Olet tekninen avustaja. Tehtäväsi on antaa tarkkoja täyttöohjeita PDF-dokumentista '${file}'. 
+        Olet tekninen avustaja. Tehtäväsi on antaa tarkkoja täyttöohjeita PDF-dokumentista '${file}'.
         SÄÄNNÖT:
-        1. Vastaa erittäin ytimekkäästi, enintään 3 lauseella tai lyhyellä listalla.
+        1. Vastaa erittäin ytimekkäästi, max 3 lausetta tai lyhyt lista.
         2. Pysy tiukasti dokumentin tekstissä ja teknisessä ohjeessa.
-        3. Älä käytä omia esimerkkejä tai mainitse ulkopuolisia yrityksiä tässä vaiheessa.
-        4. LOPETUS: Lopeta vastaus aina lyhyeen jatkokysymykseen, jossa tarjoat mahdollisuutta syventää aihetta ja oppia, miten kyseinen osa-alue tehdään hyvin ja miten siinä erotutaan kilpailijoista. Älä mainitse yritysten tai konsulttitalojen nimiä jatkokysymyksessä.
+        3. Älä käytä omia esimerkkejä tai nettiä tässä moodissa.
+        4. LOPETUS: Lopeta aina kysymykseen: "Haluatko syventää tätä ja oppia, miten tehdään hyviä [AIHE] ja erotutaan kilpailijoista?"
       `;
     } else {
-      // MOODI B: ASIANTUNTIJATASO (KONSULTTI)
+      // MOODI B: ASIANTUNTIJATASO (PDF + Netti käytännönläheisesti)
       finalPreamble = `
-        Olet kokenut liiketoimintakonsultti. Vastaa asiantuntevasti ja ytimekkäästi (max 5 bulletia).
+        Olet kokenut liiketoimintakonsultti. Auta yrittäjää LTS-prosessin eri vaiheissa.
         SÄÄNNÖT:
-        1. Hyödynnä PDF-dokumentteja pohjana, mutta laajenna vastausta teemaan parhaiten sopivilla asiantuntijalähteillä (esim. McKinsey, HBR, Strategyzer, Deloitte, Strategy&).
-        2. Käytä Google Searchia aktiivisesti löytääksesi parhaat metodit ja strategiset viisaudet.
-        3. LOPETUS: Lopeta vastaus aina lyhyeen jatkokysymykseen, jossa kysyt, haluaako käyttäjä syventää aihetta ja oppia lisää parhaista käytännöistä, strategisesta suunnittelusta ja kilpailuedun rakentamisesta. Älä mainitse yritysten tai konsulttitalojen nimiä jatkokysymyksessä.
+        1. Vastaustyyli: Ole erittäin ytimekäs (vähintään puolet lyhyempi kuin tavallinen LLM-vastaus). Max 5 lyhyttä bulletia.
+        2. Tietolähteet: Yhdistä AINA PDF-ohjeiden faktat (kuten prosessin vaiheet tai yritysmuodot) ja netistä löytyvä käytännön faktatieto (kuten verot, TyEL-maksut, lainsäädäntö tai työkalut).
+        3. Fokus: Vältä akateemisia trendejä ja globaalia jargonia. Pysy suomalaisen pk-yrittäjän arjessa ja konkretiassa.
+        4. Esimerkki: Jos kysytään kustannuksista, kerro PDF:n budjetointiohje JA netin mukaiset sivukulut. Jos kysytään markkinoinnista, kerro PDF:n kanavaohje JA nykyiset työkalut.
+        5. LOPETUS: Lopeta aina kysymykseen: "Haluatko syventää tätä ja oppia, miten tehdään hyviä [AIHE] ja erotutaan kilpailijoista?"
       `;
-      useGoogleSearchThreshold = 0.15; // Sallivampi haku konsultti-moodissa
+      useGoogleSearchThreshold = 0.15; 
     }
 
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
@@ -88,7 +90,7 @@ app.post("/api/chat", async (req, res) => {
           preamble: finalPreamble + " Vastaa suomeksi. Ole ytimekäs."
         },
         includeCitations: true,
-        summaryResultCount: 3, // Rajataan tietolähteiden määrää tiiviyden vuoksi
+        summaryResultCount: 3, 
       },
       contentSearchSpec: {
         extractiveContentSpec: { 
