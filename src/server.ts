@@ -14,7 +14,7 @@ app.use(express.json());
 // --- CONFIGURATION ---
 const PROJECT_ID = "16978149266"; 
 const LOCATION = "global"; 
-const ENGINE_ID = "lts-str_1775467703431"; // Advanced Website Engine ID
+const ENGINE_ID = "lts-str_1775467703431"; 
 
 const auth = new GoogleAuth({
   scopes: ['https://www.googleapis.com/auth/cloud-platform']
@@ -44,9 +44,53 @@ app.post("/api/chat", async (req, res) => {
 
     if (!message) return res.status(400).json({ error: "Missing message" });
 
+    const messageUpper = message.toUpperCase();
+    let dynamicPreamble = "";
+    let useGoogleSearchThreshold = 0.3; // Oletus: maltillinen haku
+
+    // --- DYNAAMINEN KONTEKSTIN TUNNISTUS ---
+
+    if (messageUpper.startsWith("STR-")) {
+      // STRATEGIA-PORTAALI
+      const section = messageUpper.split('-')[1] || "";
+      
+      if (section.includes("YRITYS")) {
+        dynamicPreamble = "Olet asiantuntija yrityksen identiteetin määrittelyssä. Käytä 'STRATEGIA ohje.pdf'. Auta kirkastamaan missio ja visio.";
+      } else if (section.includes("TOIMINTAYMPÄRISTÖ")) {
+        dynamicPreamble = "Olet markkina-analyytikko. Hyödynnä Tilastokeskusta, Suomen Pankkia ja Tullia. Analysoi megatrendejä.";
+        useGoogleSearchThreshold = 0.1; // Tarvitaan tuoretta tietoa
+      } else if (section.includes("LIIKETOIMINTAMALLI")) {
+        dynamicPreamble = "Olet Business Designer. Käytä Strategyzer-metodeja (Value Proposition & Business Model Canvas). Painota arvolupausta.";
+      } else {
+        dynamicPreamble = "Olet strategia-asiantuntija. Käytä McKinsey, HBR ja Deloitte -lähteitä globaaleihin esimerkkeihin. Lähde: 'STRATEGIA ohje.pdf'.";
+      }
+    } 
+    else if (messageUpper.startsWith("LTS-")) {
+      // LIIKETOIMINTASUUNNITELMA-PORTAALI
+      const section = messageUpper.split('-')[1] || "";
+
+      if (section.includes("PERUSTEET") || section.includes("LIIKEIDEA")) {
+        dynamicPreamble = "Olet yritysneuvoja. Käytä 'LTS LIIKETOIMINTASUUNNITELMA ohje.pdf'. Neuvo käytännönläheisesti yrityksen perustamisessa.";
+      } else if (section.includes("TOIMINTAYMPÄRISTÖ")) {
+        dynamicPreamble = "Olet markkinatutkija. Käytä Stat.fi ja Tullin vientitilastoja. Peilaa tietoa PDF-ohjeen rakenteeseen.";
+        useGoogleSearchThreshold = 0.1;
+      } else if (section.includes("LASKELMAT")) {
+        dynamicPreamble = "Olet talousasiantuntija. Neuvo kassavirta- ja rahoituslaskelmissa erittäin tarkasti ja analyyttisesti.";
+      } else {
+        dynamicPreamble = "Olet Hessonpajan LTS-asiantuntija. Käytä ensisijaisesti 'LTS LIIKETOIMINTASUUNNITELMA ohje.pdf'.";
+      }
+    } 
+    else {
+      // YLEINEN CHAT
+      dynamicPreamble = "Olet Hessonpaja-avustaja, liiketoiminnan suunnittelun asiantuntija. Vastaa ytimekkäästi ja auttavasti.";
+    }
+
+    // Lopullinen ohjeistus (Preamble)
+    const finalPreamble = `${dynamicPreamble} Vastaa suomeksi. Ole erittäin ytimekäs (max 3-5 lausetta). Käytä bullet pointeja. Jos käytät verkkolähteitä, mainitse ne vastauksen lopussa.`;
+
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
 
-    console.log(`--- 🚀 AI Kysely (Yhdistetty PDF + Google Search): "${message}" ---`);
+    console.log(`--- 🚀 Route: ${messageUpper.split(' ')[0]} | Grounding: ${useGoogleSearchThreshold} ---`);
 
     const [response] = await client.answerQuery({
       servingConfig,
@@ -57,23 +101,21 @@ app.post("/api/chat", async (req, res) => {
           modelVersion: "preview" 
         },
         promptSpec: {
-          preamble: "Olet Hessonpaja-avustaja. Vastaa suomeksi. Käytä ensisijaisesti PDF-dokumentteja (Bucket). Jos vastausta ei löydy niistä (esim. sää tai yleinen tieto), käytä Google-hakua vastauksen muodostamiseen.",
+          preamble: finalPreamble,
         },
         includeCitations: true,
       },
-      // TÄMÄ ON SE RATKAISEVA OSA: Aktivoi Google Search Groundingin
       contentSearchSpec: {
         extractiveContentSpec: { 
-          maxNextTokenCount: 1000 
+          maxNextTokenCount: 500 // Tiivistetty vastauspituus
         },
         snippetSpec: {
-          maxSnippetCount: 5
+          maxSnippetCount: 3 // Vain oleellisimmat palaset
         },
         googleSearchSpec: {
           dynamicRetrievalConfig: {
             predictor: {
-              // Threshold 0.1 pakottaa mallin käyttämään Google-hakua erittäin herkästi
-              threshold: 0.1 
+              threshold: useGoogleSearchThreshold 
             }
           }
         }
@@ -106,5 +148,5 @@ app.get("*", (req, res) => {
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Hessonpaja Master (Grounding Enabled) running on port ${PORT}`);
+  console.log(`🚀 Hessonpaja Master Intelligence running on port ${PORT}`);
 });
