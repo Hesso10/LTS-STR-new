@@ -45,84 +45,68 @@ app.post("/api/chat", async (req, res) => {
     if (!message) return res.status(400).json({ error: "Missing message" });
 
     const messageUpper = message.toUpperCase();
-    let dynamicPreamble = "";
-    let useGoogleSearchThreshold = 0.3; // Oletus: maltillinen haku
+    let contextSpecificPreamble = "";
+    let useGoogleSearchThreshold = 0.3; // Nostettu 0.1 -> 0.3 vakauden vuoksi
 
     // --- DYNAAMINEN KONTEKSTIN TUNNISTUS ---
-
     if (messageUpper.startsWith("STR-")) {
-      // STRATEGIA-PORTAALI
       const section = messageUpper.split('-')[1] || "";
-      
       if (section.includes("YRITYS")) {
-        dynamicPreamble = "Olet asiantuntija yrityksen identiteetin määrittelyssä. Käytä 'STRATEGIA ohje.pdf'. Auta kirkastamaan missio ja visio.";
+        contextSpecificPreamble = "Käytä 'STRATEGIA ohje.pdf' kirkastamaan missiota.";
       } else if (section.includes("TOIMINTAYMPÄRISTÖ")) {
-        dynamicPreamble = "Olet markkina-analyytikko. Hyödynnä Tilastokeskusta, Suomen Pankkia ja Tullia. Analysoi megatrendejä.";
-        useGoogleSearchThreshold = 0.1; // Tarvitaan tuoretta tietoa
+        contextSpecificPreamble = "Hyödynnä Tilastokeskusta, Suomen Pankkia ja Tullia.";
+        useGoogleSearchThreshold = 0.1; // Toimintaympäristössä herkempi haku
       } else if (section.includes("LIIKETOIMINTAMALLI")) {
-        dynamicPreamble = "Olet Business Designer. Käytä Strategyzer-metodeja (Value Proposition & Business Model Canvas). Painota arvolupausta.";
+        contextSpecificPreamble = "Käytä Strategyzer-metodeja (Value Proposition & Business Model Canvas).";
       } else {
-        dynamicPreamble = "Olet strategia-asiantuntija. Käytä McKinsey, HBR ja Deloitte -lähteitä globaaleihin esimerkkeihin. Lähde: 'STRATEGIA ohje.pdf'.";
+        contextSpecificPreamble = "Käytä McKinsey, HBR ja Deloitte -lähteitä globaaleihin esimerkkeihin.";
       }
     } 
     else if (messageUpper.startsWith("LTS-")) {
-      // LIIKETOIMINTASUUNNITELMA-PORTAALI
       const section = messageUpper.split('-')[1] || "";
-
       if (section.includes("PERUSTEET") || section.includes("LIIKEIDEA")) {
-        dynamicPreamble = "Olet yritysneuvoja. Käytä 'LTS LIIKETOIMINTASUUNNITELMA ohje.pdf'. Neuvo käytännönläheisesti yrityksen perustamisessa.";
-      } else if (section.includes("TOIMINTAYMPÄRISTÖ")) {
-        dynamicPreamble = "Olet markkinatutkija. Käytä Stat.fi ja Tullin vientitilastoja. Peilaa tietoa PDF-ohjeen rakenteeseen.";
-        useGoogleSearchThreshold = 0.1;
+        contextSpecificPreamble = "Käytä 'LTS LIIKETOIMINTASUUNNITELMA ohje.pdf'. Neuvo yrityksen perustamisessa.";
       } else if (section.includes("LASKELMAT")) {
-        dynamicPreamble = "Olet talousasiantuntija. Neuvo kassavirta- ja rahoituslaskelmissa erittäin tarkasti ja analyyttisesti.";
-      } else {
-        dynamicPreamble = "Olet Hessonpajan LTS-asiantuntija. Käytä ensisijaisesti 'LTS LIIKETOIMINTASUUNNITELMA ohje.pdf'.";
+        contextSpecificPreamble = "Neuvo kassavirta- ja rahoituslaskelmissa tarkasti.";
       }
-    } 
-    else {
-      // YLEINEN CHAT
-      dynamicPreamble = "Olet Hessonpaja-avustaja, liiketoiminnan suunnittelun asiantuntija. Vastaa ytimekkäästi ja auttavasti.";
     }
 
-    // Lopullinen ohjeistus (Preamble)
-    const finalPreamble = `${dynamicPreamble} Vastaa suomeksi. Ole erittäin ytimekäs (max 3-5 lausetta). Käytä bullet pointeja. Jos käytät verkkolähteitä, mainitse ne vastauksen lopussa.`;
+    // --- PRIORISOITU JA SALLIVA OHJEISTUS ---
+    const finalPreamble = `
+      Olet Hessonpajan Professional AI -liiketoimintakonsultti. 
+      NOUDATA TÄTÄ PRIORITEETTIA:
+      1. Etsi vastaus PDF-dokumenteista (LTS/STR ohjeet).
+      2. Jos PDF ei sisällä vastausta, hyödynnä asiantuntijalähteitä (McKinsey, HBR, Suomen Pankki, Tulli, Strategyzer).
+      3. Jos aihe on yleinen (esim. 'ostajapersoona'), käytä Google-hakua ja vastaa asiantuntevasti.
+      
+      ÄLÄ sano 'Yhteenvetoa ei voitu luoda', jos aiheesta on yleistä tietoa saatavilla. 
+      Vastaa suomeksi, ytimekkäästi (max 4 lausetta) ja käytä bullet pointeja.
+      ${contextSpecificPreamble}
+    `;
 
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
-
-    console.log(`--- 🚀 Route: ${messageUpper.split(' ')[0]} | Grounding: ${useGoogleSearchThreshold} ---`);
 
     const [response] = await client.answerQuery({
       servingConfig,
       query: { text: message },
       session: sessionId ? { name: sessionId } : undefined,
       answerGenerationSpec: {
-        modelSpec: { 
-          modelVersion: "preview" 
-        },
-        promptSpec: {
-          preamble: finalPreamble,
-        },
+        modelSpec: { modelVersion: "preview" },
+        promptSpec: { preamble: finalPreamble },
         includeCitations: true,
       },
       contentSearchSpec: {
-        extractiveContentSpec: { 
-          maxNextTokenCount: 500 // Tiivistetty vastauspituus
-        },
-        snippetSpec: {
-          maxSnippetCount: 3 // Vain oleellisimmat palaset
-        },
+        extractiveContentSpec: { maxNextTokenCount: 500 },
+        snippetSpec: { maxSnippetCount: 5 },
         googleSearchSpec: {
           dynamicRetrievalConfig: {
-            predictor: {
-              threshold: useGoogleSearchThreshold 
-            }
+            predictor: { threshold: useGoogleSearchThreshold }
           }
         }
       }
     });
 
-    const answerText = response.answer?.answerText || "En löytänyt vastausta lähteistäni.";
+    const answerText = response.answer?.answerText || "En löytänyt vastausta. Kokeile kysyä toisella tavalla.";
 
     res.json({ 
       text: answerText,
@@ -131,13 +115,11 @@ app.post("/api/chat", async (req, res) => {
 
   } catch (err: any) {
     console.error("❌ BACKEND ERROR:", err.message);
-    res.status(500).json({ 
-      error: "AI-yhteysvirhe", 
-      details: err.message 
-    });
+    res.status(500).json({ error: "AI-yhteysvirhe" });
   }
 });
 
+// --- STATIC FILES & ROUTING ---
 const distPath = path.join(process.cwd(), "dist");
 app.use(express.static(distPath));
 
@@ -148,5 +130,5 @@ app.get("*", (req, res) => {
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Hessonpaja Master Intelligence running on port ${PORT}`);
+  console.log(`🚀 Hessonpaja Intelligence running on port ${PORT}`);
 });
