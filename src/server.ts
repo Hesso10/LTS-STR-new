@@ -1,14 +1,15 @@
 import express from "express";
 import { ConversationalSearchServiceClient } from "@google-cloud/discoveryengine";
-import { GoogleAuth } from 'google-auth-library';
 import path from "path";
 import cors from "cors";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-// Force the app to use your key file
-process.env.GOOGLE_APPLICATION_CREDENTIALS = path.join(process.cwd(), "google-key.json");
+/**
+ * HUOM: POISTETTU process.env.GOOGLE_APPLICATION_CREDENTIALS -rivi.
+ * Cloud Run käyttää automaattisesti sille annettua Service Account -roolia (Discovery Engine Viewer).
+ */
 
 const app = express();
 app.use(cors());
@@ -25,11 +26,13 @@ app.post("/api/chat", async (req, res) => {
     const { message, sessionId } = req.body;
     if (!message) return res.status(400).json({ error: "Missing message" });
 
-    // Use Moodi A/B Logic
-    const isTechnical = message.toUpperCase().startsWith("LTS-") || message.toUpperCase().startsWith("STR-");
+    const messageUpper = message.toUpperCase();
+    const isTechnical = messageUpper.startsWith("LTS-") || messageUpper.startsWith("STR-");
+    
+    // Moodi A (Tekninen PDF) vs Moodi B (Konsultti + Google Search)
     const preamble = isTechnical 
-      ? "Olet tekninen avustaja. Vastaa PDF-dokumenttien pohjalta lyhyesti." 
-      : "Olet liiketoimintakonsultti. Yhdistä PDF-tiedot ja yleistieto yrittäjälle.";
+      ? "Olet tekninen avustaja. Vastaa PDF-dokumenttien pohjalta lyhyesti ja ytimekkäästi." 
+      : "Olet liiketoimintakonsultti. Yhdistä PDF-tiedot ja Google-haun ajankohtaiset tiedot (kuten verot ja TyEL).";
 
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
 
@@ -39,8 +42,19 @@ app.post("/api/chat", async (req, res) => {
       session: sessionId ? { name: sessionId } : undefined,
       answerGenerationSpec: {
         modelSpec: { modelVersion: "gemini-1.5-pro/answer_gen/v1" },
-        promptSpec: { preamble: preamble + " Vastaa suomeksi." },
+        promptSpec: { preamble: preamble + " Vastaa suomeksi. Lopeta kysymykseen: Haluatko syventää tätä?" },
         includeCitations: true,
+      },
+      contentSearchSpec: {
+        summaryResultCount: 3,
+        // TÄMÄ ON SE "REMAINING 50%": Aktivoi Google Search -ikkunan Standard-mallissa
+        googleSearchSpec: {
+          dynamicRetrievalConfig: {
+            predictor: {
+              threshold: isTechnical ? 0.9 : 0.15 // Konsulttimoodissa käytetään Googlea herkemmin
+            }
+          }
+        }
       }
     });
 
@@ -49,7 +63,8 @@ app.post("/api/chat", async (req, res) => {
       sessionId: response.session?.name 
     });
   } catch (err: any) {
-    console.error("Vertex Error:", err.message);
+    // Logataan tarkka virhe palvelimen lokiin, mutta palautetaan selkeä virhe käyttäjälle
+    console.error("Vertex AI Details:", err);
     res.status(500).json({ error: "AI Connection Failed" });
   }
 });
@@ -57,6 +72,7 @@ app.post("/api/chat", async (req, res) => {
 // Serve Vite build
 const distPath = path.join(process.cwd(), "dist");
 app.use(express.static(distPath));
+
 app.get("*", (req, res) => {
   if (!req.path.startsWith('/api')) {
     res.sendFile(path.join(distPath, "index.html"));
@@ -64,4 +80,6 @@ app.get("*", (req, res) => {
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`🚀 Hessonpaja running on port ${PORT}`));
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Hessonpaja Intelligence (Standard Edition) running on port ${PORT}`);
+});
