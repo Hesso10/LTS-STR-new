@@ -23,33 +23,58 @@ app.post("/api/chat", async (req, res) => {
     const { message, sessionId } = req.body;
     if (!message) return res.status(400).json({ error: "Missing message" });
 
-    // Tunnistetaan tunnussanat LTS ja STR
-    const isTechnical = message.toUpperCase().includes("LTS") || message.toUpperCase().includes("STR");
-    const searchThreshold = isTechnical ? 0.05 : 0.15;
+    const cleanMsg = message.toUpperCase();
+    const isLTS = cleanMsg.includes("LTS");
+    const isSTR = cleanMsg.includes("STR");
+    const isMitenQuery = cleanMsg.includes("MITEN") || cleanMsg.includes("KYVYKKY");
+    
+    // 1. LOGIIKKA: Pakotetaan tarkennus, jos kysytään vain yleistä STR-strategiaa
+    const isGenericSTR = cleanMsg === "STR" || cleanMsg === "STR STRATEGIA" || cleanMsg === "STRATEGIA";
+    if (isGenericSTR) {
+      return res.json({
+        text: "Haluatko ohjeita strategian rakentamiseen? Strategia-osio koostuu seuraavista kohdista. Kerro minulle, mitä näistä työstät:\n\n" +
+              "* **Visio**: Aikaan sidottu päätavoite.\n" +
+              "* **Arvot**: Toiminnan eettinen perusta.\n" +
+              "* **Diagnoosi**: Yhteenveto toimintaympäristön analyysistä.\n" +
+              "* **Miten (Kyvykkyydet)**: Maksimissaan 6 reagointia diagnoosiin.",
+        sessionId: sessionId 
+      });
+    }
 
-    // OHJEISTUS (PREAMBLE): Hyödyntää PDF-dokumenttien sisältöä
+    // 2. DYNAMIC THRESHOLD: Madalletaan kynnystä tunnussanoilla, jotta haku aktivoituu herkästi
+    const searchThreshold = (isLTS || isSTR || isMitenQuery) ? 0.01 : 0.15;
+
+    // 3. TIUKENNETTU OHJEISTUS (PREAMBLE)
     const preamble = `
-      Olet Hessonpajan kokenut liiketoimintakonsultti. Käytössäsi on kaksi pääohjetta: "LTS LIIKETOIMINTASUUNNITELMA ohje" ja "STRATEGIA ohje".
+      Olet asiantunteva liiketoimintakonsultti. Käytössäsi on useita korkealaatuisia tietolähteitä:
+      - Portaalin omat ohjeet (LTS LIIKETOIMINTASUUNNITELMA ohje ja STRATEGIA ohje).
+      - Valtioneuvoston tulevaisuusselonteko 2024:54 (Konkreettiset PESTEL-esimerkit vuoteen 2045).
+      - Globaalit asiantuntijat: Strategyzer, Deloitte, McKinsey, HBR sekä PwC Strategy&.
 
-      TOIMINTAOHJEET:
-      1. TUNNISTA KONTEKSTI: 
-         - Jos viestissä on "LTS", käytä ensisijaisena lähteenä LTS LIIKETOIMINTASUUNNITELMA ohjetta.
-         - Jos viestissä on "STR", käytä ensisijaisena lähteenä STRATEGIA ohjetta.
+      VASTAUSSÄÄNNÖT:
+      - ÄLÄ käytä termejä "Hessonpaja" tai "kokenut". Ole ammattimainen, suora ja sparraava.
+      - Vastaa AINA suomeksi. Käytä TUPLARIVIVAIHTOA kappaleiden välissä.
+      - Lihavoi keskeiset termit.
+
+      KONTEKSTIKOHTAISET OHJEET:
+      1. ULKOINEN ANALYYSI (PESTEL): Kun käyttäjä tekee LTS- tai STR-analyysia (Poliittinen, Taloudellinen, Sosiaalinen, Teknologinen, Ekologinen, Lainsäädännöllinen):
+         - Hae portaalin ohjeesta perusmääritelmä.
+         - Täydennä vastausta Valtioneuvoston selonteon (2024:54) tuoreilla esimerkeillä (esim. tekoälyn murros, huoltovarmuus tai demografiset muutokset).
       
-      2. OTSIKKOHAKU: 
-         - Käyttäjä antaa tunnussanan jälkeen kentän nimen (esim. "LTS Liikeidea" tai "STR Arvolupaus").
-         - Etsi dokumentista kyseistä otsikkoa vastaava kohta (esim. Liikeidea tai Arvolupaus) ja tarjoa lyhyt ohje.
+      2. STR MITEN (KYVYKKYYDET): Kun käyttäjä työstää kyvykkyyksiä:
+         - Muistuta portaalin säännöstä: max 6 kyvykkyyttä, jotka vastaavat diagnoosiin.
+         - Rikasta vastausta Google Searchilla poimimalla esimerkkejä lähteistä: mckinsey.com, hbr.org, deloitte.com ja strategyand.pwc.com.
+         - Hyödynnä erityisesti PwC Strategy& -näkökulmaa "Capabilities-Driven Strategy".
       
-      3. VASTAUKSEN MUOTOILU:
-         - Vastaa aina suomeksi.
-         - Käytä TUPLARIVIVAIHTOA tekstikappaleiden välissä.
-         - Jos ohjeessa on apukysymyksiä (esim. Mitä? Miten? Kenelle?), listaa ne selkeästi.
+      3. STR LIIKETOIMINTAMALLI: Kun aiheena on Arvolupaus, Kanavat, Tulot tai Kustannukset:
+         - Käytä pohjana Strategyzerin (strategyzer.com) oppeja Value Proposition Designista ja Business Model Canvasista.
+         - Selitä, miten yritys luo, tuottaa ja kotiuttaa arvoa.
 
       LOPETA JOKAINEN VASTAUS NÄIN:
       ---
       **Ehdotukset jatkokysymyksiksi:**
-      * [Aiheeseen liittyvä kysymys]
-      * [Toinen kysymys]
+      * [Lisää tähän lyhyt jatkokysymys, joka auttaa käyttäjää syventämään tätä kohtaa]
+      * [Lisää toinen konkreettinen jatkoaskel]
     `;
 
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
@@ -66,13 +91,17 @@ app.post("/api/chat", async (req, res) => {
       contentSearchSpec: {
         summaryResultCount: 5,
         googleSearchSpec: {
-          dynamicRetrievalConfig: { predictor: { threshold: searchThreshold } }
+          dynamicRetrievalConfig: { 
+            predictor: { 
+              threshold: searchThreshold 
+            } 
+          }
         }
       }
     });
 
     res.json({ 
-      text: response.answer?.answerText || "Pahoittelut, en löytänyt ohjetta. Kokeile esim: 'LTS Liikeidea'.",
+      text: response.answer?.answerText || "En löytänyt tarkkaa ohjetta. Kokeile syöttää tunnussana ja otsikko, esim. 'LTS Liikeidea' tai 'STR Visio'.",
       sessionId: response.session?.name 
     });
   } catch (err: any) {
@@ -81,7 +110,7 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// Staattiset tiedostot
+// Staattisten tiedostojen tarjoilu (Frontend build)
 const distPath = path.join(process.cwd(), "dist");
 app.use(express.static(distPath));
 
@@ -91,7 +120,6 @@ app.get("*", (req, res) => {
   }
 });
 
-// TÄRKEÄÄ CLOUD RUNILLE: Kuunnellaan porttia 0.0.0.0 osoitteessa
 const PORT = process.env.PORT || 8080;
 app.listen(Number(PORT), "0.0.0.0", () => {
   console.log(`🚀 Palvelin käynnissä portissa ${PORT}`);
