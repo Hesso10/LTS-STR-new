@@ -6,11 +6,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-/**
- * HUOM: POISTETTU process.env.GOOGLE_APPLICATION_CREDENTIALS -rivi.
- * Cloud Run käyttää automaattisesti sille annettua Service Account -roolia (Discovery Engine Viewer).
- */
-
+// HUOM: Emme käytä google-key.jsonia tässä, vaan Cloud Runin omaa IAM-identiteettiä.
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -29,10 +25,9 @@ app.post("/api/chat", async (req, res) => {
     const messageUpper = message.toUpperCase();
     const isTechnical = messageUpper.startsWith("LTS-") || messageUpper.startsWith("STR-");
     
-    // Moodi A (Tekninen PDF) vs Moodi B (Konsultti + Google Search)
     const preamble = isTechnical 
       ? "Olet tekninen avustaja. Vastaa PDF-dokumenttien pohjalta lyhyesti ja ytimekkäästi." 
-      : "Olet liiketoimintakonsultti. Yhdistä PDF-tiedot ja Google-haun ajankohtaiset tiedot (kuten verot ja TyEL).";
+      : "Olet liiketoimintakonsultti. Yhdistä PDF-tiedot ja Google-haun ajankohtaiset tiedot.";
 
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
 
@@ -41,17 +36,19 @@ app.post("/api/chat", async (req, res) => {
       query: { text: message },
       session: sessionId ? { name: sessionId } : undefined,
       answerGenerationSpec: {
-        modelSpec: { modelVersion: "gemini-1.5-pro/answer_gen/v1" },
-        promptSpec: { preamble: preamble + " Vastaa suomeksi. Lopeta kysymykseen: Haluatko syventää tätä?" },
+        // MUUTOS: Poistettu modelVersion, jotta API valitsee automaattisesti tuetun Standard-mallin
+        promptSpec: { 
+          preamble: preamble + " Vastaa suomeksi. Lopeta kysymykseen: Haluatko syventää tätä?" 
+        },
         includeCitations: true,
       },
       contentSearchSpec: {
         summaryResultCount: 3,
-        // TÄMÄ ON SE "REMAINING 50%": Aktivoi Google Search -ikkunan Standard-mallissa
+        // Google Search Grounding - kooditason aktivointi
         googleSearchSpec: {
           dynamicRetrievalConfig: {
             predictor: {
-              threshold: isTechnical ? 0.9 : 0.15 // Konsulttimoodissa käytetään Googlea herkemmin
+              threshold: isTechnical ? 0.9 : 0.15 
             }
           }
         }
@@ -63,13 +60,12 @@ app.post("/api/chat", async (req, res) => {
       sessionId: response.session?.name 
     });
   } catch (err: any) {
-    // Logataan tarkka virhe palvelimen lokiin, mutta palautetaan selkeä virhe käyttäjälle
-    console.error("Vertex AI Details:", err);
+    // Logataan virhe Cloud Runin konsoliin diagnosointia varten
+    console.error("Vertex AI Error:", err.details || err.message || err);
     res.status(500).json({ error: "AI Connection Failed" });
   }
 });
 
-// Serve Vite build
 const distPath = path.join(process.cwd(), "dist");
 app.use(express.static(distPath));
 
@@ -81,5 +77,5 @@ app.get("*", (req, res) => {
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Hessonpaja Intelligence (Standard Edition) running on port ${PORT}`);
+  console.log(`🚀 Hessonpaja Intelligence (Standard) running on port ${PORT}`);
 });
