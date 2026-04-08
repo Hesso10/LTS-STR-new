@@ -1,9 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, Send, Loader2, ShieldCheck } from 'lucide-react';
+import { Bot, Send, Loader2, ShieldCheck, X } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
-export const AIChat: React.FC = () => {
+interface AIChatProps {
+  onClose?: () => void;
+}
+
+export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([
-    { role: 'ai', text: 'Tervehdys! Olen valmiina auttamaan sinua strategioihin tai dokumentteihin liittyvissä kysymyksissä.' }
+    { 
+      role: 'ai', 
+      text: 'Kysy neuvoja minulta. Voit tarkentaa vastauksia kertomalla, minkä otsikon kohtaa olet juuri työstämässä.' 
+    }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -11,7 +19,9 @@ export const AIChat: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages, isTyping]);
 
   const handleSend = async () => {
@@ -29,52 +39,90 @@ export const AIChat: React.FC = () => {
         body: JSON.stringify({ message: userMsg, sessionId }),
       });
 
+      if (!response.ok) throw new Error('Yhteysvirhe palvelimeen');
+
       const data = await response.json();
-      if (data.sessionId) setSessionId(data.sessionId);
+      
+      if (data.sessionId) {
+        setSessionId(data.sessionId);
+      }
+
       setMessages(prev => [...prev, { role: 'ai', text: data.text }]);
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'ai', text: "Yhteysvirhe tekoälyyn." }]);
+      console.error("Chat error:", err);
+      setMessages(prev => [...prev, { role: 'ai', text: "Pahoittelut, yhteys katkesi. Yritä hetken kuluttua uudelleen." }]);
     } finally {
       setIsTyping(false);
     }
   };
 
   return (
-    <div className="fixed bottom-6 right-6 w-[400px] h-[600px] flex flex-col bg-slate-900 text-white rounded-xl border border-slate-700 shadow-2xl z-[9999]">
-      <div className="p-4 bg-slate-800 border-b border-slate-700 flex items-center gap-2">
-        <Bot className="text-blue-400" size={24} />
-        <div>
-          <h3 className="font-bold text-sm">Hessonpaja Professional AI</h3>
-          <div className="flex items-center gap-1 text-[10px] text-slate-400 uppercase">
-            <ShieldCheck size={10} className="text-blue-400" />
-            <span>Dokumentit yhdistetty</span>
+    <div className="fixed bottom-6 right-6 w-[450px] h-[700px] max-h-[90vh] flex flex-col bg-slate-900 text-white rounded-2xl overflow-hidden border border-slate-700 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[9999]">
+      
+      {/* Header */}
+      <div className="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-600/20 rounded-lg">
+            <Bot className="text-blue-400" size={24} />
+          </div>
+          <div>
+            <h3 className="font-bold text-sm leading-tight text-slate-100">Professional AI</h3>
+            <div className="flex items-center gap-1">
+              <ShieldCheck size={12} className="text-emerald-400" />
+              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Vertex AI Connected</span>
+            </div>
           </div>
         </div>
+        {onClose && (
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+            <X size={20} />
+          </button>
+        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-900/50">
+      {/* Message Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-900/50 scrollbar-thin scrollbar-thumb-slate-700">
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`p-3 rounded-2xl text-sm max-w-[85%] ${m.role === 'user' ? 'bg-blue-600' : 'bg-slate-800 border border-slate-700'}`}>
-              {m.text}
+            <div className={`p-4 rounded-2xl text-sm max-w-[90%] shadow-sm ${
+              m.role === 'user' 
+                ? 'bg-blue-600 text-white rounded-tr-none' 
+                : 'bg-slate-800 border border-slate-700 text-slate-200 rounded-tl-none'
+            }`}>
+              <div className="prose prose-invert prose-sm max-w-none break-words">
+                <ReactMarkdown>{m.text}</ReactMarkdown>
+              </div>
             </div>
           </div>
         ))}
-        {isTyping && <Loader2 className="animate-spin text-blue-400 m-2" size={20} />}
+        
+        {isTyping && (
+          <div className="flex items-center gap-3 text-slate-400 text-xs animate-pulse ml-2">
+            <div className="p-2 bg-slate-800 rounded-full">
+              <Loader2 className="animate-spin text-blue-400" size={16} />
+            </div>
+            <span className="font-medium tracking-wide uppercase">Analysointi käynnissä...</span>
+          </div>
+        )}
         <div ref={scrollRef} />
       </div>
 
+      {/* Input Area */}
       <div className="p-4 bg-slate-800 border-t border-slate-700">
         <div className="flex gap-2">
           <input 
-            className="flex-1 bg-slate-900 border border-slate-600 rounded-xl px-4 py-2 text-sm"
+            className="flex-1 bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Kysy strategioista..."
+            placeholder="Kirjoita kysymys tai otsikko..."
           />
-          <button onClick={handleSend} className="bg-blue-600 p-2 rounded-xl hover:bg-blue-500">
-            <Send size={18} />
+          <button 
+            onClick={handleSend}
+            disabled={!input.trim() || isTyping}
+            className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:cursor-not-allowed p-3 rounded-xl transition-all shadow-lg active:scale-95"
+          >
+            <Send size={20} />
           </button>
         </div>
       </div>
