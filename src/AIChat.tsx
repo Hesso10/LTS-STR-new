@@ -111,4 +111,31 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
             <div className="p-2 bg-slate-800 rounded-full">
               <Loader2 className="animate-spin text-blue-400" size={16} />
             </div>
-            <span className="font-medium
+            <span className="font-medium tracking-wide uppercase italic">Haetaan ohjeistusta...</span>
+          </div>
+        )}
+        <div ref={scrollRef} />
+      </div>
+
+      {/* Input Area */}
+      <div className="p-4 bg-slate-800 border-t border-slate-700">
+        <div className="flex gap-2">
+          <input 
+            className="flex-1 bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            placeholder="Kirjoita kysymys tai tunnussana..."
+          />
+          <button 
+            onClick={handleSend}
+            disabled={!input.trim() || isTyping}
+            className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:cursor-not-allowed p-3 rounded-xl transition-all shadow-lg active:scale-95"
+          >
+            <Send size={20} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
