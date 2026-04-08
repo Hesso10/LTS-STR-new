@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, Send, Loader2, ShieldCheck, X } from 'lucide-react';
+import { Bot, Send, Loader2, ShieldCheck, X, Lightbulb } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface AIChatProps {
@@ -10,7 +10,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([
     { 
       role: 'ai', 
-      text: 'Kysy neuvoja minulta. Voit tarkentaa vastauksia kertomalla, minkä otsikon kohtaa olet juuri työstämässä.' 
+      text: 'Kysy neuvoja minulta. Voit tarkentaa vastauksia kertomalla, minkä otsikon kohtaa työstät.\n\nJos haluat lyhyen ohjeen vaikkapa strategian tekoon, syötä portaalin tunnus **LTS** tai **STR** ja **strategia**.' 
     }
   ]);
   const [input, setInput] = useState('');
@@ -66,7 +66,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
             <Bot className="text-blue-400" size={24} />
           </div>
           <div>
-            <h3 className="font-bold text-sm leading-tight text-slate-100">Professional AI</h3>
+            <h3 className="font-bold text-sm leading-tight text-slate-100">Hessonpaja Konsultti</h3>
             <div className="flex items-center gap-1">
               <ShieldCheck size={12} className="text-emerald-400" />
               <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Vertex AI Connected</span>
@@ -78,6 +78,16 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
             <X size={20} />
           </button>
         )}
+      </div>
+
+      {/* Pikavinkki (Prompt Tip) */}
+      <div className="px-4 py-2.5 bg-blue-500/10 border-b border-blue-500/20 flex items-center gap-3">
+        <div className="p-1 bg-blue-500/20 rounded">
+          <Lightbulb size={14} className="text-blue-400" />
+        </div>
+        <span className="text-[11px] text-blue-100/80 leading-snug">
+          Kokeile: <strong className="text-blue-300">"LTS strategia"</strong> tai <strong className="text-blue-300">"STR markkinointi"</strong>
+        </span>
       </div>
 
       {/* Message Area */}
@@ -101,31 +111,4 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
             <div className="p-2 bg-slate-800 rounded-full">
               <Loader2 className="animate-spin text-blue-400" size={16} />
             </div>
-            <span className="font-medium tracking-wide uppercase">Analysointi käynnissä...</span>
-          </div>
-        )}
-        <div ref={scrollRef} />
-      </div>
-
-      {/* Input Area */}
-      <div className="p-4 bg-slate-800 border-t border-slate-700">
-        <div className="flex gap-2">
-          <input 
-            className="flex-1 bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Kirjoita kysymys tai otsikko..."
-          />
-          <button 
-            onClick={handleSend}
-            disabled={!input.trim() || isTyping}
-            className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:cursor-not-allowed p-3 rounded-xl transition-all shadow-lg active:scale-95"
-          >
-            <Send size={20} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+            <span className="font-medium
