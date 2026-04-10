@@ -18,8 +18,7 @@ const ENGINE_ID = "lts-str_1775635155437";
 
 const client = new ConversationalSearchServiceClient();
 
-// Tallennetaan viimeisin aihe muistiin väliaikaisesti (tämä nollautuu palvelimen käynnistyksessä)
-// Cloud Runissa tämä on sessio-kohtaista vain jos sessiohallinta on päällä
+// Globaali muuttuja context-lockia varten
 let lastContextTopic = "";
 
 app.post("/api/chat", async (req, res) => {
@@ -29,73 +28,74 @@ app.post("/api/chat", async (req, res) => {
 
     const msgLower = message.toLowerCase().trim();
 
-    // 1. TUNNISTUS: Onko kyseessä hakupyyntö vai kohteliaisuus?
+    // 1. LAAJENNETTU MYÖNTÄVIEN VASTAUSTEN TUNNISTUS
     const positiveWords = ["kiitos", "kiitokset", "kiitti", "loistavaa", "hienoa"];
-    const searchTriggers = ["tee", "etsi", "haku", "kyllä", "joo", "anna mennä", "toteuta"];
+    
+    // Tunnistetaan erilaiset luvat ja myöntävät vastaukset
+    const searchTriggers = [
+        "joo", "kyllä", "tee se", "sopii", "anna mennä", "etsi", 
+        "haku", "toteuta", "ok", "okei", "selvä", "passaa"
+    ];
     
     const isPositive = positiveWords.some(word => msgLower.startsWith(word));
-    const isAskingForSearch = searchTriggers.some(word => msgLower.includes(word));
+    const isAskingForSearch = searchTriggers.some(word => msgLower.includes(word)) || msgLower === "joo" || msgLower === "kyllä";
 
-    // SOSIAALINEN PELISILMÄ (Priorisoidaan haku, jos molemmat läsnä)
+    // Kohteliaisuus-suodatin (vain jos ei pyydetä samalla hakua)
     if (isPositive && msgLower.length < 30 && !isAskingForSearch) {
       return res.json({
-        text: "Kiitos palautteesta! Mukava olla avuksi. Mistä kohdasta strategiatyötä haluaisit jatkaa?",
+        text: "Kiitos palautteesta! Mukava olla avuksi. Mistä jatketaan?",
         sessionId: sessionId 
       });
     }
 
     // 2. CONTEXT LOCK - LOGIIKKA
-    // Jos viesti on hyvin lyhyt "kyllä" tms, käytetään aiempaa aihetta hakukyselynä
     let finalQuery = message;
+    // Jos vastaus on hyvin lyhyt myöntävä vastaus, käytetään aiempaa aihetta
     if (isAskingForSearch && msgLower.length < 15 && lastContextTopic) {
-      finalQuery = `Etsi verkosta tietoa aiemmin mainitusta aiheesta: ${lastContextTopic}`;
-      console.log(`Context Lock aktivoitu: ${finalQuery}`);
-    } else {
-      // Päivitetään viimeisin aihe muistiin (jos viesti on riittävän pitkä ollakseen asiasisältöä)
-      if (msgLower.length > 20) {
-        lastContextTopic = message;
-      }
+      finalQuery = `Kerro lisää aiheesta: ${lastContextTopic}`;
+    } else if (msgLower.length > 20) {
+      // Tallennetaan uusi aihe muistiin
+      lastContextTopic = message;
     }
 
-    // 3. HAKUKYNNYS
-    const isLawQuery = msgLower.includes("laki") || msgLower.includes("valmistelu") || msgLower.includes("finlex") || msgLower.includes("tietoturva");
-    const searchThreshold = (isAskingForSearch || isLawQuery) ? 0.001 : 0.05;
+    // 3. HAKUKYNNYS JA PAKOTETTU HAKU
+    const isLawQuery = msgLower.includes("laki") || msgLower.includes("valmistelu") || msgLower.includes("tietoturva");
+    
+    // Jos käyttäjä antoi luvan (isAskingForSearch), threshold on 0 (pakota haku)
+    const currentThreshold = isAskingForSearch ? 0 : (isLawQuery ? 0.001 : 0.05);
 
     // 4. PREAMBLE
-    const preamble = `
-      Olet asiantunteva suomalainen konsultti. Tyylisi on analyyttinen ja asiallinen.
-
-      TOIMINTATAPA:
-      1. Jos portaalin data ei vastaa kysymykseen, sano se suoraan: "Portaalin ohjeista ei löytynyt suoraa vastausta tähän..."
-      2. Tämän jälkeen käytä Google Searchia hakeaksesi tietoa luotettavista lähteistä (Finlex, Hankeikkuna, viranomaiset).
-      3. Jos vastaus on Googlesta, mainitse se selkeästi.
-      4. ÄLÄ KOSKAAN vastaa "Yhteenvetoa ei voitu luoda".
-    `;
+    const preamble = `Olet asiantunteva suomalainen konsultti. Jos portaalin oma data ei riitä, käytä Google Searchia rohkeasti. Jos teet haun verkosta, sano se suoraan. Älä koskaan sano "Yhteenvetoa ei voitu luoda".`;
 
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
 
     const [response] = await client.answerQuery({
       servingConfig,
-      query: { text: finalQuery }, // Käytetään mahdollista Context Lockilla korjattua kyselyä
+      query: { text: finalQuery },
       session: sessionId ? { name: sessionId } : undefined,
       answerGenerationSpec: {
         promptSpec: { preamble },
         includeCitations: true,
         answerLanguageCode: "fi",
+        // Estetään "adversarial" -blokit, jotta haku toimii vapaammin
+        ignoreAdversarialQuery: true,
+        ignoreNonAnswerSeekingQuery: true,
       },
       contentSearchSpec: {
         summaryResultCount: 5,
         googleSearchSpec: {
-          dynamicRetrievalConfig: { predictor: { threshold: searchThreshold } } 
+          dynamicRetrievalConfig: { 
+            predictor: { threshold: currentThreshold } 
+          } 
         }
       }
     });
 
     let finalAnswer = response.answer?.answerText;
 
-    // 5. CATCH-ALL VIRHEISIIN
+    // 5. VARMUUS-CHECK (Jos haku silti palauttaa tyhjää)
     if (!finalAnswer || finalAnswer.includes("Yhteenvetoa ei voitu luoda")) {
-      finalAnswer = "Portaalin sisäisistä lähteistä ei löytynyt suoraa vastausta aiheeseen: **" + (lastContextTopic || "tämä aihe") + "**. Haluaisitko, että teen laajemman haun verkosta?";
+      finalAnswer = `Portaalin lähteistä ei löytynyt suoraa vastausta aiheeseen: **${lastContextTopic || "tämä"}**. Haluatko, että teen laajemman asiantuntijahaun verkosta?`;
     }
 
     res.json({ 
@@ -121,12 +121,12 @@ app.get("*", (req, res) => {
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);
     } else {
-      res.status(200).send("Palvelin on käynnissä (Käyttöliittymää ladataan).");
+      res.status(200).send("Palvelin on käynnissä.");
     }
   }
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
