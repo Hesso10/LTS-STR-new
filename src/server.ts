@@ -4,6 +4,7 @@ import { ConversationalSearchServiceClient } from "@google-cloud/discoveryengine
 import path from "path";
 import cors from "cors";
 import dotenv from "dotenv";
+import fs from "fs";
 
 dotenv.config();
 
@@ -11,7 +12,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Google Cloud Konfiguraatio
 const PROJECT_ID = "superb-firefly-489705-g3"; 
 const LOCATION = "global"; 
 const ENGINE_ID = "lts-str_1775635155437"; 
@@ -23,70 +23,26 @@ app.post("/api/chat", async (req, res) => {
     let { message, sessionId } = req.body;
     if (!message) return res.status(400).json({ error: "Missing message" });
 
-    const cleanMsg = message.toUpperCase().trim();
+    // Varmistetaan että cleanMsg on merkkijono ja trimattu
+    const cleanMsg = String(message).toUpperCase().trim();
 
-    // 1. SOSIAALINEN SUODATIN (Small Talk -käsittely)
-    // Estetään haku-virheet, kun käyttäjä on vain kohtelias tai tervehtii.
-    const socialKeywords = ["KIITOS", "KIITOKSIA", "MOI", "HEI", "TERVE", "HYVÄ VASTAUS", "LOISTAVAA", "KIITTI"];
-    const isPureSocial = socialKeywords.some(word => cleanMsg === word || cleanMsg === word + "!") || 
-                         (cleanMsg.length < 25 && socialKeywords.some(word => cleanMsg.includes(word)));
+    // 1. SOSIAALINEN SUODATIN (Korjattu ja varmistettu logiikka)
+    const socialKeywords = ["KIITOS", "KIITOKSIA", "MOI", "HEI", "TERVE", "LOISTAVAA", "KIITTI"];
+    const isSocial = socialKeywords.some(word => cleanMsg.startsWith(word));
 
-    if (isPureSocial && !cleanMsg.includes("LTS") && !cleanMsg.includes("STR")) {
+    if (isSocial && cleanMsg.length < 20 && !cleanMsg.includes("LTS") && !cleanMsg.includes("STR")) {
       return res.json({
-        text: "Kiitos, mukava kuulla, että vastauksesta oli apua strategiatyössäsi. \n\nMistä osa-alueesta haluaisit jatkaa keskustelua tai onko jokin tietty kohta, jota haluaisit syventää tarkemmin?",
+        text: "Kiitos, mukava kuulla että vastauksesta oli apua! Mistä kohdasta haluaisit jatkaa strategiatyötä?",
         sessionId: sessionId 
       });
     }
 
-    // 2. META-LOGIIKKA: Ohjeistus lennosta
-    if (cleanMsg.startsWith("OHJE:") || cleanMsg.includes("TOIMI JATKOSSA")) {
-      message = `[KÄYTTÄJÄN OHJEISTUS: ${message}]. Huomioi tämä tyylissäsi ja vahvista ymmärryksesi.`;
-    }
+    // 2. HAKUKYNNYS (Threshold)
+    const isDefinition = cleanMsg.includes("MIKÄ") || cleanMsg.includes("MITÄ") || cleanMsg.length < 25;
+    const searchThreshold = (cleanMsg.includes("LTS") || cleanMsg.includes("STR") || isDefinition) ? 0.005 : 0.05;
 
-    // 3. STRATEGIA-VALIKKO (Yleisimmät tyhjät haut)
-    const isGenericSTR = cleanMsg === "STR" || cleanMsg === "STR STRATEGIA" || cleanMsg === "STRATEGIA";
-    if (isGenericSTR) {
-      return res.json({
-        text: "Strategia-osio on laaja kokonaisuus. Haluaisitko lähteä liikkeelle jostakin näistä?\n\n" +
-              "* **Visio**: Aikaan sidottu päätavoite.\n" +
-              "* **Arvot**: Toiminnan eettinen perusta.\n" +
-              "* **Diagnoosi**: Nykytilan ja ympäristön analyysi.\n" +
-              "* **Miten (Kyvykkyydet)**: Toimenpiteet diagnoosiin vastaamiseksi.\n\n" +
-              "Kerro minulle, mitä näistä työstät, niin pohditaan sitä tarkemmin.",
-        sessionId: sessionId 
-      });
-    }
-
-    // 4. AGGRESSIIVINEN HAKUKYNNYS (Google Search fallback)
-    // Käytetään erittäin matalaa kynnystä määritelmissä ja tunnussanoissa.
-    const isDefinition = cleanMsg.includes("MIKÄ") || cleanMsg.includes("MITÄ") || cleanMsg.length < 30;
-    const searchThreshold = (cleanMsg.includes("LTS") || cleanMsg.includes("STR") || cleanMsg.includes("MITEN") || isDefinition) ? 0.005 : 0.05;
-
-    // 5. HIENOSÄÄDETTY PREAMBLE (Suomalainen asiantuntijatyyli)
-    const preamble = `
-      Olet asiantunteva suomalainen liiketoimintakonsultti ja strateginen sparraaja. Tyylisi on analyyttinen, rauhallinen ja asiallinen.
-
-      SOSIAALINEN SÄVY:
-      - Ole kohtelias mutta pidättyväinen. Vältä ylisanoja ja amerikkalaistyylistä innokkuutta.
-      - Validoi käyttäjän kysymys asiantuntijanäkökulmasta (esim. "Tämä on keskeinen huomio markkinatilanteessa...").
-      - Jos käyttäjä kiittää, kuittaa se lyhyesti ja asiallisesti ja ohjaa takaisin työstettävään aiheeseen.
-
-      HAKUSTRATEGIA JA PÄÄTTELY:
-      - JOS vastaus ei löydy suoraan Data Storesta, suuntaa haku välittömästi Googleen.
-      - ÄLÄ KOSKAAN vastaa "Yhteenvetoa ei voitu luoda". Jos data on vähissä, käytä asiantuntemustasi selittämään asia yleisellä tasolla ja silloita (bridge) se strategiseen kontekstiin.
-      - Suosi asiantuntijalähteitä (McKinsey, HBR, Gartner, PwC, Strategy&) täydentämään portaalin ohjeita.
-      - VÄHEMMÄN ON ENEMMÄN: Vastaa tiukasti vain siihen mitä kysytään.
-
-      SPARRAUSOTE:
-      - Jos aiheena on kyvykkyys, jäsennä se prosessien, ihmisten osaamisen ja teknologian kautta.
-      - Käytä suomea, lihavoi strategiset termit ja käytä tuplarivivaihtoa kappaleiden välillä.
-
-      LOPETA JOKAINEN VASTAUS NÄIN:
-      ---
-      **Ehdotukset jatkoaskeliksi:**
-      * [Lyhyt, asiallinen jatkokysymys juuri tästä aiheesta]
-      * [Konkreettinen näkökulma, joka syventää tätä kohtaa]
-    `;
+    // 3. PREAMBLE
+    const preamble = `Olet asiantunteva suomalainen liiketoimintakonsultti. Tyylisi on analyyttinen ja asiallinen. Jos vastaus ei löydy Data Storesta, käytä Google Searchia. Älä sano "Yhteenvetoa ei voitu luoda".`;
 
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
 
@@ -102,6 +58,41 @@ app.post("/api/chat", async (req, res) => {
       contentSearchSpec: {
         summaryResultCount: 5,
         googleSearchSpec: {
-          dynamicRetrievalConfig: { 
-            predictor: { threshold: searchThreshold } 
-          }
+          dynamicRetrievalConfig: { predictor: { threshold: searchThreshold } } 
+        }
+      }
+    });
+
+    res.json({ 
+      text: response.answer?.answerText || "Portaalin ohjeista ei löytynyt suoraa vastausta, mutta strategisessa mielessä tätä kannattaa pohtia näin...",
+      sessionId: response.session?.name 
+    });
+
+  } catch (err: any) {
+    console.error("Vertex AI Error:", err);
+    res.status(500).json({ error: "AI Connection Failed" });
+  }
+});
+
+// STAATTISET TIEDOSTOT (Varmistettu reititys)
+const distPath = path.join(process.cwd(), "dist");
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+}
+
+app.get("*", (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    const indexPath = path.join(distPath, "index.html");
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(200).send("Palvelin on käynnissä. (Käyttöliittymää ladataan)");
+    }
+  }
+});
+
+// PORTTI (Yksinkertaistettu Cloud Runia varten)
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
