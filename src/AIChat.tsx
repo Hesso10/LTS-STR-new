@@ -57,7 +57,11 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 w-[450px] h-[700px] max-h-[90vh] flex flex-col bg-slate-900 text-white rounded-2xl overflow-hidden border border-slate-700 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[9999]">
+    /* MUUTOS TÄSSÄ: 
+       - bottom-4 ja right-4 mobiilissa, md:bottom-6 md:right-6 työpöydällä
+       - w-[calc(100%-2rem)] mobiilissa, md:w-[450px] työpöydällä
+    */
+    <div className="fixed bottom-4 right-4 left-4 md:left-auto md:bottom-6 md:right-6 w-[calc(100%-2rem)] md:w-[450px] h-[600px] md:h-[700px] max-h-[90vh] flex flex-col bg-slate-900 text-white rounded-2xl overflow-hidden border border-slate-700 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[9999]">
       
       {/* Header */}
       <div className="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center shrink-0">
