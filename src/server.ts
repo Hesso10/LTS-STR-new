@@ -6,28 +6,18 @@ import cors from "cors";
 import dotenv from "dotenv";
 import fs from "fs";
 
-// Ladataan env-muuttujat, mutta Cloud Runissa ne tulevat suoraan ympäristöstä
 dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Google Cloud Konfiguraatio
 const PROJECT_ID = "superb-firefly-489705-g3"; 
 const LOCATION = "global"; 
 const ENGINE_ID = "lts-str_1775635155437"; 
 
-// Alustetaan client try-catchin sisällä, jotta kaatuminen ei tapahdu heti käynnistyksessä
-let client: any;
-try {
-    client = new ConversationalSearchServiceClient();
-    console.log("✅ Vertex AI Client initialized");
-} catch (e) {
-    console.error("❌ Failed to initialize Vertex AI Client:", e);
-}
+const client = new ConversationalSearchServiceClient();
 
-// API-REITTI
 app.post("/api/chat", async (req, res) => {
   try {
     const { message, sessionId } = req.body;
@@ -35,23 +25,48 @@ app.post("/api/chat", async (req, res) => {
 
     const msgLower = message.toLowerCase().trim();
 
-    // SOSIAALINEN SUODATIN
-    const positiveWords = ["kiitos", "kiitokset", "kiitti", "loistavaa", "hienoa", "hyvä", "mahtavaa"];
-    const frustrationWords = ["ei toimi", "huono", "en ymmärrä", "vaikeaa", "sekava", "ärsyttävä"];
+    // --- 1. SOSIAALINEN JA EMOTIONAALINEN PELISILMÄ ---
+    const frustrationWords = ["huono", "en ymmärrä", "vaikeaa", "sekava", "ärsyttävä", "turhauttavaa", "paska", "ei auta"];
+    const positiveWords = ["kiitos", "kiitokset", "kiitti", "loistavaa", "hienoa", "hyvä"];
 
-    if (!msgLower.includes("lts") && !msgLower.includes("str")) {
-        if (positiveWords.some(word => msgLower.startsWith(word)) && msgLower.length < 40) {
-            return res.json({ text: "Kiitos palautteesta, mukava olla avuksi. Jatketaanpa työstämistä!", sessionId });
-        }
-        if (frustrationWords.some(word => msgLower.includes(word)) && msgLower.length < 50) {
-            return res.json({ text: "Pahoittelut epäselvyydestä. Yritänkö selittää asian toisin?", sessionId });
-        }
+    // PRIORITEETTI 1: Turhaumat (Aina päällä)
+    if (frustrationWords.some(word => msgLower.includes(word)) && msgLower.length < 120) {
+      return res.json({
+        text: "Pahoittelut, että vastaus ei ollut riittävän selkeä tai kattava. Strategiatyö ja lainsäädäntö voivat olla monimutkaisia kokonaisuuksia.\n\nHaluaisitko, että yritän etsiä tietoa laajemmin portaalin ulkopuolelta (esim. Finlex/Hankeikkuna) vai keskitytäänkö johonkin tiettyyn termiin?",
+        sessionId: sessionId 
+      });
     }
 
-    const isLawQuery = msgLower.includes("laki") || msgLower.includes("valmistelu") || msgLower.includes("finlex");
-    const searchThreshold = (msgLower.includes("lts") || msgLower.includes("str") || isLawQuery) ? 0.001 : 0.05;
+    // PRIORITEETTI 2: Kiitokset
+    if (positiveWords.some(word => msgLower.startsWith(word)) && msgLower.length < 40) {
+      return res.json({
+        text: "Kiitos palautteesta, mukava olla avuksi! Jatketaanpa työstämistä – mistä kohdasta haluaisit jatkaa?",
+        sessionId: sessionId 
+      });
+    }
 
-    const preamble = `Asiantunteva suomalainen konsultti. Jos vastaus ei löydy Data Storesta, käytä Google Searchia. Ohjaa tarvittaessa Finlexiin tai Hankeikkunaan.`;
+    // --- 2. HAKUKYNNYKSEN SÄÄTÖ ---
+    // Jos käyttäjä vastaa myöntävästi hakuun tai kysyy laista
+    const isAskingForSearch = msgLower.includes("etsi") || msgLower.includes("netti") || msgLower.includes("haku") || msgLower === "kyllä" || msgLower === "joo";
+    const isLawQuery = msgLower.includes("laki") || msgLower.includes("valmistelu") || msgLower.includes("säädös") || msgLower.includes("finlex");
+    
+    // Erittäin matala kynnys, jos käyttäjä nimenomaan pyytää hakua
+    const searchThreshold = (isAskingForSearch || isLawQuery) ? 0.001 : 0.05;
+
+    // --- 3. PREAMBLE (Asiantuntijan persoona) ---
+    const preamble = `
+      Olet asiantunteva suomalainen liiketoimintakonsultti. Tyylisi on analyyttinen ja asiallinen.
+
+      TOIMINTATAPA DATAN PUUTTUESSA:
+      1. Jos portaalin data (Data Store) ei vastaa kysymykseen, sano se suoraan: "Portaalin ohjeista ei löytynyt suoraa vastausta tähän..."
+      2. Tämän jälkeen käytä Google Searchia hakeaksesi tietoa luotettavista lähteistä (Finlex, Hankeikkuna, McKinsey jne.).
+      3. ÄLÄ KOSKAAN vastaa "Yhteenvetoa ei voitu luoda". Jos olet epävarma, tarjoa asiantuntijanäkökulma ja ehdota lisähakua.
+
+      TYYLI:
+      - Vastaa VAIN siihen mitä kysytään.
+      - Käytä suomea ja asiallista kieltä.
+      - Lihavoi strategiset avainsanat.
+    `;
 
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
 
@@ -66,12 +81,21 @@ app.post("/api/chat", async (req, res) => {
       },
       contentSearchSpec: {
         summaryResultCount: 5,
-        googleSearchSpec: { dynamicRetrievalConfig: { predictor: { threshold: searchThreshold } } }
+        googleSearchSpec: {
+          dynamicRetrievalConfig: { predictor: { threshold: searchThreshold } } 
+        }
       }
     });
 
+    // --- 4. VIRHEENKÄSITTELY (Catch-all virheilmoituksille) ---
+    let finalAnswer = response.answer?.answerText;
+
+    if (!finalAnswer || finalAnswer.includes("Yhteenvetoa ei voitu luoda") || finalAnswer.includes("Summary could not be generated")) {
+      finalAnswer = "Portaalin sisäisistä lähteistä ei löytynyt suoraa vastausta tähän. Haluaisitko, että teen laajemman haun verkosta (esim. Finlex tai asiantuntijalähteet)?";
+    }
+
     res.json({ 
-      text: response.answer?.answerText || "Strategisesta näkökulmasta tätä kannattaa pohtia näin...",
+      text: finalAnswer,
       sessionId: response.session?.name 
     });
 
@@ -84,8 +108,7 @@ app.post("/api/chat", async (req, res) => {
 // STAATTISET TIEDOSTOT
 const distPath = path.join(process.cwd(), "dist");
 if (fs.existsSync(distPath)) {
-    console.log("📂 Serving static files from:", distPath);
-    app.use(express.static(distPath));
+  app.use(express.static(distPath));
 }
 
 app.get("*", (req, res) => {
@@ -94,14 +117,12 @@ app.get("*", (req, res) => {
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);
     } else {
-      // TÄRKEÄÄ: Palautetaan 200 OK, jotta Cloud Runin health check menee läpi
-      res.status(200).send("Server is running. Frontend build missing.");
+      res.status(200).send("Palvelin on käynnissä (Käyttöliittymää ladataan).");
     }
   }
 });
 
-// PORTIN KUUNTELU - Cloud Run vaatii Number(process.env.PORT)
-const port = Number(process.env.PORT) || 8080;
-app.listen(port, "0.0.0.0", () => {
-    console.log(`🚀 LTS-STR WebApp listening on port ${port}`);
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
