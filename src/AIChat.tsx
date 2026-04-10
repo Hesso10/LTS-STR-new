@@ -10,7 +10,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([
     { 
       role: 'ai', 
-      text: 'Kysy neuvoja minulta. Voit tarkentaa vastauksia kertomalla, minkä otsikon kohtaa työstät.\n\nJos haluat lyhyen ohjeen vaikkapa strategian tekoon, syötä portaalin tunnus **LTS** tai **STR** ja **strategia**.' 
+      text: 'Kysy neuvoja minulta. Voit tarkentaa vastauksia kertomalla, minkä otsikon kohtaa työstät.\n\nJos haluat lyhyen ohjeen vaikkapa Miten-kohdan tekoon, syötä portaalin tunnus **LTS** tai **STR** ja täytettävän kentän nimi **"Miten"**.' 
     }
   ]);
   const [input, setInput] = useState('');
@@ -66,7 +66,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
             <Bot className="text-blue-400" size={24} />
           </div>
           <div>
-            <h3 className="font-bold text-sm leading-tight text-slate-100">Hessonpaja Konsultti</h3>
+            <h3 className="font-bold text-sm leading-tight text-slate-100">Strategiasparraaja</h3>
             <div className="flex items-center gap-1">
               <ShieldCheck size={12} className="text-emerald-400" />
               <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Vertex AI Connected</span>
@@ -86,7 +86,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
           <Lightbulb size={14} className="text-blue-400" />
         </div>
         <span className="text-[11px] text-blue-100/80 leading-snug">
-          Kokeile: <strong className="text-blue-300">"LTS strategia"</strong> tai <strong className="text-blue-300">"STR markkinointi"</strong>
+          Kokeile: <strong className="text-blue-300">"LTS miten"</strong> tai <strong className="text-blue-300">"STR visio"</strong>
         </span>
       </div>
 
@@ -111,7 +111,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
             <div className="p-2 bg-slate-800 rounded-full">
               <Loader2 className="animate-spin text-blue-400" size={16} />
             </div>
-            <span className="font-medium tracking-wide uppercase italic">Haetaan ohjeistusta...</span>
+            <span className="font-medium tracking-wide uppercase italic">Analysoidaan lähteitä...</span>
           </div>
         )}
         <div ref={scrollRef} />
