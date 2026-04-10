@@ -20,61 +20,62 @@ const client = new ConversationalSearchServiceClient();
 
 app.post("/api/chat", async (req, res) => {
   try {
-    const { message, sessionId } = req.body;
+    let { message, sessionId } = req.body;
     if (!message) return res.status(400).json({ error: "Missing message" });
 
     const cleanMsg = message.toUpperCase();
-    const isLTS = cleanMsg.includes("LTS");
-    const isSTR = cleanMsg.includes("STR");
-    const isMitenQuery = cleanMsg.includes("MITEN") || cleanMsg.includes("KYVYKKY");
     
-    // 1. LOGIIKKA: Pakotetaan tarkennus, jos kysytään vain yleistä STR-strategiaa
+    // 1. META-LOGIIKKA: Mahdollistetaan chatin ohjeistaminen lennosta
+    const isDirectInstruction = cleanMsg.startsWith("OHJE:") || cleanMsg.includes("TOIMI JATKOSSA");
+    if (isDirectInstruction) {
+      // Lisätään viestiin tekninen kehotus, jotta LLM priorisoi uuden ohjeen
+      message = `[KÄYTTÄJÄN OHJEISTUS: ${message}]. Huomioi tämä ohje vastauksessasi ja vahvista ymmärryksesi.`;
+    }
+
+    // 2. LOGIIKKA: Pakotetaan tarkennus, jos kysytään vain yleistä STR-strategiaa
     const isGenericSTR = cleanMsg === "STR" || cleanMsg === "STR STRATEGIA" || cleanMsg === "STRATEGIA";
     if (isGenericSTR) {
       return res.json({
-        text: "Haluatko ohjeita strategian rakentamiseen? Strategia-osio koostuu seuraavista kohdista. Kerro minulle, mitä näistä työstät:\n\n" +
+        text: "Strategia-osio on laaja kokonaisuus. Haluaisitko lähteä liikkeelle jostakin näistä?\n\n" +
               "* **Visio**: Aikaan sidottu päätavoite.\n" +
               "* **Arvot**: Toiminnan eettinen perusta.\n" +
-              "* **Diagnoosi**: Yhteenveto toimintaympäristön analyysistä.\n" +
-              "* **Miten (Kyvykkyydet)**: Maksimissaan 6 reagointia diagnoosiin.",
+              "* **Diagnoosi**: Nykytilan ja ympäristön analyysi.\n" +
+              "* **Miten (Kyvykkyydet)**: Toimenpiteet diagnoosiin vastaamiseksi.\n\n" +
+              "Kerro minulle, mitä näistä työstät, niin pohditaan sitä yhdessä.",
         sessionId: sessionId 
       });
     }
 
-    // 2. DYNAMIC THRESHOLD: Madalletaan kynnystä tunnussanoilla, jotta haku aktivoituu herkästi
-    const searchThreshold = (isLTS || isSTR || isMitenQuery) ? 0.01 : 0.15;
+    // 3. DYNAMIC THRESHOLD: Madalletaan kynnystä tunnussanoilla
+    const searchThreshold = (cleanMsg.includes("LTS") || cleanMsg.includes("STR") || cleanMsg.includes("MITEN")) ? 0.01 : 0.15;
 
-    // 3. TIUKENNETTU OHJEISTUS (PREAMBLE)
+    // 4. TIUKENNETTU JA HIENOSÄÄDETTY OHJEISTUS (PREAMBLE)
     const preamble = `
-      Olet asiantunteva liiketoimintakonsultti. Käytössäsi on useita korkealaatuisia tietolähteitä:
-      - Portaalin omat ohjeet (LTS LIIKETOIMINTASUUNNITELMA ohje ja STRATEGIA ohje).
-      - Valtioneuvoston tulevaisuusselonteko 2024:54 (Konkreettiset PESTEL-esimerkit vuoteen 2045).
-      - Globaalit asiantuntijat: Strategyzer, Deloitte, McKinsey, HBR sekä PwC Strategy&.
+      Olet asiantunteva ja asiallinen suomalainen liiketoimintakonsultti ja strateginen sparraaja. 
+      Tehtäväsi on tarjota oivalluksia, jotka auttavat käyttäjää syventämään omaa ajatteluaan.
 
-      VASTAUSSÄÄNNÖT:
-      - ÄLÄ käytä termejä "Hessonpaja" tai "kokenut". Ole ammattimainen, suora ja sparraava.
-      - Vastaa AINA suomeksi. Käytä TUPLARIVIVAIHTOA kappaleiden välissä.
-      - Lihavoi keskeiset termit.
+      TYYLI JA ASENNE:
+      - Tyylisi on analyyttinen, rauhallinen ja suora. Vältä turhaa hypetystä.
+      - Käytä termejä kuten "merkittävä", "huomioitava" tai "kannattanee pohtia".
+      - ÄLÄ käytä termejä "Hessonpaja" tai "kokenut".
+      - Vastaa AINA suomeksi. Käytä TUPLARIVIVAIHTOA kappaleiden välissä selkeyden vuoksi.
 
-      KONTEKSTIKOHTAISET OHJEET:
-      1. ULKOINEN ANALYYSI (PESTEL): Kun käyttäjä tekee LTS- tai STR-analyysia (Poliittinen, Taloudellinen, Sosiaalinen, Teknologinen, Ekologinen, Lainsäädännöllinen):
-         - Hae portaalin ohjeesta perusmääritelmä.
-         - Täydennä vastausta Valtioneuvoston selonteon (2024:54) tuoreilla esimerkeillä (esim. tekoälyn murros, huoltovarmuus tai demografiset muutokset).
-      
-      2. STR MITEN (KYVYKKYYDET): Kun käyttäjä työstää kyvykkyyksiä:
-         - Muistuta portaalin säännöstä: max 6 kyvykkyyttä, jotka vastaavat diagnoosiin.
-         - Rikasta vastausta Google Searchilla poimimalla esimerkkejä lähteistä: mckinsey.com, hbr.org, deloitte.com ja strategyand.pwc.com.
-         - Hyödynnä erityisesti PwC Strategy& -näkökulmaa "Capabilities-Driven Strategy".
-      
-      3. STR LIIKETOIMINTAMALLI: Kun aiheena on Arvolupaus, Kanavat, Tulot tai Kustannukset:
-         - Käytä pohjana Strategyzerin (strategyzer.com) oppeja Value Proposition Designista ja Business Model Canvasista.
-         - Selitä, miten yritys luo, tuottaa ja kotiuttaa arvoa.
+      SPARRAUSLOGIIKKA JA TIETOLÄHTEET:
+      1. ANALYSOI: Etsi vastaus ensisijaisesti portaalin ohjeista (Data Store).
+      2. RIKASTA: Käytä Google Searchia (esim. McKinsey, HBR, PwC, Valtioneuvosto) tuomaan tuoretta kontekstia ja esimerkkejä.
+      3. EHDOTA MIEDOSTI: Älä kirjoita käyttäjän puolesta. Käytä muotoja: "Voisiko olla hyödyllistä pohtia...", "Markkinatrendit viittaavat siihen, että...", "Tätä voisi tarkastella myös siitä näkökulmasta, että...".
+      4. JOUSTAVUUS: Jos datastore-tieto on vähäistä, rakenna asiantunteva yleisnäkymys ja peilaa sitä löydettyihin tiedonjyviin.
+
+      ERITYISOHJEET KONTEKSTEIHIN:
+      - PESTEL: Hyödynnä Valtioneuvoston tulevaisuusselonteon (2024:54) esimerkkejä.
+      - KYVYKKYYDET: Muistuta max 6 kyvykkyyden säännöstä ja hyödynnä PwC Strategy& -näkökulmia.
+      - LIIKETOIMINTAMALLI: Nojaa Strategyzerin oppeihin arvonluonnista.
 
       LOPETA JOKAINEN VASTAUS NÄIN:
       ---
-      **Ehdotukset jatkokysymyksiksi:**
-      * [Lisää tähän lyhyt jatkokysymys, joka auttaa käyttäjää syventämään tätä kohtaa]
-      * [Lisää toinen konkreettinen jatkoaskel]
+      **Ehdotukset jatkoaskeliksi:**
+      * [Lisää tähän lyhyt, asiallinen jatkokysymys]
+      * [Lisää tähän toinen konkreettinen näkökulma]
     `;
 
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
@@ -95,15 +96,16 @@ app.post("/api/chat", async (req, res) => {
             predictor: { 
               threshold: searchThreshold 
             } 
-          }
+          } 
         }
       }
     });
 
     res.json({ 
-      text: response.answer?.answerText || "En löytänyt tarkkaa ohjetta. Kokeile syöttää tunnussana ja otsikko, esim. 'LTS Liikeidea' tai 'STR Visio'.",
+      text: response.answer?.answerText || "En saanut muodostettua tarkkaa yhteenvetoa. Voisitko täsmentää kysymystäsi, tai kokeilla tunnussanoja kuten 'LTS Liikeidea'?",
       sessionId: response.session?.name 
     });
+
   } catch (err: any) {
     console.error("Vertex AI Error:", err);
     res.status(500).json({ error: "AI Connection Failed" });
