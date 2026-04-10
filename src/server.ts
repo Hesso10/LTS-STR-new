@@ -28,11 +28,10 @@ app.post("/api/chat", async (req, res) => {
     // 1. META-LOGIIKKA: Mahdollistetaan chatin ohjeistaminen lennosta
     const isDirectInstruction = cleanMsg.startsWith("OHJE:") || cleanMsg.includes("TOIMI JATKOSSA");
     if (isDirectInstruction) {
-      // Lisätään viestiin tekninen kehotus, jotta LLM priorisoi uuden ohjeen
       message = `[KÄYTTÄJÄN OHJEISTUS: ${message}]. Huomioi tämä ohje vastauksessasi ja vahvista ymmärryksesi.`;
     }
 
-    // 2. LOGIIKKA: Pakotetaan tarkennus, jos kysytään vain yleistä STR-strategiaa
+    // 2. LOGIIKKA: Pakotetaan tarkennus, jos kysytään vain hyvin yleisesti
     const isGenericSTR = cleanMsg === "STR" || cleanMsg === "STR STRATEGIA" || cleanMsg === "STRATEGIA";
     if (isGenericSTR) {
       return res.json({
@@ -41,7 +40,7 @@ app.post("/api/chat", async (req, res) => {
               "* **Arvot**: Toiminnan eettinen perusta.\n" +
               "* **Diagnoosi**: Nykytilan ja ympäristön analyysi.\n" +
               "* **Miten (Kyvykkyydet)**: Toimenpiteet diagnoosiin vastaamiseksi.\n\n" +
-              "Kerro minulle, mitä näistä työstät, niin pohditaan sitä yhdessä.",
+              "Kerro minulle, mitä näistä työstät, niin pohditaan sitä tarkemmin.",
         sessionId: sessionId 
       });
     }
@@ -49,33 +48,32 @@ app.post("/api/chat", async (req, res) => {
     // 3. DYNAMIC THRESHOLD: Madalletaan kynnystä tunnussanoilla
     const searchThreshold = (cleanMsg.includes("LTS") || cleanMsg.includes("STR") || cleanMsg.includes("MITEN")) ? 0.01 : 0.15;
 
-    // 4. TIUKENNETTU JA HIENOSÄÄDETTY OHJEISTUS (PREAMBLE)
+    // 4. TIUKENNETTU JA FOKUSOITU PREAMBLE
     const preamble = `
-      Olet asiantunteva ja asiallinen suomalainen liiketoimintakonsultti ja strateginen sparraaja. 
+      Olet asiantunteva ja asiallinen suomalainen liiketoimintakonsultti.
       Tehtäväsi on tarjota oivalluksia, jotka auttavat käyttäjää syventämään omaa ajatteluaan.
 
+      KESKEISIN SÄÄNTÖ: 
+      - VÄHEMMÄN ON ENEMMÄN. Vastaa tiukasti vain siihen kysymyksen osaan, jota käyttäjä työstää. 
+      - Jos käyttäjä kysyy liikeideasta, sparraa VAIN liikeideaa. Älä listaa liiketoimintasuunnitelman vaiheita tai muita osa-alueita.
+      - Syvennä vastausta laadulla, älä pituudella.
+
       TYYLI JA ASENNE:
-      - Tyylisi on analyyttinen, rauhallinen ja suora. Vältä turhaa hypetystä.
+      - Analyyttinen, rauhallinen ja suora suomalainen ammattilaistyyli.
       - Käytä termejä kuten "merkittävä", "huomioitava" tai "kannattanee pohtia".
       - ÄLÄ käytä termejä "Hessonpaja" tai "kokenut".
-      - Vastaa AINA suomeksi. Käytä TUPLARIVIVAIHTOA kappaleiden välissä selkeyden vuoksi.
+      - Vastaa AINA suomeksi. Käytä TUPLARIVIVAIHTOA kappaleiden välillä.
 
-      SPARRAUSLOGIIKKA JA TIETOLÄHTEET:
+      SPARRAUSLOGIIKKA:
       1. ANALYSOI: Etsi vastaus ensisijaisesti portaalin ohjeista (Data Store).
-      2. RIKASTA: Käytä Google Searchia (esim. McKinsey, HBR, PwC, Valtioneuvosto) tuomaan tuoretta kontekstia ja esimerkkejä.
-      3. EHDOTA MIEDOSTI: Älä kirjoita käyttäjän puolesta. Käytä muotoja: "Voisiko olla hyödyllistä pohtia...", "Markkinatrendit viittaavat siihen, että...", "Tätä voisi tarkastella myös siitä näkökulmasta, että...".
-      4. JOUSTAVUUS: Jos datastore-tieto on vähäistä, rakenna asiantunteva yleisnäkymys ja peilaa sitä löydettyihin tiedonjyviin.
-
-      ERITYISOHJEET KONTEKSTEIHIN:
-      - PESTEL: Hyödynnä Valtioneuvoston tulevaisuusselonteon (2024:54) esimerkkejä.
-      - KYVYKKYYDET: Muistuta max 6 kyvykkyyden säännöstä ja hyödynnä PwC Strategy& -näkökulmia.
-      - LIIKETOIMINTAMALLI: Nojaa Strategyzerin oppeihin arvonluonnista.
+      2. RIKASTA: Käytä Google Searchia tuomaan tuoretta markkinatietoa ja asiantuntijanäkemyksiä.
+      3. EHDOTA MIEDOSTI: Käytä muotoja: "Voisiko olla hyödyllistä pohtia...", "Markkinatrendit viittaavat siihen, että...".
 
       LOPETA JOKAINEN VASTAUS NÄIN:
       ---
       **Ehdotukset jatkoaskeliksi:**
-      * [Lisää tähän lyhyt, asiallinen jatkokysymys]
-      * [Lisää tähän toinen konkreettinen näkökulma]
+      * [Lyhyt, asiallinen jatkokysymys juuri tästä aiheesta]
+      * [Konkreettinen näkökulma, joka syventää tätä nimenomaista kohtaa]
     `;
 
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
@@ -93,16 +91,14 @@ app.post("/api/chat", async (req, res) => {
         summaryResultCount: 5,
         googleSearchSpec: {
           dynamicRetrievalConfig: { 
-            predictor: { 
-              threshold: searchThreshold 
-            } 
+            predictor: { threshold: searchThreshold } 
           } 
         }
       }
     });
 
     res.json({ 
-      text: response.answer?.answerText || "En saanut muodostettua tarkkaa yhteenvetoa. Voisitko täsmentää kysymystäsi, tai kokeilla tunnussanoja kuten 'LTS Liikeidea'?",
+      text: response.answer?.answerText || "En saanut muodostettua tarkkaa yhteenvetoa. Voisitko täsmentää kysymystäsi käyttämällä tunnussanoja kuten 'LTS liikeidea'?",
       sessionId: response.session?.name 
     });
 
@@ -112,7 +108,7 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// Staattisten tiedostojen tarjoilu (Frontend build)
+// Staattisten tiedostojen tarjoilu
 const distPath = path.join(process.cwd(), "dist");
 app.use(express.static(distPath));
 
