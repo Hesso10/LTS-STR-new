@@ -31,7 +31,7 @@ app.post("/api/chat", async (req, res) => {
       message = `[KÄYTTÄJÄN OHJEISTUS: ${message}]. Huomioi tämä ohje vastauksessasi ja vahvista ymmärryksesi.`;
     }
 
-    // 2. LOGIIKKA: Pakotetaan tarkennus, jos kysytään vain hyvin yleisesti
+    // 2. LOGIIKKA: Strategia-valikko hyvin lyhyille viesteille
     const isGenericSTR = cleanMsg === "STR" || cleanMsg === "STR STRATEGIA" || cleanMsg === "STRATEGIA";
     if (isGenericSTR) {
       return res.json({
@@ -45,35 +45,32 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
-    // 3. DYNAMIC THRESHOLD: Madalletaan kynnystä tunnussanoilla
-    const searchThreshold = (cleanMsg.includes("LTS") || cleanMsg.includes("STR") || cleanMsg.includes("MITEN")) ? 0.01 : 0.15;
+    // 3. AGGRESSIIVINEN HAKUKYNNYS: 
+    // Lasketaan kynnystä (threshold) kaikilla avainsanoilla tai lyhyillä kysymyksillä, 
+    // jotta Google Search aktivoituu aina kun Datastore ei ole 100% varma.
+    const isDefinition = cleanMsg.includes("MIKÄ") || cleanMsg.includes("MITÄ") || cleanMsg.length < 30;
+    const searchThreshold = (cleanMsg.includes("LTS") || cleanMsg.includes("STR") || cleanMsg.includes("MITEN") || isDefinition) ? 0.005 : 0.05;
 
-    // 4. TIUKENNETTU JA FOKUSOITU PREAMBLE
+    // 4. TIUKKA HAKUSTRATEGIA (PREAMBLE)
     const preamble = `
-      Olet asiantunteva ja asiallinen suomalainen liiketoimintakonsultti.
-      Tehtäväsi on tarjota oivalluksia, jotka auttavat käyttäjää syventämään omaa ajatteluaan.
+      Olet asiantunteva suomalainen liiketoimintakonsultti. Tyylisi on analyyttinen, rauhallinen ja asiallinen.
 
-      KESKEISIN SÄÄNTÖ: 
-      - VÄHEMMÄN ON ENEMMÄN. Vastaa tiukasti vain siihen kysymyksen osaan, jota käyttäjä työstää. 
-      - Jos käyttäjä kysyy liikeideasta, sparraa VAIN liikeideaa. Älä listaa liiketoimintasuunnitelman vaiheita tai muita osa-alueita.
-      - Syvennä vastausta laadulla, älä pituudella.
-
-      TYYLI JA ASENNE:
-      - Analyyttinen, rauhallinen ja suora suomalainen ammattilaistyyli.
-      - Käytä termejä kuten "merkittävä", "huomioitava" tai "kannattanee pohtia".
+      HAKUSTRATEGIA (ERITTÄIN TÄRKEÄ):
+      1. JOS vastaus ei löydy Data Storesta, suuntaa haku välittömästi Googleen.
+      2. KÄYTÄ haussa asiantuntijakontekstia: Etsi laadukkaita lähteitä (kuten McKinsey, HBR, Gartner, Deloitte, PwC, Strategy&).
+      3. ÄLÄ KOSKAAN vastaa "Yhteenvetoa ei voitu luoda". Jos suoraa vastausta ei löydy kummastakaan lähteestä, muodosta asiantunteva vastaus yleisen liiketoimintaosaamisesi perusteella ja selitä käsitteet (kuten "kyvykkyys") selkeästi.
+      
+      TOIMINTATAPA:
+      - Vastaa VAIN siihen mitä kysytään (vähemmän on enemmän).
+      - Jos kysytään kyvykkyyksistä, selitä ne prosessien, ihmisten ja teknologian yhdistelmänä.
+      - Käytä suomea, asiallista kieltä ja tuplarivivaihtoa kappaleiden välillä.
       - ÄLÄ käytä termejä "Hessonpaja" tai "kokenut".
-      - Vastaa AINA suomeksi. Käytä TUPLARIVIVAIHTOA kappaleiden välillä.
-
-      SPARRAUSLOGIIKKA:
-      1. ANALYSOI: Etsi vastaus ensisijaisesti portaalin ohjeista (Data Store).
-      2. RIKASTA: Käytä Google Searchia tuomaan tuoretta markkinatietoa ja asiantuntijanäkemyksiä.
-      3. EHDOTA MIEDOSTI: Käytä muotoja: "Voisiko olla hyödyllistä pohtia...", "Markkinatrendit viittaavat siihen, että...".
 
       LOPETA JOKAINEN VASTAUS NÄIN:
       ---
       **Ehdotukset jatkoaskeliksi:**
-      * [Lyhyt, asiallinen jatkokysymys juuri tästä aiheesta]
-      * [Konkreettinen näkökulma, joka syventää tätä nimenomaista kohtaa]
+      * [Lyhyt, asiallinen jatkokysymys tästä aiheesta]
+      * [Konkreettinen näkökulma, joka syventää tätä kohtaa]
     `;
 
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
@@ -97,8 +94,9 @@ app.post("/api/chat", async (req, res) => {
       }
     });
 
+    // Fallback-vastaus kooditasolla, jos AI palauttaa tyhjää
     res.json({ 
-      text: response.answer?.answerText || "En saanut muodostettua tarkkaa yhteenvetoa. Voisitko täsmentää kysymystäsi käyttämällä tunnussanoja kuten 'LTS liikeidea'?",
+      text: response.answer?.answerText || "Portaalin ohjeista ei löytynyt suoraa vastausta, mutta yleisesti ottaen tätä aihetta kannattaa lähestyä asiantuntijanäkökulmasta näin...",
       sessionId: response.session?.name 
     });
 
@@ -108,7 +106,6 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// Staattisten tiedostojen tarjoilu
 const distPath = path.join(process.cwd(), "dist");
 app.use(express.static(distPath));
 
