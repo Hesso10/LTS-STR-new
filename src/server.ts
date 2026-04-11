@@ -28,9 +28,10 @@ app.post("/api/chat", async (req, res) => {
 
     const msgLower = message.toLowerCase().trim();
 
-    // 1. TUNNISTUS: LTS/STR-TUNNUSSANAT JA MYÖNTÄVÄT VASTAUKSET
+    // 1. TUNNISTUS: LTS, STR JA UUSI WEB-TUNNUSSANA
     const isLTS = msgLower.startsWith("lts");
     const isSTR = msgLower.startsWith("str");
+    const isWEB = msgLower.startsWith("web"); // UUSI: Pakotettu verkkohaku
     
     const searchTriggers = ["joo", "kyllä", "tee se", "sopii", "anna mennä", "ok", "etsi"];
     const isAffirmative = searchTriggers.some(word => msgLower === word || msgLower.startsWith(word + " "));
@@ -38,27 +39,30 @@ app.post("/api/chat", async (req, res) => {
     let finalQuery = message;
     let currentThreshold = 0.05; // Oletuskynnys
 
-    // 2. LOGIIKKAEROTTELU: TUNNUSSANAT VS. VAPAA PUHE
-    if (isLTS) {
+    // 2. LOGIIKKAEROTTELU
+    if (isWEB) {
+      console.log("PAKOTETTU VERKKOHAKU: Käytetään Google Searchia.");
+      // Poistetaan "web" tai "WEB" alusta ja puhdistetaan kysymys
+      const querySubject = message.substring(3).trim();
+      finalQuery = querySubject; 
+      currentThreshold = 0; // Pakottaa Google Searchin välittömästi (kynnys 0)
+    }
+    else if (isLTS) {
       console.log("Suoritetaan LTS-ohjehaku.");
       const querySubject = message.substring(3).trim();
-      // Kohdistetaan haku spesifiin tiedostoon
       finalQuery = `Etsi tarkka ohje ja määritelmä tiedostosta 'LTS LIIKETOIMINTASUUNNITELMA ohje.pdf' aiheelle: ${querySubject}`;
-      currentThreshold = 0.4; // Korkeampi kynnys takaa, että vastaus tulee omasta datasta
+      currentThreshold = 0.4;
     } 
     else if (isSTR) {
       console.log("Suoritetaan STR-ohjehaku.");
       const querySubject = message.substring(3).trim();
-      // Kohdistetaan haku spesifiin tiedostoon
       finalQuery = `Etsi tarkka ohje ja määritelmä tiedostosta 'STRATEGIA ohje.pdf' aiheelle: ${querySubject}`;
       currentThreshold = 0.4;
     }
     else if (isAffirmative && lastContextTopic) {
-      // Context Lock: Jos käyttäjä sanoo "joo" aiempaan haku-ehdotukseen
       finalQuery = `Analysoi syvällisesti ja etsi tietoa verkosta: ${lastContextTopic}`;
-      currentThreshold = 0; // Pakotettu Google Search
+      currentThreshold = 0; 
     } else {
-      // Normaali strateginen kysymys
       const isLawQuery = msgLower.includes("laki") || msgLower.includes("gdpr") || msgLower.includes("tietoturva");
       currentThreshold = isLawQuery ? 0.01 : 0.05;
       if (msgLower.length > 20) lastContextTopic = message;
@@ -69,12 +73,12 @@ app.post("/api/chat", async (req, res) => {
     TEHTÄVÄSI:
     1. Jos viesti alkaa 'LTS', käytä lähteenä 'LTS LIIKETOIMINTASUUNNITELMA ohje.pdf'.
     2. Jos viesti alkaa 'STR', käytä lähteenä 'STRATEGIA ohje.pdf'.
-    3. Muissa tapauksissa käytä portaalin dataa ja tarvittaessa Google Searchia.
+    3. Jos kyseessä on WEB-haku tai portaalin data ei riitä, käytä laajasti Google Searchia.
     TYYLI: Ole ytimekäs ja asiantunteva. Mainitse 'Verkkohaun perusteella', jos käytät Googlea.`;
 
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
 
-    // 4. KIERROS 1: PORTAALIN DATASTORE
+    // 4. KIERROS 1: PORTAALIN DATASTORE + MAHDOLLINEN PAKOTETTU HAKU
     let [response] = await client.answerQuery({
       servingConfig,
       query: { text: finalQuery },
@@ -96,21 +100,21 @@ app.post("/api/chat", async (req, res) => {
 
     // 5. KIERROS 2: AUTOMAATTINEN FAILOVER (Jos vastaus puuttuu)
     if (!finalAnswer || finalAnswer.includes("Yhteenvetoa ei voitu luoda") || finalAnswer.length < 50) {
-      console.log("Kierros 1 ei tuottanut vastausta. Yritetään automaattista laajennettua hakua...");
+      console.log("Kierros 1 ei tuottanut vastausta tai WEB-haku vaatii syventämistä...");
       
       const [failoverResponse] = await client.answerQuery({
         servingConfig,
         query: { text: finalQuery },
         session: response.session ? { name: response.session.name } : undefined,
         answerGenerationSpec: {
-          promptSpec: { preamble: preamble + " PORTAALIDATA EI RIITTÄNYT. ETSI LAAJASTI." },
+          promptSpec: { preamble: preamble + " PORTAALIDATA EI RIITTÄNYT. ETSI LAAJASTI NETISTÄ." },
           includeCitations: true,
           answerLanguageCode: "fi",
         },
         contentSearchSpec: {
           summaryResultCount: 5,
           googleSearchSpec: {
-            dynamicRetrievalConfig: { predictor: { threshold: 0 } } // Pakotettu haku
+            dynamicRetrievalConfig: { predictor: { threshold: 0 } }
           }
         }
       });
@@ -135,7 +139,7 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// Staattiset tiedostot
+// Staattiset tiedostot ja palvelu
 const distPath = path.join(process.cwd(), "dist");
 if (fs.existsSync(distPath)) app.use(express.static(distPath));
 
