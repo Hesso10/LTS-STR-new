@@ -16,105 +16,87 @@ app.use(express.json());
 const PROJECT_ID = "superb-firefly-489705-g3"; 
 const LOCATION = "global"; 
 const ENGINE_ID = "lts-str_1775635155437"; 
+// TÄRKEÄ KORJAUS: Euroopassa vakaa malli on 1.5-flash
 const MODEL_LOCATION = "europe-west1"; 
 const MODEL_NAME = "gemini-1.5-flash-002"; 
 
-// 1. Alustetaan asiakkaat
-// Käytetään ConversationalSearchServiceClientia v1-versiona (vakain)
-const searchClient = new ConversationalSearchServiceClient({
-    apiEndpoint: "global-discoveryengine.googleapis.com"
-});
+const searchClient = new ConversationalSearchServiceClient();
 const vertexAI = new VertexAI({ project: PROJECT_ID, location: MODEL_LOCATION });
 
-// API-reitti viesteille
 app.post("/api/chat", async (req, res) => {
   try {
     const { message, sessionId } = req.body;
     if (!message) return res.status(400).json({ error: "Missing message" });
 
     const msgLower = message.toLowerCase().trim();
-    console.log("--- UUSI PYYNTÖ ---", message);
+    console.log("--- PYYNTÖ ---", message);
 
-    // --- VAIHE 1: PDF-HAKU ---
-    let finalQuery = message;
+    // 1. TUNNISTUS
+    const isWEB = msgLower.startsWith("web");
     const isLTS = msgLower.startsWith("lts");
     const isSTR = msgLower.startsWith("str");
 
-    if (isLTS) {
-      const userTerm = message.replace(/^lts\s+/i, "").toLowerCase().trim();
-      finalQuery = `Etsi ohje tiedostosta 'LTS LIIKETOIMINTASUUNNITELMA ohje.pdf' aiheesta: ${userTerm}`;
-    } else if (isSTR) {
-      const userTerm = message.replace(/^str\s+/i, "").toLowerCase().trim();
-      finalQuery = `Etsi ohje tiedostosta 'STRATEGIA ohje.pdf' aiheesta: ${userTerm}`;
+    // --- LOGIIKKA 1: SUORA GOOGLE-HAKU (Jos käyttäjä pyytää 'web') ---
+    if (isWEB) {
+      const querySubject = message.replace(/^web\s+/i, "").trim();
+      const generativeModel = vertexAI.getGenerativeModel({
+        model: MODEL_NAME,
+        tools: [{ googleSearchRetrieval: {} } as any], 
+      });
+
+      const result = await generativeModel.generateContent({
+        contents: [{ 
+          role: "user", 
+          parts: [{ text: `Toimi sote-alan asiantuntijana. Tee haku: ${querySubject} perspektiivillä 2026. Vastaa suomeksi.` }] 
+        }],
+      });
+
+      return res.json({ text: result.response.candidates?.[0].content.parts?.[0].text, sessionId });
+    }
+
+    // --- LOGIIKKA 2: PDF-HAKU (Käytetään alkuperäistä polkua) ---
+    let finalQuery = message;
+    if (isLTS || isSTR) {
+        // Tässä voit käyttää alkuperäisiä LTS_STRUCTURE / STR_STRUCTURE -määrityksiäsi
+        finalQuery = message; 
     }
 
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
-    
-    const [searchResponse] = await searchClient.answerQuery({
+
+    // Käytetään answerQuerya, mutta varmistetaan että se palauttaa edes jotain
+    const [response] = await searchClient.answerQuery({
       servingConfig,
       query: { text: finalQuery },
       session: sessionId ? { name: sessionId } : undefined,
       answerGenerationSpec: {
         answerLanguageCode: "fi",
-        includeCitations: true
+        includeCitations: true,
       }
     });
 
-    const pdfContent = searchResponse.answer?.answerText || "Ei löytynyt tarkkaa PDF-ohjetta.";
+    const answerText = response.answer?.answerText;
 
-    // --- VAIHE 2: GEMINI + GOOGLE SEARCH ---
-    const generativeModel = vertexAI.getGenerativeModel({
-      model: MODEL_NAME,
-      tools: [{ googleSearchRetrieval: {} } as any], 
-    });
+    // JOS PDF-HAKU ONNISTUU:
+    if (answerText) {
+      return res.json({ 
+        text: answerText, 
+        sessionId: response.session?.name 
+      });
+    }
 
-    const prompt = {
-      contents: [{ 
-        role: "user", 
-        parts: [{ text: `
-          Olet sote-alan strategiakonsultti. 
-          KÄYTTÄJÄN KYSYMYS: "${message}"
-          TIETO PDF-OHJEISTA: ${pdfContent}
-          
-          TEHTÄVÄ:
-          1. Käytä Google-hakua vuoden 2026 perspektiivillä.
-          2. Muodosta vastaus noudattaen PDF-ohjeiden rakennetta.
-          3. Ehdota työkaluja ja vastaa suomeksi.
-        `}] 
-      }],
-    };
-
-    const result = await generativeModel.generateContent(prompt);
-    const finalAnswer = result.response.candidates?.[0].content.parts?.[0].text || "Vastausta ei saatu.";
-
-    res.json({ text: finalAnswer, sessionId: searchResponse.session?.name });
+    // FALLBACK: Jos PDF ei löydä mitään, käytetään Geminiä
+    const fallbackModel = vertexAI.getGenerativeModel({ model: MODEL_NAME });
+    const fallbackResult = await fallbackModel.generateContent(message);
+    res.json({ text: fallbackResult.response.candidates?.[0].content.parts?.[0].text, sessionId });
 
   } catch (err: any) {
-    console.error("VIRHE PALVELIMELLA:", err);
-    res.status(500).json({ error: "Yhteysvirhe tekoälyyn." });
+    console.error("VIRHE:", err);
+    res.status(500).json({ error: "Yhteysvirhe. Yritä uudelleen." });
   }
 });
 
-// Staattiset tiedostot ja SPA-tuki
-const distPath = path.join(process.cwd(), "dist");
-if (fs.existsSync(distPath)) {
-    app.use(express.static(distPath));
-}
-
-app.get("*", (req, res) => {
-  if (!req.path.startsWith('/api')) {
-    const indexPath = path.join(distPath, "index.html");
-    if (fs.existsSync(indexPath)) {
-      res.sendFile(indexPath);
-    } else {
-      res.status(404).send("Frontend not found. Build the project first.");
-    }
-  }
-});
-
-// KÄYNNISTYS
+// Portti ja käynnistys
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Palvelin käynnissä portissa ${PORT}`);
-  console.log(`📍 Malli: ${MODEL_NAME}, Sijainti: ${MODEL_LOCATION}`);
+  console.log(`🚀 Serveri käynnissä portissa ${PORT}`);
 });
