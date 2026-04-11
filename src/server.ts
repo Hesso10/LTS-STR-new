@@ -16,13 +16,13 @@ app.use(express.json());
 const PROJECT_ID = "superb-firefly-489705-g3"; 
 const LOCATION = "global"; 
 const ENGINE_ID = "lts-str_1775635155437"; 
-// TÄRKEÄ KORJAUS: Euroopassa vakaa malli on 1.5-flash
 const MODEL_LOCATION = "europe-west1"; 
 const MODEL_NAME = "gemini-1.5-flash-002"; 
 
 const searchClient = new ConversationalSearchServiceClient();
 const vertexAI = new VertexAI({ project: PROJECT_ID, location: MODEL_LOCATION });
 
+// --- API-REITTI ---
 app.post("/api/chat", async (req, res) => {
   try {
     const { message, sessionId } = req.body;
@@ -31,12 +31,11 @@ app.post("/api/chat", async (req, res) => {
     const msgLower = message.toLowerCase().trim();
     console.log("--- PYYNTÖ ---", message);
 
-    // 1. TUNNISTUS
     const isWEB = msgLower.startsWith("web");
     const isLTS = msgLower.startsWith("lts");
     const isSTR = msgLower.startsWith("str");
 
-    // --- LOGIIKKA 1: SUORA GOOGLE-HAKU (Jos käyttäjä pyytää 'web') ---
+    // 1. Suora Google-haku (WEB-komento)
     if (isWEB) {
       const querySubject = message.replace(/^web\s+/i, "").trim();
       const generativeModel = vertexAI.getGenerativeModel({
@@ -54,16 +53,10 @@ app.post("/api/chat", async (req, res) => {
       return res.json({ text: result.response.candidates?.[0].content.parts?.[0].text, sessionId });
     }
 
-    // --- LOGIIKKA 2: PDF-HAKU (Käytetään alkuperäistä polkua) ---
+    // 2. PDF-haku
     let finalQuery = message;
-    if (isLTS || isSTR) {
-        // Tässä voit käyttää alkuperäisiä LTS_STRUCTURE / STR_STRUCTURE -määrityksiäsi
-        finalQuery = message; 
-    }
-
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
 
-    // Käytetään answerQuerya, mutta varmistetaan että se palauttaa edes jotain
     const [response] = await searchClient.answerQuery({
       servingConfig,
       query: { text: finalQuery },
@@ -76,15 +69,11 @@ app.post("/api/chat", async (req, res) => {
 
     const answerText = response.answer?.answerText;
 
-    // JOS PDF-HAKU ONNISTUU:
     if (answerText) {
-      return res.json({ 
-        text: answerText, 
-        sessionId: response.session?.name 
-      });
+      return res.json({ text: answerText, sessionId: response.session?.name });
     }
 
-    // FALLBACK: Jos PDF ei löydä mitään, käytetään Geminiä
+    // 3. Fallback (Gemini)
     const fallbackModel = vertexAI.getGenerativeModel({ model: MODEL_NAME });
     const fallbackResult = await fallbackModel.generateContent(message);
     res.json({ text: fallbackResult.response.candidates?.[0].content.parts?.[0].text, sessionId });
@@ -95,7 +84,22 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// Portti ja käynnistys
+// --- TÄMÄ OSA PUUTTUI EDELLISESTÄ JA KORJAA "CANNOT GET /" VIRHEEN ---
+const distPath = path.join(process.cwd(), "dist");
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+}
+
+app.get("*", (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    const indexPath = path.join(distPath, "index.html");
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    }
+  }
+});
+// ------------------------------------------------------------------
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Serveri käynnissä portissa ${PORT}`);
