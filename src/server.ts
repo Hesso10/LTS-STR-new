@@ -33,7 +33,6 @@ app.post("/api/chat", async (req, res) => {
 
     const isLTS = msgLower.startsWith("lts");
     const isSTR = msgLower.startsWith("str");
-    const isWEB = msgLower.startsWith("web");
 
     // --- VAIHE 1: HAKU DATASTORESTA ---
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
@@ -44,7 +43,6 @@ app.post("/api/chat", async (req, res) => {
       session: sessionId ? { name: sessionId } : undefined,
       answerGenerationSpec: {
         answerLanguageCode: "fi",
-        includeCitations: true,
       }
     });
 
@@ -52,8 +50,8 @@ app.post("/api/chat", async (req, res) => {
 
     // --- VAIHE 2: LOGIIKKA TUNNUSSANAN MUKAAN ---
 
-    // A) TIUKKA OHJEMOODI (LTS/STR)
     if (isLTS || isSTR) {
+      // TIUKKA OHJEMOODI: Suodatetaan vain kyseinen ohjetiedosto
       const instructionModel = vertexAI.getGenerativeModel({ 
         model: MODEL_NAME,
         generationConfig: { temperature: 0.1 } 
@@ -68,8 +66,8 @@ app.post("/api/chat", async (req, res) => {
         ${rawDataContent}
         
         SÄÄNNÖT:
-        1. Poista kaikki tieto, joka ei ole suoraan täyttöohje (kuten megatrendit).
-        2. Vastaa lyhyesti: Mitä tähän portaalin kohtaan kirjoitetaan, montako kohtaa ja anna yksi selkeä esimerkki.
+        1. Poista kaikki tieto, joka ei ole suoraan täyttöohje (kuten megatrendit tai yleiset selonteot).
+        2. Vastaa jämptisti ja lyhyesti: Mitä tähän portaalin kohtaan kirjoitetaan, mahdolliset rajoitteet (esim. max määrät) ja anna yksi selkeä esimerkki ohjeen mukaan.
         3. Jos tietoa ei löydy juuri tästä ohjeesta, sano: "Kyseistä kohtaa ei löytynyt ohjetiedostosta."
       `;
       
@@ -80,10 +78,10 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
-    // B) AKATEEMINEN LIIKETOIMINTA-ASIANTUNTIJA (WEB TAI YLEINEN)
+    // --- VAIHE 3: AKATEEMINEN LIIKETOIMINTA-ASIANTUNTIJA ---
+    // Käytetään muissa kyselyissä, yhdistää dokumentit ja laajan tietämyksen
     const generativeModel = vertexAI.getGenerativeModel({
       model: MODEL_NAME,
-      tools: isWEB ? [{ googleSearchRetrieval: {} } as any] : [],
       generationConfig: { temperature: 0.4 }
     });
 
@@ -92,10 +90,9 @@ app.post("/api/chat", async (req, res) => {
       Vastaustyylisi on tiivis, analyyttinen ja hyvin perusteltu.
       
       OHJEET VASTAUKSEEN:
-      1. Priorisoi akateemisesti uskottavia lähteitä: Tilastokeskus, Finlex, OECD, Gartner, McKinsey, BCG tai viralliset viranomaisraportit.
-      2. Jos käytät Google-hakua (web), liitä vastauksen loppuun suorat linkit merkittävimpiin lähteisiin.
-      3. Perustele väitteesi lyhyesti syy-seuraussuhteilla.
-      4. Hyödynnä tätä taustamateriaalia PDF-ohjeista: ${rawDataContent}
+      1. Hyödynnä annettua taustamateriaalia PDF-ohjeista ja raporteista: ${rawDataContent}
+      2. Perustele väitteesi lyhyesti syy-seuraussuhteilla.
+      3. Tarkastele asioita vuoden 2026 perspektiivillä.
       
       Käyttäjän kysymys: "${message}"
       Vastaa asiantuntevasti suomeksi.
@@ -113,7 +110,7 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// --- FRONTENDIN TARJOILU ---
+// --- FRONTENDIN TARJOILU (Varmistaa käyttöliittymän näkyvyyden) ---
 const distPath = path.join(process.cwd(), "dist");
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
