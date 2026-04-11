@@ -15,9 +15,10 @@ app.use(express.json());
 
 // --- KONFIGURAATIO ---
 const PROJECT_ID = "superb-firefly-489705-g3"; 
-const LOCATION = "global"; 
+const LOCATION = "global"; // Discovery Engine (PDF-haku)
 const ENGINE_ID = "lts-str_1775635155437"; 
-const MODEL_LOCATION = "us-central1"; // Gemini 2.0 Flash on vakain tällä alueella
+// Vaihdettu sijainti Eurooppaan yhteensopivuuden ja nopeuden vuoksi
+const MODEL_LOCATION = "europe-west1"; 
 
 // 1. Alustetaan asiakkaat
 const searchClient = new ConversationalSearchServiceClient();
@@ -38,20 +39,20 @@ app.post("/api/chat", async (req, res) => {
     const isSTR = msgLower.startsWith("str");
 
     // --- LOGIIKKA 1: ITSENÄINEN WEB-HAKU (Gemini 2.0 Flash) ---
-    // Tämä ohittaa Discovery Enginen Basic-tason rajoitukset
+    // Tämä osio ohittaa Discovery Enginen rajoitukset ja käyttää suoraa Google-hakua
     if (isWEB) {
-      console.log("Suoritetaan: ITSENÄINEN GEMINI 2.0 FLASH HAKU");
+      console.log("Suoritetaan: ITSENÄINEN GEMINI 2.0 FLASH HAKU (europe-west1)");
       const querySubject = message.replace(/^web\s+/i, "").trim();
       
       const generativeModel = vertexAI.getGenerativeModel({
-        model: "gemini-2.0-flash-001",
+        model: "gemini-2.0-flash-001", // Paneelissasi valittu Gemini 2.0 Flash
         tools: [{ googleSearchRetrieval: {} } as any], 
       });
 
       const result = await generativeModel.generateContent({
         contents: [{ 
           role: "user", 
-          parts: [{ text: `Toimi sote-alan strategisena asiantuntijana. Tee syvällinen ja ajantasainen verkkohaku aiheesta: ${querySubject}. Analysoi ilmiöt ja ehdota tarvittavia teknisiä työkaluja tai prosesseja strategian 'Miten'-osion tueksi. Vastaa suomeksi.` }] 
+          parts: [{ text: `Toimi sote-alan strategisena asiantuntijana. Tee syvällinen ja ajantasainen verkkohaku aiheesta: ${querySubject}. Analysoi ilmiöt vuoden 2026 perspektiivistä ja ehdota tarvittavia teknisiä työkaluja tai prosesseja strategian 'Miten'-osion (kyvykkyydet) tueksi. Vastaa suomeksi.` }] 
         }],
       });
 
@@ -59,7 +60,7 @@ app.post("/api/chat", async (req, res) => {
       return res.json({ text: finalAnswer, sessionId });
     }
 
-    // --- LOGIIKKA 2: ANKKUROITU PDF-HAKU (Discovery Engine) ---
+    // --- LOGIIKKA 2: ANKKUROITU PDF-HAKU (Discovery Engine Basic) ---
     let finalQuery = message;
     let currentThreshold = 0.05;
 
@@ -67,19 +68,19 @@ app.post("/api/chat", async (req, res) => {
       console.log("Suoritetaan: LTS-ANKKUROINTI");
       const userTerm = message.replace(/^lts\s+/i, "").toLowerCase().trim();
       const LTS_STRUCTURE: { [key: string]: string } = {
-        "yritysmuoto": "Yritysmuoto (sivu 1): Valinta ja suositukset[cite: 14, 15, 17].",
-        "tausta": "Tausta (sivu 2): Osaaminen, kokemus ja vahvuudet[cite: 20, 22, 25].",
-        "liikeidea": "Liikeidea (sivu 2): Mitä, miten ja kenelle?[cite: 30, 32, 33].",
-        "toimintaympäristö": "Ulkoisen toimintaympäristön analyysi: PESTEL-malli[cite: 39, 53, 54].",
-        "kilpailutilanne": "Kilpailutilanne: Markkina-alue ja kilpailijat[cite: 88, 89].",
-        "asiakkaat": "Asiakkaat: Markkinakoko ja profiilit[cite: 91, 92, 98].",
-        "sisäinen ympäristö": "Sisäinen toimintaympäristö: Tehokkuus ja osa-alueet[cite: 99, 106, 110].",
-        "strategia": "Strategia: Visio, arvot ja diagnoosi[cite: 119, 121, 126].",
-        "miten": "Miten-osio: Kyvykkyydet (max 6) ja reagointi diagnoosiin[cite: 129, 131, 132].",
-        "markkinointi": "Myynti & markkinointi: Kohderyhmät ja kanavat[cite: 138, 139, 146].",
-        "laskelmat": "Laskelmat: Vuosibudjetti ja myyntitavoitteet[cite: 151, 154].",
-        "henkilöstö": "Henkilöstö: Resurssit ja osaaminen[cite: 157, 158].",
-        "toteutus": "Toteutus: Aikataulutus ja jalkautus[cite: 161, 162]."
+        "yritysmuoto": "Yritysmuoto (sivu 1): Valinta ja suositukset.",
+        "tausta": "Tausta (sivu 2): Osaaminen, kokemus ja vahvuudet.",
+        "liikeidea": "Liikeidea (sivu 2): Mitä, miten ja kenelle?.",
+        "toimintaympäristö": "Ulkoisen toimintaympäristön analyysi: PESTEL-malli.",
+        "kilpailutilanne": "Kilpailutilanne: Markkina-alue ja kilpailijat.",
+        "asiakkaat": "Asiakkaat: Markkinakoko ja profiilit.",
+        "sisäinen ympäristö": "Sisäinen toimintaympäristö: Tehokkuus ja osa-alueet.",
+        "strategia": "Strategia: Visio, arvot ja diagnoosi.",
+        "miten": "Miten-osio: Kyvykkyydet (max 6) ja reagointi diagnoosiin.",
+        "markkinointi": "Myynti & markkinointi: Kohderyhmät ja kanavat.",
+        "laskelmat": "Laskelmat: Vuosibudjetti ja myyntitavoitteet.",
+        "henkilöstö": "Henkilöstö: Resurssit ja osaaminen.",
+        "toteutus": "Toteutus: Aikataulutus ja jalkautus."
       };
       finalQuery = `Etsi tiedostosta 'LTS LIIKETOIMINTASUUNNITELMA ohje.pdf' tarkka ohje: ${LTS_STRUCTURE[userTerm] || userTerm}`;
       currentThreshold = 0.4;
@@ -88,28 +89,27 @@ app.post("/api/chat", async (req, res) => {
       console.log("Suoritetaan: STR-ANKKUROINTI");
       const userTerm = message.replace(/^str\s+/i, "").toLowerCase().trim();
       const STR_STRUCTURE: { [key: string]: string } = {
-        "yritykseni": "Yritykseni: Historia, nykytila ja päätuotteet[cite: 164, 165, 166].",
-        "organisaatio": "Organisaatiorakenne: Nykyinen rakenne[cite: 169].",
-        "toimintaympäristö": "Toimintaympäristö: Ulkoinen analyysi ja diagnoosi[cite: 170, 171, 180].",
-        "kilpailutilanne": "Kilpailutilanne: Kilpailijaprofiilit[cite: 223, 226].",
-        "asiakkaat": "Asiakkaat: Markkinakoko ja kohderyhmät[cite: 227, 235].",
-        "sisäinen ympäristö": "Sisäinen toimintaympäristö: Plussat ja miinukset[cite: 236, 238, 244].",
-        "strategia": "Strategia: Visio, arvot ja reagointiresepti[cite: 257, 259, 260].",
-        "miten": "Miten-osio: Kyvykkyydet ja reagointi diagnoosiin[cite: 267, 269, 270].",
-        "liiketoimintamalli": "Liiketoimintamalli: Taktiikka ja resurssit[cite: 275, 276, 277].",
-        "arvolupaus": "Arvolupaus: Asiakashyöty ja tuotteet[cite: 282, 283].",
-        "kanavat": "Kanavat: Asiakaspolku ja markkinointi[cite: 284, 285, 287].",
-        "resurssit": "Tärkeimmät resurssit: Aineelliset ja aineettomat[cite: 292, 293, 299].",
-        "aktiviteetit": "Tärkeimmät aktiviteetit: Toimenpiteet[cite: 300, 301, 304].",
-        "tulot": "Tulot: Rahavirran logiikka ja ansaintamallit[cite: 309, 310, 312].",
-        "kustannukset": "Kustannukset: Strategiset hankkeet[cite: 313, 314, 315].",
-        "projekti": "Projektini: Strategian vieminen työnkuvaan[cite: 319, 320]."
+        "yritykseni": "Yritykseni: Historia, nykytila ja päätuotteet.",
+        "organisaatio": "Organisaatiorakenne: Nykyinen rakenne.",
+        "toimintaympäristö": "Toimintaympäristö: Ulkoinen analyysi ja diagnoosi.",
+        "kilpailutilanne": "Kilpailutilanne: Kilpailijaprofiilit.",
+        "asiakkaat": "Asiakkaat: Markkinakoko ja kohderyhmät.",
+        "sisäinen ympäristö": "Sisäinen toimintaympäristö: Plussat ja miinukset.",
+        "strategia": "Strategia: Visio, arvot ja reagointiresepti.",
+        "miten": "Miten-osio: Kyvykkyydet ja reagointi diagnoosiin.",
+        "liiketoimintamalli": "Liiketoimintamalli: Taktiikka ja resurssit.",
+        "arvolupaus": "Arvolupaus: Asiakashyöty ja tuotteet.",
+        "kanavat": "Kanavat: Asiakaspolku ja markkinointi.",
+        "resurssit": "Tärkeimmät resurssit: Aineelliset ja aineettomat.",
+        "aktiviteetit": "Tärkeimmät aktiviteetit: Toimenpiteet.",
+        "tulot": "Tulot: Rahavirran logiikka ja ansaintamallit.",
+        "kustannukset": "Kustannukset: Strategiset hankkeet.",
+        "projekti": "Projektini: Strategian vieminen työnkuvaan."
       };
       finalQuery = `Etsi tiedostosta 'STRATEGIA ohje.pdf' tarkka ohje: ${STR_STRUCTURE[userTerm] || userTerm}`;
       currentThreshold = 0.4;
     }
 
-    // Suoritetaan haku Discovery Enginestä
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
 
     const [response] = await searchClient.answerQuery({
@@ -133,12 +133,13 @@ app.post("/api/chat", async (req, res) => {
     });
 
   } catch (err: any) {
-    console.error("VIRHE:", err);
-    res.status(500).json({ error: "Yhteysvirhe tekoälyyn." });
+    console.error("VIRHE PALVELIMELLA:", err);
+    // Tulostetaan tarkempi virhekoodi lokeihin
+    if (err.code) console.error("Virhekoodi:", err.code);
+    res.status(500).json({ error: "Yhteysvirhe tekoälyyn. Yritä hetken kuluttua uudelleen." });
   }
 });
 
-// Staattiset tiedostot Cloud Runia varten
 const distPath = path.join(process.cwd(), "dist");
 if (fs.existsSync(distPath)) app.use(express.static(distPath));
 
@@ -151,5 +152,6 @@ app.get("*", (req, res) => {
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 LTS-STR-new Server running on port ${PORT}`);
+  console.log(`🚀 LTS-STR-new Server käynnistetty porttiin ${PORT}`);
+  console.log(`📍 Sijainti: ${MODEL_LOCATION}, Malli: gemini-2.0-flash-001`);
 });
