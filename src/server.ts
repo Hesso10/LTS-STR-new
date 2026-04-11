@@ -18,7 +18,6 @@ const ENGINE_ID = "lts-str_1775635155437";
 
 const client = new ConversationalSearchServiceClient();
 
-// Globaali muuttuja context-lockia varten
 let lastContextTopic = "";
 
 app.post("/api/chat", async (req, res) => {
@@ -28,57 +27,63 @@ app.post("/api/chat", async (req, res) => {
 
     const msgLower = message.toLowerCase().trim();
 
-    // 1. TUNNISTUS: LTS, STR JA UUSI WEB-TUNNUSSANA
+    // 1. DIAGNOSTIIKKA: Seurataan mitä sisään tulee
+    console.log("\n--- UUSI PYYNTÖ ---");
+    console.log("Käyttäjän syöte:", message);
+
+    // 2. TUNNISTUS REGEXILLÄ (Varmistaa että 'WEB' poistuu siististi)
+    const isWEB = msgLower.startsWith("web");
     const isLTS = msgLower.startsWith("lts");
     const isSTR = msgLower.startsWith("str");
-    const isWEB = msgLower.startsWith("web"); // UUSI: Pakotettu verkkohaku
     
     const searchTriggers = ["joo", "kyllä", "tee se", "sopii", "anna mennä", "ok", "etsi"];
     const isAffirmative = searchTriggers.some(word => msgLower === word || msgLower.startsWith(word + " "));
 
     let finalQuery = message;
-    let currentThreshold = 0.05; // Oletuskynnys
+    let currentThreshold = 0.05; 
 
-    // 2. LOGIIKKAEROTTELU
+    // 3. LOGIIKKAEROTTELU
     if (isWEB) {
-      console.log("PAKOTETTU VERKKOHAKU: Käytetään Google Searchia.");
-      // Poistetaan "web" tai "WEB" alusta ja puhdistetaan kysymys
-      const querySubject = message.substring(3).trim();
-      finalQuery = querySubject; 
-      currentThreshold = 0; // Pakottaa Google Searchin välittömästi (kynnys 0)
+      // Poistaa 'web' tai 'WEB' ja mahdolliset välilyönnit/erikoismerkit alusta
+      finalQuery = message.replace(/^web\s+/i, "").trim();
+      currentThreshold = 0; // Pakotettu haku
+      console.log("Logiikka: PAKOTETTU WEB-HAKU");
     }
     else if (isLTS) {
-      console.log("Suoritetaan LTS-ohjehaku.");
-      const querySubject = message.substring(3).trim();
+      const querySubject = message.replace(/^lts\s+/i, "").trim();
       finalQuery = `Etsi tarkka ohje ja määritelmä tiedostosta 'LTS LIIKETOIMINTASUUNNITELMA ohje.pdf' aiheelle: ${querySubject}`;
       currentThreshold = 0.4;
+      console.log("Logiikka: LTS-TIEDOSTOHAKU");
     } 
     else if (isSTR) {
-      console.log("Suoritetaan STR-ohjehaku.");
-      const querySubject = message.substring(3).trim();
+      const querySubject = message.replace(/^str\s+/i, "").trim();
       finalQuery = `Etsi tarkka ohje ja määritelmä tiedostosta 'STRATEGIA ohje.pdf' aiheelle: ${querySubject}`;
       currentThreshold = 0.4;
+      console.log("Logiikka: STR-TIEDOSTOHAKU");
     }
     else if (isAffirmative && lastContextTopic) {
       finalQuery = `Analysoi syvällisesti ja etsi tietoa verkosta: ${lastContextTopic}`;
       currentThreshold = 0; 
+      console.log("Logiikka: CONTEXT LOCK AFFIRMATIVE");
     } else {
       const isLawQuery = msgLower.includes("laki") || msgLower.includes("gdpr") || msgLower.includes("tietoturva");
       currentThreshold = isLawQuery ? 0.01 : 0.05;
       if (msgLower.length > 20) lastContextTopic = message;
+      console.log("Logiikka: NORMAALI KYSYMYS");
     }
 
-    // 3. PREAMBLE
+    console.log("Lopullinen hakulauseke (finalQuery):", finalQuery);
+    console.log("Käytetty kynnysarvo:", currentThreshold);
+
     const preamble = `Olet asiantunteva sote-alan strategiakonsultti.
     TEHTÄVÄSI:
-    1. Jos viesti alkaa 'LTS', käytä lähteenä 'LTS LIIKETOIMINTASUUNNITELMA ohje.pdf'.
-    2. Jos viesti alkaa 'STR', käytä lähteenä 'STRATEGIA ohje.pdf'.
-    3. Jos kyseessä on WEB-haku tai portaalin data ei riitä, käytä laajasti Google Searchia.
-    TYYLI: Ole ytimekäs ja asiantunteva. Mainitse 'Verkkohaun perusteella', jos käytät Googlea.`;
+    - Jos haku on WEB-pohjainen, käytä Google Searchia ja yhdistele tietoja asiantuntevasti.
+    - ÄLÄ sano 'En löytänyt tietoa', vaan käytä yleistietoa ja Google-haun tuloksia parhaan vastauksen luomiseen.
+    - Ole ytimekäs. Mainitse 'Verkkohaun perusteella', jos käytät Googlea.`;
 
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
 
-    // 4. KIERROS 1: PORTAALIN DATASTORE + MAHDOLLINEN PAKOTETTU HAKU
+    // 4. KIERROS 1: HAKU
     let [response] = await client.answerQuery({
       servingConfig,
       query: { text: finalQuery },
@@ -96,23 +101,26 @@ app.post("/api/chat", async (req, res) => {
       }
     });
 
+    // DIAGNOSTIIKKA: Tulostetaan terminaaliin mitä haku oikeasti löysi
+    console.log("Vastaus saatu Vertex AI:lta.");
+    if (response.answer?.steps) {
+        console.log("Hakuaskeleet:", JSON.stringify(response.answer.steps, null, 2));
+    }
+
     let finalAnswer = response.answer?.answerText;
 
-    // 5. KIERROS 2: AUTOMAATTINEN FAILOVER (Jos vastaus puuttuu)
-    if (!finalAnswer || finalAnswer.includes("Yhteenvetoa ei voitu luoda") || finalAnswer.length < 50) {
-      console.log("Kierros 1 ei tuottanut vastausta tai WEB-haku vaatii syventämistä...");
+    // 5. FAILOVER (Jos vastaus on tyhjä tai hylätty)
+    if (!finalAnswer || finalAnswer.includes("Yhteenvetoa ei voitu luoda") || finalAnswer.length < 20) {
+      console.log("FAILOVER: Kierros 1 epäonnistui. Yritetään pakotettua hätähakua...");
       
       const [failoverResponse] = await client.answerQuery({
         servingConfig,
         query: { text: finalQuery },
-        session: response.session ? { name: response.session.name } : undefined,
         answerGenerationSpec: {
-          promptSpec: { preamble: preamble + " PORTAALIDATA EI RIITTÄNYT. ETSI LAAJASTI NETISTÄ." },
-          includeCitations: true,
+          promptSpec: { preamble: preamble + " HUOMIO: Edellinen haku epäonnistui. ETSI NYT GOOGLESTA KAIKKI MAHDOLLINEN." },
           answerLanguageCode: "fi",
         },
         contentSearchSpec: {
-          summaryResultCount: 5,
           googleSearchSpec: {
             dynamicRetrievalConfig: { predictor: { threshold: 0 } }
           }
@@ -123,9 +131,10 @@ app.post("/api/chat", async (req, res) => {
       response = failoverResponse;
     }
 
-    // 6. LOPULLINEN VARMUUS-CHECK
+    // 6. LOPULLINEN TARKISTUS
     if (!finalAnswer || finalAnswer.includes("Yhteenvetoa ei voitu luoda")) {
-      finalAnswer = `Pahoittelut, en löytänyt ohjetta tiedostoista tai verkosta aiheelle: **${message}**.`;
+      console.log("VIRHE: Vastausta ei saatu edes failoverin jälkeen.");
+      finalAnswer = `Pahoittelut, en löytänyt ohjetta tiedostoista tai verkosta aiheelle: **${finalQuery}**.`;
     }
 
     res.json({ 
@@ -134,12 +143,11 @@ app.post("/api/chat", async (req, res) => {
     });
 
   } catch (err: any) {
-    console.error("Vertex AI Error:", err);
+    console.error("KRUUTI VIRHE TERMINAALISSA:", err);
     res.status(500).json({ error: "AI Connection Failed" });
   }
 });
 
-// Staattiset tiedostot ja palvelu
 const distPath = path.join(process.cwd(), "dist");
 if (fs.existsSync(distPath)) app.use(express.static(distPath));
 
