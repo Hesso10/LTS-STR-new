@@ -31,35 +31,16 @@ app.post("/api/chat", async (req, res) => {
     const msgLower = message.toLowerCase().trim();
     console.log("--- PYYNTÖ ---", message);
 
-    const isWEB = msgLower.startsWith("web");
     const isLTS = msgLower.startsWith("lts");
     const isSTR = msgLower.startsWith("str");
+    const isWEB = msgLower.startsWith("web");
 
-    // 1. Suora Google-haku (WEB-komento)
-    if (isWEB) {
-      const querySubject = message.replace(/^web\s+/i, "").trim();
-      const generativeModel = vertexAI.getGenerativeModel({
-        model: MODEL_NAME,
-        tools: [{ googleSearchRetrieval: {} } as any], 
-      });
-
-      const result = await generativeModel.generateContent({
-        contents: [{ 
-          role: "user", 
-          parts: [{ text: `Toimi sote-alan asiantuntijana. Tee haku: ${querySubject} perspektiivillä 2026. Vastaa suomeksi.` }] 
-        }],
-      });
-
-      return res.json({ text: result.response.candidates?.[0].content.parts?.[0].text, sessionId });
-    }
-
-    // 2. PDF-haku
-    let finalQuery = message;
+    // --- VAIHE 1: HAKU DATASTORESTA ---
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
-
-    const [response] = await searchClient.answerQuery({
+    
+    const [searchResponse] = await searchClient.answerQuery({
       servingConfig,
-      query: { text: finalQuery },
+      query: { text: message },
       session: sessionId ? { name: sessionId } : undefined,
       answerGenerationSpec: {
         answerLanguageCode: "fi",
@@ -67,16 +48,64 @@ app.post("/api/chat", async (req, res) => {
       }
     });
 
-    const answerText = response.answer?.answerText;
+    const rawDataContent = searchResponse.answer?.answerText || "";
 
-    if (answerText) {
-      return res.json({ text: answerText, sessionId: response.session?.name });
+    // --- VAIHE 2: LOGIIKKA TUNNUSSANAN MUKAAN ---
+
+    // A) TIUKKA OHJEMOODI (LTS/STR)
+    if (isLTS || isSTR) {
+      const instructionModel = vertexAI.getGenerativeModel({ 
+        model: MODEL_NAME,
+        generationConfig: { temperature: 0.1 } 
+      });
+      
+      const fileName = isSTR ? "STRATEGIA ohje.pdf" : "LTS LIIKETOIMINTASUUNNITELMA ohje.pdf";
+      
+      const instructionPrompt = `
+        Käyttäjä tarvitsee lyhyen ja selkeän täyttöohjeen portaalin kohtaan.
+        
+        Käytä TIUKASTI VAIN tätä tietoa tiedostosta "${fileName}":
+        ${rawDataContent}
+        
+        SÄÄNNÖT:
+        1. Poista kaikki tieto, joka ei ole suoraan täyttöohje (kuten megatrendit).
+        2. Vastaa lyhyesti: Mitä tähän portaalin kohtaan kirjoitetaan, montako kohtaa ja anna yksi selkeä esimerkki.
+        3. Jos tietoa ei löydy juuri tästä ohjeesta, sano: "Kyseistä kohtaa ei löytynyt ohjetiedostosta."
+      `;
+      
+      const result = await instructionModel.generateContent(instructionPrompt);
+      return res.json({ 
+        text: result.response.candidates?.[0].content.parts?.[0].text, 
+        sessionId: searchResponse.session?.name 
+      });
     }
 
-    // 3. Fallback (Gemini)
-    const fallbackModel = vertexAI.getGenerativeModel({ model: MODEL_NAME });
-    const fallbackResult = await fallbackModel.generateContent(message);
-    res.json({ text: fallbackResult.response.candidates?.[0].content.parts?.[0].text, sessionId });
+    // B) AKATEEMINEN LIIKETOIMINTA-ASIANTUNTIJA (WEB TAI YLEINEN)
+    const generativeModel = vertexAI.getGenerativeModel({
+      model: MODEL_NAME,
+      tools: isWEB ? [{ googleSearchRetrieval: {} } as any] : [],
+      generationConfig: { temperature: 0.4 }
+    });
+
+    const expertPrompt = `
+      Olet akateeminen liiketoiminta-asiantuntija ja strateginen analyytikko. 
+      Vastaustyylisi on tiivis, analyyttinen ja hyvin perusteltu.
+      
+      OHJEET VASTAUKSEEN:
+      1. Priorisoi akateemisesti uskottavia lähteitä: Tilastokeskus, Finlex, OECD, Gartner, McKinsey, BCG tai viralliset viranomaisraportit.
+      2. Jos käytät Google-hakua (web), liitä vastauksen loppuun suorat linkit merkittävimpiin lähteisiin.
+      3. Perustele väitteesi lyhyesti syy-seuraussuhteilla.
+      4. Hyödynnä tätä taustamateriaalia PDF-ohjeista: ${rawDataContent}
+      
+      Käyttäjän kysymys: "${message}"
+      Vastaa asiantuntevasti suomeksi.
+    `;
+
+    const result = await generativeModel.generateContent(expertPrompt);
+    res.json({ 
+      text: result.response.candidates?.[0].content.parts?.[0].text, 
+      sessionId: searchResponse.session?.name 
+    });
 
   } catch (err: any) {
     console.error("VIRHE:", err);
@@ -84,7 +113,7 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// --- TÄMÄ OSA PUUTTUI EDELLISESTÄ JA KORJAA "CANNOT GET /" VIRHEEN ---
+// --- FRONTENDIN TARJOILU ---
 const distPath = path.join(process.cwd(), "dist");
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
@@ -95,12 +124,13 @@ app.get("*", (req, res) => {
     const indexPath = path.join(distPath, "index.html");
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);
+    } else {
+      res.status(404).send("Frontend build missing. Please run build first.");
     }
   }
 });
-// ------------------------------------------------------------------
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Serveri käynnissä portissa ${PORT}`);
+  console.log(`🚀 Akateeminen serveri käynnissä portissa ${PORT}`);
 });
