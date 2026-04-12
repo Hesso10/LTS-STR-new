@@ -20,7 +20,7 @@ const ENGINE_ID = "lts-str_1775635155437";
 /**
  * 2026 Enterprise-standardit:
  * MODEL_LOCATION: us-central1 takaa Google Search Grounding -tuen.
- * MODEL_NAME: gemini-2.5-flash on uusin vakaa malli.
+ * MODEL_NAME: gemini-2.5-flash on uusin vakaa ja nopea malli.
  */
 const MODEL_LOCATION = "us-central1"; 
 const MODEL_NAME = "gemini-2.5-flash"; 
@@ -29,8 +29,7 @@ const MODEL_NAME = "gemini-2.5-flash";
 const searchClient = new ConversationalSearchServiceClient();
 const vertexAI = new VertexAI({ project: PROJECT_ID, location: MODEL_LOCATION });
 
-/** * KORJAUS: Lokin mukaan Gemini 2.5 vaatii "google_search" -kentän 
- * aiemman "google_search_retrieval" sijaan.
+/** * Enterprise Grounding -työkalu (Gemini 2.5+ syntaksi)
  */
 const googleSearchTool: any = {
   google_search: {} 
@@ -42,9 +41,15 @@ app.post("/api/chat", async (req, res) => {
     const { message, sessionId } = req.body;
     if (!message) return res.status(400).json({ error: "Missing message" });
 
-    console.log(`--- PYYNTÖ VASTAANOTETTU (Gemini 2.5): ${message.substring(0, 50)}... ---`);
+    const msgLower = message.toLowerCase().trim();
+    
+    // Portaalien tunnistus etuliitteistä
+    const isLTS = msgLower.startsWith("lts");
+    const isSTR = msgLower.startsWith("str");
 
-    // --- VAIHE 1: HAKU DATASTORESTA (Oma PDF-data) ---
+    console.log(`--- PYYNTÖ VASTAANOTETTU: ${isLTS ? 'LTS' : isSTR ? 'STR' : 'YLEINEN'} ---`);
+
+    // --- VAIHE 1: HAKU DATASTORESTA (PDF-ohjeet) ---
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
     
     let rawDataContent = "";
@@ -60,37 +65,43 @@ app.post("/api/chat", async (req, res) => {
       });
       rawDataContent = searchResponse.answer?.answerText || "";
     } catch (searchErr) {
-      console.error("Discovery Engine haku ei onnistunut, jatketaan Groundingilla:", searchErr);
+      console.error("Discovery Engine haku epäonnistui, jatketaan Groundingilla:", searchErr);
     }
 
-    // --- VAIHE 2: GENERATIIVINEN MALLI JA GOOGLE SEARCH ---
+    // --- VAIHE 2: GENERATIIVINEN MALLI ---
     const generativeModel = vertexAI.getGenerativeModel({ 
       model: MODEL_NAME,
       tools: [googleSearchTool], 
       generationConfig: { 
-        temperature: 0.7, 
+        temperature: 0.4, // Matala lämpötila takaa asiallisen ja tarkan vastaustyylin
         topP: 0.95,
         maxOutputTokens: 2048
       }
     });
 
+    // OHJEISTUS: Akateeminen sparraaja, joka erottaa LTS ja STR portaalit
     const systemInstruction = `
-      Olet akateeminen liiketoiminnan suunnittelija. Tyylisi on asiallinen, ytimekäs ja motivoiva.
+      Olet akateeminen liiketoiminnan asiantuntija ja strateginen sparraaja. 
+      Tyylisi on asiallinen, motivoiva ja analyyttinen.
       
-      LÄHTEET:
-      1. PDF-DATASTORE: "${rawDataContent}" - Käytä tätä ensisijaisena ohjeistuksena.
-      2. GOOGLE SEARCH: Käytä tätä tuomaan tuoreita, aitoja esimerkkejä ja markkinatietoa.
+      PORTAALIKOHTAISET SÄÄNNÖT:
+      1. Jos viesti alkaa "LTS": Noudata Liiketoimintasuunnitelma-ohjeita (liikeidea, yritysmuoto, operatiivinen toiminta).
+      2. Jos viesti alkaa "STR": Noudata Strategia-ohjeita (visio, diagnoosi, kyvykkyydet/miten-kohdat, liiketoimintamalli).
+      3. Jos etuliitettä ei ole: Päättele kysymyksestä kumpi portaali on kyseessä tai vastaa yleisenä asiantuntijana molempia PDF-ohjeita hyödyntäen.
       
-      TEHTÄVÄ:
-      - Luo "Blended Summary": Yhdistä PDF-ohjeet ja Googlen markkinatieto saumattomasti.
-      - Jos viesti alkaa STR tai LTS, varmista että vastaus auttaa täyttämään kyseisen kohdan, mutta anna aitoja esimerkkejä netistä.
-      - Ole analyyttinen ja kannustava. Perustele näkemyksesi asiantuntijatiedolla.
+      VASTAUKSEN RAKENNE:
+      - Aloita aina tiivistämällä PDF-ohjeen ydin kyseiselle portaalin kohdalle.
+      - Käytä Google Searchia (Grounding) tuomaan VÄHINTÄÄN 3 tuoretta ja konkreettista esimerkkiä vuodelta 2026.
+      - Vastaa selkeällä suomen kielellä.
+      
+      LÄHDE-DATA (PDF):
+      "${rawDataContent}"
     `;
 
     const result = await generativeModel.generateContent({
       contents: [{ 
         role: "user", 
-        parts: [{ text: `${systemInstruction}\n\nKäyttäjä kysyy: ${message}` }] 
+        parts: [{ text: `${systemInstruction}\n\nKäyttäjän syöte: ${message}` }] 
       }]
     });
 
@@ -106,11 +117,11 @@ app.post("/api/chat", async (req, res) => {
 
   } catch (err: any) {
     console.error("KRIITTINEN VIRHE API-REITILLÄ:", err);
-    res.status(500).json({ error: "Yhteysvirhe Vertex AI -palveluun. Yritä uudelleen." });
+    res.status(500).json({ error: "Yhteysvirhe. Yritä uudelleen hetken kuluttua." });
   }
 });
 
-// --- FRONTENDIN TARJOILU ---
+// --- FRONTENDIN TARJOILU (dist-kansio) ---
 const distPath = path.join(process.cwd(), "dist");
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
@@ -121,6 +132,8 @@ app.get("*", (req, res) => {
     const indexPath = path.join(distPath, "index.html");
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);
+    } else {
+      res.status(404).send("Frontend build not found");
     }
   }
 });
@@ -128,6 +141,6 @@ app.get("*", (req, res) => {
 // --- KÄYNNISTYS ---
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Akateeminen Enterprise-palvelin käynnissä portissa ${PORT}`);
-  console.log(`🌍 Model Location: ${MODEL_LOCATION}, Model: ${MODEL_NAME}`);
+  console.log(`🚀 Portaali-palvelin pystyssä portissa ${PORT}`);
+  console.log(`🌍 Alue: ${MODEL_LOCATION}, Malli: ${MODEL_NAME}`);
 });
