@@ -34,6 +34,7 @@ app.post("/api/chat", async (req, res) => {
     const isLTS = msgLower.startsWith("lts");
     const isSTR = msgLower.startsWith("str");
 
+    // --- VAIHE 1: HAKU DATASTORESTA ---
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
     
     let rawDataContent = "";
@@ -42,40 +43,39 @@ app.post("/api/chat", async (req, res) => {
         servingConfig,
         query: { text: message },
         session: sessionId ? { name: sessionId } : undefined,
-        answerGenerationSpec: { 
-          answerLanguageCode: "fi",
-          includeCitations: true 
-        }
+        answerGenerationSpec: { answerLanguageCode: "fi", includeCitations: true }
       });
       rawDataContent = searchResponse.answer?.answerText || "";
     } catch (searchErr) {
-      console.error("Discovery Engine haku epäonnistui:", searchErr);
+      console.error("Discovery Engine error:", searchErr);
     }
 
     const generativeModel = vertexAI.getGenerativeModel({ 
       model: MODEL_NAME,
       tools: [googleSearchTool], 
-      generationConfig: { temperature: 0.4, topP: 0.95, maxOutputTokens: 2048 }
+      generationConfig: { temperature: 0.5, topP: 0.95, maxOutputTokens: 2500 }
     });
 
+    /**
+     * SYSTEM INSTRUCTION: Optimisoitu vastauslogiikka
+     */
     const systemInstruction = `
-      Olet akateeminen liiketoiminnan asiantuntija. 
+      Toimi analyyttisena ja motivoivana liiketoiminnan sparraajana. Älä mainitse rooliasi (esim. "akateeminen asiantuntija") vaan anna sen näkyä vastauksen laadussa.
+
+      TOIMINTATAVAT:
+
+      1. TUNNUSSANA-TILA (LTS tai STR + otsikko):
+         - Etsi PDF-datasta VAIN kyseistä otsikkoa vastaava ohje.
+         - Tiivistä PDF-ohje ytimekkääksi (max 100-150 sanaa). Älä ota mukaan muita otsikoita.
+         - Tämän jälkeen siirry välittömästi kohtaan: "Nykypäivän esimerkkejä ja globaaleja oppeja (2026)".
+         - Tuo tähän vähintään 3 korkeatasoista esimerkkiä hyödyntäen lähteitä: hbr.org, mckinsey.com, deloitte.com ja strategyzer.com.
       
-      KESKEISET KÄSITTEET:
-      - "Miten" = Kyvykkyys (Capability). Prosessien, työkalujen ja osaamisen liitto.
-      - "Liiketoimintamalli" = Taktiikkatason toteutus strategialle ja kyvykkyyksille.
-      
-      TOIMINTAMALLIT:
-      1. TUNNUSSANA-TILA (LTS/STR + otsikko):
-         - Palauta PDF-ohje (rawDataContent) 1:1 kyseiselle kohdalle.
-         - Lisää loppuun "Nykypäivän esimerkkejä (2026)" Google Searchin avulla.
-      2. VAPAA SPARRAUSTILA:
-         - Hyödynnä kaikkia PDF-materiaaleja ja Google Groundingia.
-      
-      SUOSITELTAVAT LÄHTEET:
-      - Viranomaistieto: prh.fi, suomi.fi, stat.fi, finlex.fi, suomenpankki.fi.
-      - Strategia: hbr.org, mckinsey.com, deloitte.com.
-      - Liiketoimintamalli: strategyzer.com (Value Proposition & Business Model Canvas).
+      2. VAPAA SPARRAUSTILA (Ei tunnussanaa):
+         - Hyödynnä vapaasti Google Searchia ja kaikkea PDF-materiaalia.
+         - Tarjoa syvällistä, strategista analyysia.
+         - Suosi virallisia lähteitä (stat.fi, prh.fi, suomi.fi, finlex.fi, suomenpankki.fi).
+
+      HUOMIO: "Miten" = Kyvykkyys. Se on suunnitelmallinen reagointiresepti, ei pelkkä aktiviteetti.
       
       LÄHDE-DATA (PDF):
       "${rawDataContent}"
@@ -84,7 +84,7 @@ app.post("/api/chat", async (req, res) => {
     const result = await generativeModel.generateContent({
       contents: [{ 
         role: "user", 
-        parts: [{ text: `${systemInstruction}\n\nKäyttäjän viesti: ${message}` }] 
+        parts: [{ text: `${systemInstruction}\n\nKysymys: ${message}` }] 
       }]
     });
 
@@ -111,5 +111,5 @@ app.get("*", (req, res) => {
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Palvelin käynnissä portissa ${PORT}`);
+  console.log(`🚀 Palvelin valmiina portissa ${PORT}`);
 });
