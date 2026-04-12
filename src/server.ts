@@ -16,14 +16,16 @@ app.use(express.json());
 const PROJECT_ID = "superb-firefly-489705-g3"; 
 const LOCATION = "global"; 
 const ENGINE_ID = "lts-str_1775635155437"; 
-const MODEL_LOCATION = "europe-west1"; 
-const MODEL_NAME = "gemini-1.5-flash";
+
+// Päivitetty 2026 Enterprise-standardien mukaan
+const MODEL_LOCATION = "us-central1"; 
+const MODEL_NAME = "gemini-2.5-flash"; 
 
 // --- CLIENTIEN ALUSTUS ---
 const searchClient = new ConversationalSearchServiceClient();
 const vertexAI = new VertexAI({ project: PROJECT_ID, location: MODEL_LOCATION });
 
-// Enterprise Grounding -työkalu (varmistettu snake_case)
+// Enterprise Grounding -työkalu
 const googleSearchTool: any = {
   google_search_retrieval: {} 
 };
@@ -38,7 +40,7 @@ app.post("/api/chat", async (req, res) => {
     const isLTS = msgLower.startsWith("lts");
     const isSTR = msgLower.startsWith("str");
 
-    console.log(`--- PYYNTÖ: ${message.substring(0, 50)}... ---`);
+    console.log(`--- PYYNTÖ VASTAANOTETTU (Gemini 2.5): ${message.substring(0, 50)}... ---`);
 
     // --- VAIHE 1: HAKU DATASTORESTA (PDF-sisältö) ---
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
@@ -56,10 +58,10 @@ app.post("/api/chat", async (req, res) => {
       });
       rawDataContent = searchResponse.answer?.answerText || "";
     } catch (searchErr) {
-      console.error("Discovery Engine haku ei onnistunut, jatketaan Groundingilla:", searchErr);
+      console.error("Discovery Engine haku ei onnistunut:", searchErr);
     }
 
-    // --- VAIHE 2: GENERATIIVINEN MALLI (Enterprise Grounding) ---
+    // --- VAIHE 2: GENERATIIVINEN MALLI (Alustus pyynnön sisällä) ---
     const generativeModel = vertexAI.getGenerativeModel({ 
       model: MODEL_NAME,
       tools: [googleSearchTool], 
@@ -70,30 +72,28 @@ app.post("/api/chat", async (req, res) => {
       }
     });
 
-    // Ohjeistus: Akateeminen sparraaja, joka yhdistää lähteet saumattomasti
     const systemInstruction = `
-      Olet akateeminen liiketoiminnan suunnittelija ja strateginen sparraaja. 
-      Tyylisi on asiallinen, asiantunteva, ytimekäs ja motivoiva.
+      Olet akateeminen liiketoiminnan suunnittelija. Tyylisi on asiallinen, ytimekäs ja motivoiva.
       
-      KÄYTÄSSÄSI ON KAKSI TIETOLÄHDETTÄ:
-      1. PDF-DATASTORE: "${rawDataContent}" - Käytä tätä raameina ja teknisinä ohjeina.
-      2. GOOGLE SEARCH (Grounding): Käytä tätä tuomaan tuoreita esimerkkejä ja markkinatietoa.
+      LÄHTEET:
+      1. PDF-DATASTORE: "${rawDataContent}"
+      2. GOOGLE SEARCH (Grounding): Käytä reaaliaikaista tietoa parhaiden esimerkkien tuottamiseen.
       
-      TEHTÄVÄSI:
-      - Luo "Blended Summary": Yhdistä PDF-sisällön raamit ja Googlen reaaliaikainen tieto.
-      - Jos viesti alkaa STR tai LTS, varmista että vastaus auttaa täyttämään kyseisen kohdan tarkasti, mutta anna Google-haun avulla laadukkaita esimerkkejä.
-      - Ole analyyttinen mutta kannustava. Perustele näkemyksesi asiantuntijatiedolla.
+      TEHTÄVÄ:
+      - Luo "Blended Summary": Yhdistä PDF-ohjeet ja Googlen markkinatieto saumattomasti.
+      - Jos viesti alkaa STR tai LTS, varmista että vastaus auttaa täyttämään kyseisen kohdan, mutta anna aitoja esimerkkejä netistä.
+      - Perustele näkemyksesi asiantuntijatiedolla ja ole kannustava.
     `;
 
     const result = await generativeModel.generateContent({
       contents: [{ 
         role: "user", 
-        parts: [{ text: `${systemInstruction}\n\nKäyttäjän kysymys: ${message}` }] 
+        parts: [{ text: `${systemInstruction}\n\nKäyttäjä kysyy: ${message}` }] 
       }]
     });
 
     const response = result.response;
-    const responseText = response.candidates?.[0].content.parts?.[0].text || "Pahoittelut, vastausta ei voitu luoda.";
+    const responseText = response.candidates?.[0].content.parts?.[0].text || "Vastausta ei voitu luoda.";
     const groundingMetadata = response.candidates?.[0].groundingMetadata;
 
     res.json({ 
@@ -108,8 +108,7 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// --- FRONTENDIN TARJOILU ---
-// Huomioidaan, että tiedosto on src/ kansiossa -> dist on projektin juuressa
+// --- FRONTENDIN TARJOILU (src-kansiosta käsin) ---
 const distPath = path.join(process.cwd(), "dist");
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
@@ -121,8 +120,7 @@ app.get("*", (req, res) => {
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);
     } else {
-      // Hyödyllinen loki debuggaukseen, jos dist-kansio puuttuu
-      res.status(404).send(`Frontend build not found at ${distPath}`);
+      res.status(404).send("Frontend build not found");
     }
   }
 });
@@ -130,6 +128,5 @@ app.get("*", (req, res) => {
 // --- KÄYNNISTYS ---
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Akateeminen Enterprise-palvelin käynnissä portissa ${PORT}`);
-  console.log(`🌍 Alue: ${MODEL_LOCATION}, Grounding: Aktivoitu`);
+  console.log(`🚀 Serveri käynnissä portissa ${PORT} (us-central1)`);
 });
