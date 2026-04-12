@@ -17,7 +17,11 @@ const PROJECT_ID = "superb-firefly-489705-g3";
 const LOCATION = "global"; 
 const ENGINE_ID = "lts-str_1775635155437"; 
 
-// Päivitetty 2026 Enterprise-standardien mukaan
+/**
+ * 2026 Enterprise-standardit:
+ * MODEL_LOCATION: us-central1 takaa Google Search Grounding -tuen.
+ * MODEL_NAME: gemini-2.5-flash on uusin vakaa malli.
+ */
 const MODEL_LOCATION = "us-central1"; 
 const MODEL_NAME = "gemini-2.5-flash"; 
 
@@ -25,9 +29,11 @@ const MODEL_NAME = "gemini-2.5-flash";
 const searchClient = new ConversationalSearchServiceClient();
 const vertexAI = new VertexAI({ project: PROJECT_ID, location: MODEL_LOCATION });
 
-// Enterprise Grounding -työkalu
+/** * KORJAUS: Lokin mukaan Gemini 2.5 vaatii "google_search" -kentän 
+ * aiemman "google_search_retrieval" sijaan.
+ */
 const googleSearchTool: any = {
-  google_search_retrieval: {} 
+  google_search: {} 
 };
 
 // --- API-REITTI ---
@@ -36,13 +42,9 @@ app.post("/api/chat", async (req, res) => {
     const { message, sessionId } = req.body;
     if (!message) return res.status(400).json({ error: "Missing message" });
 
-    const msgLower = message.toLowerCase().trim();
-    const isLTS = msgLower.startsWith("lts");
-    const isSTR = msgLower.startsWith("str");
-
     console.log(`--- PYYNTÖ VASTAANOTETTU (Gemini 2.5): ${message.substring(0, 50)}... ---`);
 
-    // --- VAIHE 1: HAKU DATASTORESTA (PDF-sisältö) ---
+    // --- VAIHE 1: HAKU DATASTORESTA (Oma PDF-data) ---
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
     
     let rawDataContent = "";
@@ -58,10 +60,10 @@ app.post("/api/chat", async (req, res) => {
       });
       rawDataContent = searchResponse.answer?.answerText || "";
     } catch (searchErr) {
-      console.error("Discovery Engine haku ei onnistunut:", searchErr);
+      console.error("Discovery Engine haku ei onnistunut, jatketaan Groundingilla:", searchErr);
     }
 
-    // --- VAIHE 2: GENERATIIVINEN MALLI (Alustus pyynnön sisällä) ---
+    // --- VAIHE 2: GENERATIIVINEN MALLI JA GOOGLE SEARCH ---
     const generativeModel = vertexAI.getGenerativeModel({ 
       model: MODEL_NAME,
       tools: [googleSearchTool], 
@@ -76,13 +78,13 @@ app.post("/api/chat", async (req, res) => {
       Olet akateeminen liiketoiminnan suunnittelija. Tyylisi on asiallinen, ytimekäs ja motivoiva.
       
       LÄHTEET:
-      1. PDF-DATASTORE: "${rawDataContent}"
-      2. GOOGLE SEARCH (Grounding): Käytä reaaliaikaista tietoa parhaiden esimerkkien tuottamiseen.
+      1. PDF-DATASTORE: "${rawDataContent}" - Käytä tätä ensisijaisena ohjeistuksena.
+      2. GOOGLE SEARCH: Käytä tätä tuomaan tuoreita, aitoja esimerkkejä ja markkinatietoa.
       
       TEHTÄVÄ:
       - Luo "Blended Summary": Yhdistä PDF-ohjeet ja Googlen markkinatieto saumattomasti.
       - Jos viesti alkaa STR tai LTS, varmista että vastaus auttaa täyttämään kyseisen kohdan, mutta anna aitoja esimerkkejä netistä.
-      - Perustele näkemyksesi asiantuntijatiedolla ja ole kannustava.
+      - Ole analyyttinen ja kannustava. Perustele näkemyksesi asiantuntijatiedolla.
     `;
 
     const result = await generativeModel.generateContent({
@@ -104,11 +106,11 @@ app.post("/api/chat", async (req, res) => {
 
   } catch (err: any) {
     console.error("KRIITTINEN VIRHE API-REITILLÄ:", err);
-    res.status(500).json({ error: "Yhteysvirhe. Yritä uudelleen hetken kuluttua." });
+    res.status(500).json({ error: "Yhteysvirhe Vertex AI -palveluun. Yritä uudelleen." });
   }
 });
 
-// --- FRONTENDIN TARJOILU (src-kansiosta käsin) ---
+// --- FRONTENDIN TARJOILU ---
 const distPath = path.join(process.cwd(), "dist");
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
@@ -119,8 +121,6 @@ app.get("*", (req, res) => {
     const indexPath = path.join(distPath, "index.html");
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);
-    } else {
-      res.status(404).send("Frontend build not found");
     }
   }
 });
@@ -128,5 +128,6 @@ app.get("*", (req, res) => {
 // --- KÄYNNISTYS ---
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Serveri käynnissä portissa ${PORT} (us-central1)`);
+  console.log(`🚀 Akateeminen Enterprise-palvelin käynnissä portissa ${PORT}`);
+  console.log(`🌍 Model Location: ${MODEL_LOCATION}, Model: ${MODEL_NAME}`);
 });
