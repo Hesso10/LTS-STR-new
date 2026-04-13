@@ -12,6 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// --- KONFIGURAATIO ---
 const PROJECT_ID = "superb-firefly-489705-g3"; 
 const LOCATION = "global"; 
 const ENGINE_ID = "lts-str_1775635155437"; 
@@ -27,14 +28,10 @@ const googleSearchTool: any = {
 
 app.post("/api/chat", async (req, res) => {
   try {
-    const { message, sessionId } = req.body;
+    const { message, sessionId, history = [] } = req.body;
     if (!message) return res.status(400).json({ error: "Missing message" });
 
-    const msgLower = message.toLowerCase().trim();
-    const isLTS = msgLower.startsWith("lts");
-    const isSTR = msgLower.startsWith("str");
-
-    // --- VAIHE 1: HAKU DATASTORESTA ---
+    // --- VAIHE 1: HAKU DATASTORESTA (Discovery Engine) ---
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
     
     let rawDataContent = "";
@@ -43,22 +40,30 @@ app.post("/api/chat", async (req, res) => {
         servingConfig,
         query: { text: message },
         session: sessionId ? { name: sessionId } : undefined,
-        answerGenerationSpec: { answerLanguageCode: "fi", includeCitations: true }
+        answerGenerationSpec: { 
+          answerLanguageCode: "fi", 
+          includeCitations: true 
+        }
       });
       rawDataContent = searchResponse.answer?.answerText || "";
     } catch (searchErr) {
       console.error("Discovery Engine error:", searchErr);
+      // Jatkettaan silti, jotta Gemini voi vastata yleistiedolla jos haku epäonnistuu
     }
 
     const generativeModel = vertexAI.getGenerativeModel({ 
       model: MODEL_NAME,
       tools: [googleSearchTool], 
-      generationConfig: { temperature: 0.5, topP: 0.95, maxOutputTokens: 2500 }
+      generationConfig: { 
+        temperature: 0.4, // Laskettu hieman tarkkuuden parantamiseksi
+        topP: 0.95, 
+        maxOutputTokens: 2500 
+      }
     });
 
     /**
-     * SYSTEM INSTRUCTION: Optimisoitu vastauslogiikka
-     * Päivitys: Lähteet (McKinsey, HBR, Deloitte, Strategyzer) ovat tiedonlähteitä, eivät analyysin kohteita.
+     * SYSTEM INSTRUCTION: Optimoitu vastauslogiikka.
+     * Korjattu: LTS/STR-tilasta poistettu turhat 2026-jäänteet.
      */
     const systemInstruction = `
       Toimi analyyttisena ja motivoivana liiketoiminnan sparraajana. Älä mainitse rooliasi, vaan anna laadun puhua puolestaan.
@@ -66,15 +71,16 @@ app.post("/api/chat", async (req, res) => {
       TOIMINTATAVAT:
 
       1. TUNNUSSANA-TILA (LTS tai STR + otsikko):
+          - Tämä on tarkoitettu virallisten ohjeiden hakuun PDF-datasta.
           - Etsi PDF-datasta VAIN kyseistä otsikkoa vastaava ohje.
-          - Tiivistä PDF-ohje ytimekkääksi (max 100-150 sanaa). Älä ota mukaan muita otsikoita.
-          - Tämän jälkeen siirry välittömästi kohtaan: "Nykypäivän esimerkkejä ja globaaleja oppeja (2026)".
-          - Tuo tähän vähintään 3 korkeatasoista esimerkkiä hyödyntäen lähteitä: hbr.org, mckinsey.com, deloitte.com ja strategyzer.com.
-          - HUOMIO: ÄLÄ analysoi tai esittele kyseisiä konsulttiyhtiöitä tai verkkosivuja itsessään. Käytä niitä puhtaasti tiedonlähteinä ja viitekehyksinä (esim. "Strategyzerin mallin mukaisesti..." tai "Deloitten raportti osoittaa kuinka yritys X...").
+          - Tiivistä ohje ytimekkääksi (max 150 sanaa).
+          - ÄLÄ lisää loppuun "Nykypäivän esimerkkejä" -otsikkoa tai muuta ylimääräistä tekstiä. 
+          - Vastaa puhtaasti PDF-sisällön pohjalta.
 
       2. VAPAA SPARRAUSTILA (Ei tunnussanaa):
           - Hyödynnä vapaasti Google Searchia ja kaikkea PDF-materiaalia.
           - Tarjoa syvällistä, strategista analyysia.
+          - Tuo mukaan nykypäivän esimerkkejä ja globaaleja oppeja (2026) hyödyntäen lähteitä: hbr.org, mckinsey.com, deloitte.com ja strategyzer.com.
           - Suosi virallisia lähteitä (stat.fi, prh.fi, suomi.fi, finlex.fi, suomenpankki.fi).
 
       HUOMIO: "Miten" = Kyvykkyys. Se on suunnitelmallinen reagointiresepti (prosessit, työkalut, osaaminen), ei pelkkä aktiviteetti.
@@ -83,18 +89,25 @@ app.post("/api/chat", async (req, res) => {
       "${rawDataContent}"
     `;
 
+    // --- VAIHE 2: GENERATIIVINEN VASTAUS ---
     const result = await generativeModel.generateContent({
-      contents: [{ 
-        role: "user", 
-        parts: [{ text: `${systemInstruction}\n\nKysymys: ${message}` }] 
-      }]
+      contents: [
+        ...history,
+        { 
+          role: "user", 
+          parts: [{ text: `${systemInstruction}\n\nKäyttäjän viesti: ${message}` }] 
+        }
+      ]
     });
 
     const response = result.response;
+    const responseText = response.candidates?.[0].content.parts?.[0].text || "Vastausta ei voitu luoda.";
+    const groundingMetadata = response.candidates?.[0].groundingMetadata;
+
     res.json({ 
-      text: response.candidates?.[0].content.parts?.[0].text || "Vastausta ei voitu luoda.", 
+      text: responseText, 
       sessionId: sessionId,
-      sources: response.candidates?.[0].groundingMetadata 
+      sources: groundingMetadata 
     });
 
   } catch (err: any) {
@@ -103,12 +116,18 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
+// Staattisten tiedostojen tarjoilu (Frontend)
 const distPath = path.join(process.cwd(), "dist");
-if (fs.existsSync(distPath)) { app.use(express.static(distPath)); }
+if (fs.existsSync(distPath)) { 
+  app.use(express.static(distPath)); 
+}
+
 app.get("*", (req, res) => {
   if (!req.path.startsWith('/api')) {
     const indexPath = path.join(distPath, "index.html");
-    if (fs.existsSync(indexPath)) { res.sendFile(indexPath); }
+    if (fs.existsSync(indexPath)) { 
+      res.sendFile(indexPath); 
+    }
   }
 });
 
