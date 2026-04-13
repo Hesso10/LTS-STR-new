@@ -31,7 +31,7 @@ app.post("/api/chat", async (req, res) => {
     const { message, sessionId, history = [] } = req.body;
     if (!message) return res.status(400).json({ error: "Missing message" });
 
-    // --- VAIHE 1: HAKU DATASTORESTA (Discovery Engine) ---
+    // --- VAIHE 1: HAKU DATASTORESTA ---
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
     
     let rawDataContent = "";
@@ -48,42 +48,39 @@ app.post("/api/chat", async (req, res) => {
       rawDataContent = searchResponse.answer?.answerText || "";
     } catch (searchErr) {
       console.error("Discovery Engine error:", searchErr);
-      // Jatkettaan silti, jotta Gemini voi vastata yleistiedolla jos haku epäonnistuu
     }
 
     const generativeModel = vertexAI.getGenerativeModel({ 
       model: MODEL_NAME,
       tools: [googleSearchTool], 
       generationConfig: { 
-        temperature: 0.4, // Laskettu hieman tarkkuuden parantamiseksi
+        temperature: 0.4, 
         topP: 0.95, 
-        maxOutputTokens: 2500 
+        maxOutputTokens: 1000 // RAJOITETTU: Estää liian pitkät vastaukset
       }
     });
 
     /**
-     * SYSTEM INSTRUCTION: Optimoitu vastauslogiikka.
-     * Korjattu: LTS/STR-tilasta poistettu turhat 2026-jäänteet.
+     * SYSTEM INSTRUCTION: Optimoitu laatu ja pituus.
      */
     const systemInstruction = `
-      Toimi analyyttisena ja motivoivana liiketoiminnan sparraajana. Älä mainitse rooliasi, vaan anna laadun puhua puolestaan.
+      Toimi analyyttisena ja motivoivana liiketoiminnan sparraajana. Anna laadun puhua puolestaan.
+
+      YLEINEN SÄÄNTÖ: Ole ytimekäs. Arvosta käyttäjän aikaa. Älä toista itsestäänselvyyksiä.
 
       TOIMINTATAVAT:
 
       1. TUNNUSSANA-TILA (LTS tai STR + otsikko):
-          - Tämä on tarkoitettu virallisten ohjeiden hakuun PDF-datasta.
           - Etsi PDF-datasta VAIN kyseistä otsikkoa vastaava ohje.
-          - Tiivistä ohje ytimekkääksi (max 150 sanaa).
-          - ÄLÄ lisää loppuun "Nykypäivän esimerkkejä" -otsikkoa tai muuta ylimääräistä tekstiä. 
-          - Vastaa puhtaasti PDF-sisällön pohjalta.
+          - Tiivistä ohje erittäin ytimekkääksi (max 100-120 sanaa).
+          - Vastaa puhtaasti PDF-sisällön pohjalta ilman lisäyksiä.
 
       2. VAPAA SPARRAUSTILA (Ei tunnussanaa):
-          - Hyödynnä vapaasti Google Searchia ja kaikkea PDF-materiaalia.
-          - Tarjoa syvällistä, strategista analyysia.
-          - Tuo mukaan nykypäivän esimerkkejä ja globaaleja oppeja (2026) hyödyntäen lähteitä: hbr.org, mckinsey.com, deloitte.com ja strategyzer.com.
-          - Suosi virallisia lähteitä (stat.fi, prh.fi, suomi.fi, finlex.fi, suomenpankki.fi).
+          - Tarjoa syvällistä analyysia, mutta käytä tiivistä rakennetta (bullet pointit, selkeät väliotsikot).
+          - Tuo mukaan nykypäivän esimerkkejä ja globaaleja oppeja (2026) lähteistä: hbr.org, mckinsey.com, deloitte.com, strategyzer.com.
+          - Vältä turhaa johdantoa ja lopputiivistelmää. Mene suoraan asiaan.
 
-      HUOMIO: "Miten" = Kyvykkyys. Se on suunnitelmallinen reagointiresepti (prosessit, työkalut, osaaminen), ei pelkkä aktiviteetti.
+      HUOMIO: "Miten" = Kyvykkyys. Se on suunnitelmallinen reagointiresepti (prosessit, työkalut, osaaminen).
       
       LÄHDE-DATA (PDF):
       "${rawDataContent}"
@@ -102,12 +99,11 @@ app.post("/api/chat", async (req, res) => {
 
     const response = result.response;
     const responseText = response.candidates?.[0].content.parts?.[0].text || "Vastausta ei voitu luoda.";
-    const groundingMetadata = response.candidates?.[0].groundingMetadata;
 
     res.json({ 
       text: responseText, 
       sessionId: sessionId,
-      sources: groundingMetadata 
+      sources: response.candidates?.[0].groundingMetadata 
     });
 
   } catch (err: any) {
@@ -116,18 +112,13 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// Staattisten tiedostojen tarjoilu (Frontend)
 const distPath = path.join(process.cwd(), "dist");
-if (fs.existsSync(distPath)) { 
-  app.use(express.static(distPath)); 
-}
+if (fs.existsSync(distPath)) { app.use(express.static(distPath)); }
 
 app.get("*", (req, res) => {
   if (!req.path.startsWith('/api')) {
     const indexPath = path.join(distPath, "index.html");
-    if (fs.existsSync(indexPath)) { 
-      res.sendFile(indexPath); 
-    }
+    if (fs.existsSync(indexPath)) { res.sendFile(indexPath); }
   }
 });
 
