@@ -177,7 +177,16 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
     const adminPassword = 'Studio80!';
     try {
       const userCred = await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-      await setDoc(doc(db, 'users', userCred.user.uid), { email: adminEmail, role: UserRole.ADMIN }, { merge: true });
+      
+      // Päivitetään rooli ja varmistetaan, että tallennamme sen portaalin, 
+      // jonka kautta kirjaudut juuri nyt sisään.
+      await setDoc(doc(db, 'users', userCred.user.uid), { 
+        email: adminEmail, 
+        role: UserRole.ADMIN,
+        portalType: portalType // Tallentaa valitun portaalin (LTS tai STRATEGY)
+      }, { merge: true });
+
+      // Ohjataan käyttäjä sisään käyttäen sitä portalTypea, joka Auth-komponentille on annettu
       onLogin(adminEmail, UserRole.ADMIN, portalType || PortalType.LTS);
     } catch (err: any) {
       setError(err.message || 'Admin login failed');
@@ -213,7 +222,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
           </div>
           {error && <p className="text-red-500 text-xs text-center">{error}</p>}
           {message && <p className="text-emerald-500 text-xs text-center">{message}</p>}
-          <button type="submit" className="w-full bg-black text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2">
+          <button type="submit" disabled={isLoading} className="w-full bg-black text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2">
             <span>{isLogin ? 'Luo tunnus / Kirjaudu sisään' : 'Luo tunnus'}</span>
             <ArrowRight size={18} />
           </button>
@@ -224,7 +233,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
           </button>
         </div>
         <div className="mt-8 pt-8 border-t border-slate-100">
-          <button onClick={handleAdminLogin} className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100">
+          <button onClick={handleAdminLogin} disabled={isLoading} className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100">
             <ShieldCheck className="text-indigo-500" size={20} />
             <span className="text-sm font-bold text-indigo-600">Kirjaudu Adminina</span>
           </button>
