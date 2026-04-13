@@ -31,7 +31,7 @@ app.post("/api/chat", async (req, res) => {
     const { message, sessionId, history = [] } = req.body;
     if (!message) return res.status(400).json({ error: "Missing message" });
 
-    // --- VAIHE 1: HAKU DATASTORESTA ---
+    // --- VAIHE 1: HAKU DATASTORESTA (Discovery Engine) ---
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
     
     let rawDataContent = "";
@@ -56,29 +56,33 @@ app.post("/api/chat", async (req, res) => {
       generationConfig: { 
         temperature: 0.4, 
         topP: 0.95, 
-        maxOutputTokens: 1000 // RAJOITETTU: Estää liian pitkät vastaukset
+        maxOutputTokens: 2000 // Nostettu 2000:een, jotta lauseet eivät katkea kesken
       }
     });
 
     /**
-     * SYSTEM INSTRUCTION: Optimoitu laatu ja pituus.
+     * SYSTEM INSTRUCTION: Optimoitu laatu, pituus ja looginen lopetus.
      */
     const systemInstruction = `
-      Toimi analyyttisena ja motivoivana liiketoiminnan sparraajana. Anna laadun puhua puolestaan.
+      Toimi analyyttisena ja motivoivana liiketoiminnan sparraajana. 
 
-      YLEINEN SÄÄNTÖ: Ole ytimekäs. Arvosta käyttäjän aikaa. Älä toista itsestäänselvyyksiä.
+      TÄRKEÄÄ: Vastaa suoraan ja ytimekkäästi. Älä käytä pitkiä johdantoja tai turhia kohteliaisuuksia. 
+      Varmista, että jokainen vastaus on looginen kokonaisuus ja päättyy AINA pisteeseen. 
+      Jos vastaus uhkaa venyä, tiivistä asiasisältöä mieluummin kuin jätät lausetta kesken.
 
       TOIMINTATAVAT:
 
       1. TUNNUSSANA-TILA (LTS tai STR + otsikko):
           - Etsi PDF-datasta VAIN kyseistä otsikkoa vastaava ohje.
-          - Tiivistä ohje erittäin ytimekkääksi (max 100-120 sanaa).
-          - Vastaa puhtaasti PDF-sisällön pohjalta ilman lisäyksiä.
+          - Tiivistä ohje erittäin ytimekkääksi (n. 100-150 sanaa).
+          - ÄLÄ lisää mitään ylimääräisiä otsikoita tai esimerkkejä loppuun.
+          - Vastaa puhtaasti PDF-sisällön pohjalta.
 
       2. VAPAA SPARRAUSTILA (Ei tunnussanaa):
-          - Tarjoa syvällistä analyysia, mutta käytä tiivistä rakennetta (bullet pointit, selkeät väliotsikot).
+          - Tarjoa syvällistä analyysia tiiviissä muodossa.
+          - Käytä rakenteena listoja ja selkeitä väliotsikoita.
           - Tuo mukaan nykypäivän esimerkkejä ja globaaleja oppeja (2026) lähteistä: hbr.org, mckinsey.com, deloitte.com, strategyzer.com.
-          - Vältä turhaa johdantoa ja lopputiivistelmää. Mene suoraan asiaan.
+          - Suosi virallisia lähteitä (stat.fi, prh.fi, suomi.fi).
 
       HUOMIO: "Miten" = Kyvykkyys. Se on suunnitelmallinen reagointiresepti (prosessit, työkalut, osaaminen).
       
@@ -97,13 +101,12 @@ app.post("/api/chat", async (req, res) => {
       ]
     });
 
-    const response = result.response;
-    const responseText = response.candidates?.[0].content.parts?.[0].text || "Vastausta ei voitu luoda.";
+    const responseText = result.response.candidates?.[0].content.parts?.[0].text || "Vastausta ei voitu luoda.";
 
     res.json({ 
       text: responseText, 
       sessionId: sessionId,
-      sources: response.candidates?.[0].groundingMetadata 
+      sources: result.response.candidates?.[0].groundingMetadata 
     });
 
   } catch (err: any) {
@@ -113,12 +116,16 @@ app.post("/api/chat", async (req, res) => {
 });
 
 const distPath = path.join(process.cwd(), "dist");
-if (fs.existsSync(distPath)) { app.use(express.static(distPath)); }
+if (fs.existsSync(distPath)) { 
+  app.use(express.static(distPath)); 
+}
 
 app.get("*", (req, res) => {
   if (!req.path.startsWith('/api')) {
     const indexPath = path.join(distPath, "index.html");
-    if (fs.existsSync(indexPath)) { res.sendFile(indexPath); }
+    if (fs.existsSync(indexPath)) { 
+      res.sendFile(indexPath); 
+    }
   }
 });
 
