@@ -61,4 +61,57 @@ export const Dashboard: React.FC<DashboardProps> = ({ portalType, onNavigate, us
               </div>
               <span className="text-[9px] md:text-[10px] font-bold text-slate-300 uppercase tracking-widest">0% Valmis</span>
             </div>
-          </motion.div
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+        <div className="lg:col-span-2 bg-white p-6 md:p-10 rounded-[32px] md:rounded-[40px] border border-black/5 shadow-xl">
+          <div className="flex items-center justify-between mb-6 md:mb-8">
+            <h2 className="text-xl md:text-2xl font-black tracking-tight uppercase">Viimeisimmät toiminnot</h2>
+            <button className="text-[10px] md:text-xs font-bold text-blue-600 uppercase tracking-widest hover:underline">Näytä kaikki</button>
+          </div>
+          <div className="space-y-4 md:space-y-6">
+            {[
+              { action: 'Päivitti liikeidean', time: '2 tuntia sitten', icon: CheckCircle2, color: 'text-emerald-500' },
+              { action: 'Lisäsi uuden tiedoston', time: '5 tuntia sitten', icon: Plus, color: 'text-blue-500' },
+              { action: 'Muokkasi strategiaa', time: 'Eilen', icon: Clock, color: 'text-amber-500' },
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl hover:bg-slate-50 transition-colors">
+                <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl bg-slate-50 flex items-center justify-center ${item.color}`}>
+                  <item.icon className="w-4 h-4 md:w-5 md:h-5" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs md:text-sm font-bold">{item.action}</p>
+                  <p className="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-widest">{item.time}</p>
+                </div>
+                <ArrowRight className="text-slate-200 w-3.5 h-3.5 md:w-4 md:h-4" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-slate-900 p-6 md:p-10 rounded-[32px] md:rounded-[40px] text-white shadow-2xl relative overflow-hidden">
+          <div className="relative z-10">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-white/10 rounded-xl flex items-center justify-center mb-4 md:mb-6">
+              <Shield className="text-blue-400 w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <h2 className="text-xl md:text-2xl font-black tracking-tight uppercase mb-3 md:mb-4">AI-Tuki</h2>
+            <p className="text-slate-400 text-xs md:text-sm leading-relaxed mb-6 md:mb-8">
+              Saat vastauksia ja oivalluksia suunnitelmasi kehittämiseen laadukkaalla datalla sparratun ja Google Grounding -menetelmää hyödyntävän LLM -mallin avulla.
+            </p>
+            <button 
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-ai-chat'));
+              }}
+              className="w-full bg-white text-black py-3 md:py-4 rounded-2xl font-bold text-xs md:text-sm uppercase tracking-widest hover:bg-slate-100 transition-all active:scale-95"
+            >
+              Avaa AI-Tuki
+            </button>
+          </div>
+          <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-600/20 rounded-full blur-3xl" />
+        </div>
+      </div>
+    </div>
+  );
+};
