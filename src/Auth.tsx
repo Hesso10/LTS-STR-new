@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { useLanguage } from './LanguageContext';
 import { PortalType, UserRole } from './types';
@@ -177,16 +177,11 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
     const adminPassword = 'Studio80!';
     try {
       const userCred = await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-      
-      // Päivitetään rooli ja varmistetaan, että tallennamme sen portaalin, 
-      // jonka kautta kirjaudut juuri nyt sisään.
       await setDoc(doc(db, 'users', userCred.user.uid), { 
         email: adminEmail, 
         role: UserRole.ADMIN,
-        portalType: portalType // Tallentaa valitun portaalin (LTS tai STRATEGY)
+        portalType: portalType 
       }, { merge: true });
-
-      // Ohjataan käyttäjä sisään käyttäen sitä portalTypea, joka Auth-komponentille on annettu
       onLogin(adminEmail, UserRole.ADMIN, portalType || PortalType.LTS);
     } catch (err: any) {
       setError(err.message || 'Admin login failed');
@@ -232,13 +227,17 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
             {isLogin ? 'Eikö sinulla ole tunnusta? Luo tunnus' : 'Onko sinulla jo tunnus? Kirjaudu'}
           </button>
         </div>
-        <div className="mt-8 pt-8 border-t border-slate-100">
-          <button onClick={handleAdminLogin} disabled={isLoading} className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100">
-            <ShieldCheck className="text-indigo-500" size={20} />
-            <span className="text-sm font-bold text-indigo-600">Kirjaudu Adminina</span>
+
+        {/* PIILOTETTU ADMIN-NAPPI ALKAA */}
+        <div style={{ display: 'none' }}>
+          <button onClick={handleAdminLogin}>
+            <ShieldCheck size={20} />
+            Kirjaudu Adminina
           </button>
         </div>
+        {/* PIILOTETTU ADMIN-NAPPI PÄÄTTYY */}
+
       </motion.div>
     </div>
   );
-};
+};   
