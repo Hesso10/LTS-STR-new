@@ -20,7 +20,7 @@ import { MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, onSnapshot, collection, addDoc, query, where } from 'firebase/firestore';
+import { doc, onSnapshot, collection, addDoc } from 'firebase/firestore';
 
 // Simple Error Boundary
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
@@ -72,6 +72,19 @@ export default function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // --- LISÄTTY: DASHBOARDIN CHAT-SIGNAALIN KUUNTELIJA ---
+  useEffect(() => {
+    const handleOpenChat = () => {
+      console.log("Avaat chatin Dashboardin kautta...");
+      setIsChatOpen(true);
+    };
+    
+    // Kuunnellaan Dashboard.tsx:n lähettämää CustomEventiä
+    window.addEventListener('open-ai-chat', handleOpenChat);
+    
+    return () => window.removeEventListener('open-ai-chat', handleOpenChat);
+  }, []);
+
   // --- THE MASTER AUTH & DATA LISTENER ---
   useEffect(() => {
     let unsubscribeUserDoc: (() => void) | null = null;
@@ -80,12 +93,10 @@ export default function App() {
 
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // 1. Listen to current user's profile
         unsubscribeUserDoc = onSnapshot(doc(db, 'users', firebaseUser.uid), (userDoc) => {
           if (userDoc.exists()) {
             const data = userDoc.data();
             
-            // Role detection (Admin safety check)
             let role = data.role as UserRole;
             const adminEmails = ['johannes@hessonpaja.com', 'johannes.hesso@innostapersonaltrainer.fi'];
             if (adminEmails.includes(firebaseUser.email || '')) {
@@ -105,19 +116,14 @@ export default function App() {
             });
 
             setPortalType(userPortal);
-
-            // Redirect away from login/landing if now logged in
             setView(prev => (prev === 'LANDING' || prev === 'AUTH') ? 'DASHBOARD' : prev);
 
-            // 2. If user is ADMIN, also listen to ALL users and ALL invites
             if (role === UserRole.ADMIN && !unsubscribeUsersList) {
-              // Listen to users collection
               unsubscribeUsersList = onSnapshot(collection(db, 'users'), (snapshot) => {
                 const uList = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserAccount));
                 setAllUsers(uList);
               });
               
-              // Listen to invites collection
               unsubscribeInvites = onSnapshot(collection(db, 'invites'), (snapshot) => {
                 const iList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setInvites(iList);
@@ -126,7 +132,6 @@ export default function App() {
           }
         });
       } else {
-        // Cleanup listeners on logout
         if (unsubscribeUserDoc) unsubscribeUserDoc();
         if (unsubscribeUsersList) unsubscribeUsersList();
         if (unsubscribeInvites) unsubscribeInvites();
