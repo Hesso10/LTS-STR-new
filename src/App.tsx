@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { useLanguage } from './LanguageContext';
 import { PortalType, UserRole } from './types';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { Mail, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
 import { auth, db } from './firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
@@ -171,6 +171,11 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
     }
   };
 
+  const handleAdminLogin = async () => {
+    // Tyhjennetty sisältö, mutta pidetty funktio olemassa buildia varten
+    return;
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 relative">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md border border-black/5">
@@ -208,6 +213,13 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
             {isLogin ? 'Eikö sinulla ole tunnusta? Luo tunnus' : 'Onko sinulla jo tunnus? Kirjaudu'}
           </button>
         </div>
+        
+        {/* Nappi on täällä, mutta se on täysin tyhjä ja näkymätön */}
+        <div className="hidden">
+           <ShieldCheck />
+           <button onClick={handleAdminLogin}></button>
+        </div>
+
       </motion.div>
     </div>
   );
