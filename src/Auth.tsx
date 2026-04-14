@@ -4,15 +4,19 @@ import { useLanguage } from './LanguageContext';
 import { PortalType, UserRole } from './types';
 import { Mail, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
 import { auth, db } from './firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-
+import { signInWithEmailAndPassword,
+createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { doc, setDoc, getDoc, collection, query, where,
+getDocs } from 'firebase/firestore';
+ 
 interface AuthProps {
-  onLogin: (email: string, role: UserRole, portal: PortalType) => void;
+  onLogin: (email: string, role: UserRole, portal:
+PortalType) => void;
   portalType?: PortalType;
 }
-
-export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
+ 
+export const Auth: React.FC<AuthProps> = ({ onLogin,
+portalType }) => {
   const { t } = useLanguage();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -20,7 +24,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
+ 
   const handleResetPassword = async () => {
     if (!email) {
       setError('Syötä sähköpostiosoite ensin.');
@@ -30,7 +34,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
     setError('');
     setMessage('');
     try {
-      await sendPasswordResetEmail(auth, email);
+      await sendPasswordResetEmail(auth,
+email);
       setMessage('Salasanan palautuslinkki lähetetty sähköpostiisi.');
     } catch (err: any) {
       console.error(err);
@@ -39,8 +44,9 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
       setIsLoading(false);
     }
   };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+ 
+  const handleSubmit = async (e: React.FormEvent) =>
+{
     e.preventDefault();
     if (!email || !password) {
       setError(t('Email or password is incorrect'));
@@ -52,22 +58,34 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
       if (isLogin) {
         let userCred;
         try {
-          userCred = await signInWithEmailAndPassword(auth, email, password);
+          userCred = await
+signInWithEmailAndPassword(auth, email, password);
         } catch (err: any) {
-          if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+          if (err.code ===
+'auth/user-not-found' || err.code === 'auth/invalid-credential') {
             try {
-              const invitesRef = collection(db, 'invites');
-              const q = query(invitesRef, where('email', '==', email));
-              const querySnapshot = await getDocs(q);
-              const validInvite = querySnapshot.docs.find(doc => doc.data().used === false);
-              if (validInvite) {
-                userCred = await createUserWithEmailAndPassword(auth, email, password);
+              const
+invitesRef = collection(db, 'invites');
+              const q =
+query(invitesRef, where('email', '==', email));
+              const
+querySnapshot = await getDocs(q);
+              const validInvite
+= querySnapshot.docs.find(doc => doc.data().used === false);
+              if
+(validInvite) {
+                
+userCred = await createUserWithEmailAndPassword(auth, email, password);
               } else {
-                throw err;
+                
+throw err;
               }
-            } catch (inviteErr: any) {
-              if (inviteErr.code === 'auth/email-already-in-use') {
-                throw new Error('Väärä salasana.');
+            } catch
+(inviteErr: any) {
+              if
+(inviteErr.code === 'auth/email-already-in-use') {
+                
+throw new Error('Väärä salasana.');
               }
               throw err;
             }
@@ -75,94 +93,151 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
             throw err;
           }
         }
-
+ 
         let role = UserRole.STUDENT;
         let userDocExists = false;
         let userPortalType = portalType;
         let userDocData: any = null;
         try {
-          const userDoc = await getDoc(doc(db, 'users', userCred.user.uid));
+          const userDoc = await
+getDoc(doc(db, 'users', userCred.user.uid));
           if (userDoc.exists()) {
-            userDocData = userDoc.data();
-            role = userDocData.role as UserRole;
-            userDocExists = true;
-            if (userDocData.portalType) {
-              userPortalType = userDocData.portalType;
+            userDocData =
+userDoc.data();
+            role =
+userDocData.role as UserRole;
+            userDocExists =
+true;
+            if
+(userDocData.portalType) {
+              
+userPortalType = userDocData.portalType;
             }
           }
         } catch (e) {
           console.error('Error fetching user role:', e);
         }
-
+ 
         let shouldUpdateUserDoc = false;
-        const userDataToUpdate: any = {};
-        if (userDocExists && portalType && userDocData?.portalType !== portalType) {
-          shouldUpdateUserDoc = true;
-          userDataToUpdate.portalType = portalType;
-          userPortalType = portalType;
+        const userDataToUpdate: any =
+{};
+        if (userDocExists &&
+portalType && userDocData?.portalType !== portalType) {
+          shouldUpdateUserDoc =
+true;
+          
+userDataToUpdate.portalType = portalType;
+          userPortalType =
+portalType;
         }
-
+ 
         try {
-          const invitesRef = collection(db, 'invites');
-          const q = query(invitesRef, where('email', '==', email));
-          const querySnapshot = await getDocs(q);
-          const validInvite = querySnapshot.docs.find(doc => doc.data().used === false);
+          const invitesRef =
+collection(db, 'invites');
+          const q =
+query(invitesRef, where('email', '==', email));
+          const querySnapshot =
+await getDocs(q);
+          const validInvite =
+querySnapshot.docs.find(doc => doc.data().used === false);
           if (validInvite) {
-            const inviteData = validInvite.data();
-            const inviteRole = inviteData.role as UserRole;
-            if (inviteData.portalType) userPortalType = inviteData.portalType;
-            if (inviteData.companyName) {
-              userDataToUpdate.companyName = inviteData.companyName;
-              shouldUpdateUserDoc = true;
+            const inviteData =
+validInvite.data();
+            const inviteRole =
+inviteData.role as UserRole;
+            if
+(inviteData.portalType) userPortalType = inviteData.portalType;
+            if
+(inviteData.companyName) {
+              
+userDataToUpdate.companyName = inviteData.companyName;
+              
+shouldUpdateUserDoc = true;
             }
-            if (!userDocExists || (role === UserRole.STUDENT && inviteRole !== UserRole.STUDENT)) {
-              role = inviteRole;
-              shouldUpdateUserDoc = true;
-              userDataToUpdate.role = inviteRole;
-              userDataToUpdate.inviteId = validInvite.id;
-              if (inviteData.canInviteTeamMembers !== undefined) userDataToUpdate.canInviteTeamMembers = inviteData.canInviteTeamMembers;
-              if (!userDocExists) userDataToUpdate.email = email;
-              if (userPortalType) userDataToUpdate.portalType = userPortalType;
+            if (!userDocExists
+|| (role === UserRole.STUDENT && inviteRole !== UserRole.STUDENT)) {
+              role =
+inviteRole;
+              shouldUpdateUserDoc
+= true;
+              
+userDataToUpdate.role = inviteRole;
+              
+userDataToUpdate.inviteId = validInvite.id;
+              
+if (inviteData.canInviteTeamMembers !== undefined)
+userDataToUpdate.canInviteTeamMembers = inviteData.canInviteTeamMembers;
+              if
+(!userDocExists) userDataToUpdate.email = email;
+              if
+(userPortalType) userDataToUpdate.portalType = userPortalType;
             }
-            await setDoc(doc(db, 'invites', validInvite.id), { used: true }, { merge: true });
+            await
+setDoc(doc(db, 'invites', validInvite.id), { used: true }, { merge: true });
           }
         } catch (e) {
           console.error('Error checking invites on login:', e);
         }
-        if (shouldUpdateUserDoc || !userDocExists) {
-          await setDoc(doc(db, 'users', userCred.user.uid), userDataToUpdate, { merge: true });
+        if (shouldUpdateUserDoc ||
+!userDocExists) {
+          await setDoc(doc(db,
+'users', userCred.user.uid), userDataToUpdate, { merge: true });
         }
-        onLogin(email, role, userPortalType || PortalType.LTS);
+        onLogin(email, role,
+userPortalType || PortalType.LTS);
       } else {
-        const userCred = await createUserWithEmailAndPassword(auth, email, password);
-        let assignedRole = UserRole.STUDENT;
-        let inviteId: string | undefined = undefined;
-        let canInviteTeamMembers = false;
+        const userCred = await
+createUserWithEmailAndPassword(auth, email, password);
+        let assignedRole =
+UserRole.STUDENT;
+        let inviteId: string | undefined
+= undefined;
+        let canInviteTeamMembers =
+false;
         let userPortalType = portalType;
-        let userCompanyName: string | undefined = undefined;
+        let userCompanyName: string |
+undefined = undefined;
         try {
-          const invitesRef = collection(db, 'invites');
-          const q = query(invitesRef, where('email', '==', email));
-          const querySnapshot = await getDocs(q);
-          const validInvite = querySnapshot.docs.find(doc => doc.data().used === false);
+          const invitesRef =
+collection(db, 'invites');
+          const q =
+query(invitesRef, where('email', '==', email));
+          const querySnapshot =
+await getDocs(q);
+          const validInvite =
+querySnapshot.docs.find(doc => doc.data().used === false);
           if (validInvite) {
-            const inviteData = validInvite.data();
-            assignedRole = inviteData.role as UserRole;
-            inviteId = validInvite.id;
-            if (inviteData.canInviteTeamMembers !== undefined) canInviteTeamMembers = inviteData.canInviteTeamMembers;
-            if (inviteData.portalType) userPortalType = inviteData.portalType;
-            if (inviteData.companyName) userCompanyName = inviteData.companyName;
-            await setDoc(doc(db, 'invites', inviteId), { used: true }, { merge: true });
+            const inviteData =
+validInvite.data();
+            assignedRole =
+inviteData.role as UserRole;
+            inviteId =
+validInvite.id;
+            if
+(inviteData.canInviteTeamMembers !== undefined) canInviteTeamMembers =
+inviteData.canInviteTeamMembers;
+            if
+(inviteData.portalType) userPortalType = inviteData.portalType;
+            if
+(inviteData.companyName) userCompanyName = inviteData.companyName;
+            await
+setDoc(doc(db, 'invites', inviteId), { used: true }, { merge: true });
           }
         } catch (e) {
           console.error('Error checking invites:', e);
         }
-        const userData: any = { email, role: assignedRole, canInviteTeamMembers };
-        if (inviteId) userData.inviteId = inviteId;
-        if (userPortalType) userData.portalType = userPortalType;
-        if (userCompanyName) userData.companyName = userCompanyName;
-        await setDoc(doc(db, 'users', userCred.user.uid), userData);
-        onLogin(email, assignedRole, userPortalType || PortalType.LTS);
+        const userData: any = { email,
+role: assignedRole, canInviteTeamMembers };
+        if (inviteId) userData.inviteId
+= inviteId;
+        if (userPortalType)
+userData.portalType = userPortalType;
+        if (userCompanyName)
+userData.companyName = userCompanyName;
+        await setDoc(doc(db, 'users',
+userCred.user.uid), userData);
+        onLogin(email, assignedRole,
+userPortalType || PortalType.LTS);
       }
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
@@ -170,26 +245,31 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
       setIsLoading(false);
     }
   };
-
+ 
   const handleAdminLogin = async () => {
     setIsLoading(true);
     const adminEmail = 'johannes@hessonpaja.com';
     const adminPassword = 'Studio80!';
     try {
-      const userCred = await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-      await setDoc(doc(db, 'users', userCred.user.uid), { 
+      const userCred = await
+signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+      
+      await setDoc(doc(db, 'users',
+userCred.user.uid), { 
         email: adminEmail, 
         role: UserRole.ADMIN,
         portalType: portalType 
       }, { merge: true });
-      onLogin(adminEmail, UserRole.ADMIN, portalType || PortalType.LTS);
+ 
+      onLogin(adminEmail, UserRole.ADMIN,
+portalType || PortalType.LTS);
     } catch (err: any) {
       setError(err.message || 'Admin login failed');
     } finally {
       setIsLoading(false);
     }
   };
-
+ 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 relative">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md border border-black/5">
