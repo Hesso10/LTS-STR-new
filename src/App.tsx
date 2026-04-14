@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
- 
 import React, { useState, useEffect } from 'react';
 import { LanguageProvider } from './LanguageContext';
 import { LandingPage } from './LandingPage';
@@ -13,166 +8,143 @@ import { StrategyPortal } from './StrategyPortal';
 import { PlanBuilder } from './PlanBuilder';
 import { AdminPanel } from './AdminPanel';
 import { Profile } from './Profile';
-import { Payment } from './Payment';
-import { VerificationScreen } from './VerificationScreen';
 import { AIChat } from './AIChat';
 import { CookieBanner } from './CookieBanner';
 import { PortalType, UserRole, UserAccount, SystemKnowledge } from './types';
-import { MessageSquare, X } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { auth, db, handleFirestoreError, OperationType } from './firebase';
+import { auth, db } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, onSnapshot, collection, addDoc, setDoc, query, where } from 'firebase/firestore';
- 
-// Simple Error Boundary
-class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
+import { doc, onSnapshot } from 'firebase/firestore';
+
+// Error Boundary stays the same...
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode }) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false };
   }
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error }; 
-  }
+  static getDerivedStateFromError() { return { hasError: true }; }
   render() {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 p-8 text-center">
-          <div className="max-w-md">
-            <h1 className="text-4xl font-black mb-4">Hups! Jotain meni vikaan.</h1>
-            <p className="text-slate-500 mb-8">Sovellus kohtasi odottamattoman virheen. Kokeile ladata sivu uudelleen.</p>
-            <button onClick={() => window.location.reload()} className="bg-black text-white px-8 py-4 rounded-2xl font-bold">Lataa sivu uudelleen</button>
-          </div>
+          <button onClick={() => window.location.reload()} className="bg-black text-white px-8 py-4 rounded-2xl font-bold">Lataa sivu uudelleen</button>
         </div>
       );
     }
     return this.props.children;
   }
 }
- 
-const MOCK_USERS: UserAccount[] = [
-  { uid: 'admin1', email: 'johannes.hesso@innostapersonaltrainer.fi', displayName: 'Johannes', role: UserRole.ADMIN },
-];
- 
+
 const DEFAULT_KNOWLEDGE: SystemKnowledge = {
-  links: [
-    { id: 'l1', title: 'Tilastokeskus - Suhdanneindikaattorit', url: 'https://stat.fi', category: 'Ulkoinen toimintaympäristö' },
-    { id: 'l2', title: 'Sitra Megatrendit 2024', url: 'https://sitra.fi', category: 'Ulkoinen toimintaympäristö' }
-  ],
+  links: [],
   documents: [],
   instructions: 'Olet kokenut ja ytimekäs liiketoimintastrategi.'
 };
- 
+
 export default function App() {
   const [user, setUser] = useState<UserAccount | null>(null);
   const [portalType, setPortalType] = useState<PortalType | null>(null);
   const [view, setView] = useState('LANDING');
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
   const [isDemo, setIsDemo] = useState(false);
-  const [viewingWorkspaceAs, setViewingWorkspaceAs] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [users, setUsers] = useState<UserAccount[]>(MOCK_USERS);
-  const [invites, setInvites] = useState<any[]>([]);
-  const [receivedInvites, setReceivedInvites] = useState<any[]>([]);
   const [systemKnowledge, setSystemKnowledge] = useState<SystemKnowledge>(DEFAULT_KNOWLEDGE);
   const [isAuthReady, setIsAuthReady] = useState(false);
- 
+
+  // Handle Resize
   useEffect(() => {
-    const handleResize = () => {
-      setSidebarOpen(window.innerWidth > 768);
-    };
+    const handleResize = () => setSidebarOpen(window.innerWidth > 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
- 
+
+  // --- THE MASTER AUTH LISTENER ---
   useEffect(() => {
     let unsubscribeUserDoc: (() => void) | null = null;
+
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
+        // User found, now listen to their specific document for Role/Portal updates
         unsubscribeUserDoc = onSnapshot(doc(db, 'users', firebaseUser.uid), (userDoc) => {
-          let role = UserRole.STUDENT;
-          // Tunnistetaan admin sähköpostista
-          if (firebaseUser.email === 'johannes@hessonpaja.com' || firebaseUser.email === 'johannes.hesso@innostapersonaltrainer.fi') {
-            role = UserRole.ADMIN;
-          } else if (userDoc.exists() && userDoc.data().role) {
-            role = userDoc.data().role as UserRole;
-          }
-          
-          let userPortalType = portalType;
-          
-          // TÄMÄ ON SE TIUKKA LUKKO:
-          if (userDoc.exists() && userDoc.data().portalType) {
-            userPortalType = userDoc.data().portalType as PortalType;
-            if (portalType !== userPortalType) {
-              setPortalType(userPortalType); // Pakottaa portaalin Firebasen mukaiseksi
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            
+            // 1. Role Logic (Admin check)
+            let role = data.role as UserRole;
+            const adminEmails = ['johannes@hessonpaja.com', 'johannes.hesso@innostapersonaltrainer.fi'];
+            if (adminEmails.includes(firebaseUser.email || '')) {
+              role = UserRole.ADMIN;
             }
+
+            // 2. Portal Logic
+            const userPortal = data.portalType as PortalType || PortalType.LTS;
+
+            // 3. Update States
+            setUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              displayName: data.displayName || firebaseUser.email?.split('@')[0] || 'User',
+              role: role,
+              portalType: userPortal,
+              teamMembers: data.teamMembers,
+              canInviteTeamMembers: data.canInviteTeamMembers || false
+            });
+            setPortalType(userPortal);
+
+            // 4. Navigation: If we are on login screens, move to Dashboard
+            setView(prev => (prev === 'LANDING' || prev === 'AUTH') ? 'DASHBOARD' : prev);
           }
-           
-          const userAccount: UserAccount = {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email || '',
-            displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-            role: role,
-            portalType: userPortalType || PortalType.LTS,
-            teamMembers: userDoc.exists() ? userDoc.data().teamMembers : undefined,
-            canInviteTeamMembers: userDoc.exists() ? userDoc.data().canInviteTeamMembers : false,
-            invitedBy: userDoc.exists() ? userDoc.data().invitedBy : undefined
-          };
-          setUser(userAccount);
-          if (view === 'LANDING' || view === 'AUTH') {
-            setView('DASHBOARD');
-          }
-        }, (error) => {
-          console.error('Error fetching user doc:', error);
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email || '',
-            displayName: firebaseUser.displayName || 'User',
-            role: (firebaseUser.email === 'johannes@hessonpaja.com' || firebaseUser.email === 'johannes.hesso@innostapersonaltrainer.fi') ? UserRole.ADMIN : UserRole.STUDENT,
-            portalType: portalType || PortalType.LTS,
-            canInviteTeamMembers: false
-          });
-          if (view === 'LANDING' || view === 'AUTH') setView('DASHBOARD');
         });
       } else {
+        // User is logged out
         if (unsubscribeUserDoc) unsubscribeUserDoc();
         setUser(null);
-        if (view !== 'LANDING' && view !== 'PAYMENT' && !isDemo && !portalType) {
+        if (!isDemo) {
           setView('LANDING');
+          setPortalType(null);
         }
       }
+      // CRITICAL: We only stop the loading screen AFTER Firebase has finished its first check
       setIsAuthReady(true);
     });
+
     return () => {
       unsubscribeAuth();
       if (unsubscribeUserDoc) unsubscribeUserDoc();
     };
-  }, [view, portalType]);
- 
+  }, [isDemo]); // Removed 'view' and 'portalType' to prevent the mess
+
   const handleLogin = (email: string, role: UserRole, portal: PortalType) => {
     setPortalType(portal);
     setIsDemo(email.startsWith('demo_'));
   };
- 
+
   const handleLogout = () => {
     auth.signOut();
-    setUser(null);
-    setPortalType(null);
-    setView('LANDING');
     setIsDemo(false);
   };
- 
+
   const renderView = () => {
     if (view === 'DASHBOARD') {
-      if (portalType === PortalType.STRATEGY) return <StrategyPortal onNavigate={setView} user={user} viewingWorkspaceAs={viewingWorkspaceAs} />;
+      if (portalType === PortalType.STRATEGY) return <StrategyPortal onNavigate={setView} user={user} />;
       return <Dashboard portalType={PortalType.LTS} onNavigate={setView} user={user} />;
     }
-    if (view === 'ADMIN' && user?.role === UserRole.ADMIN) return <AdminPanel users={users} invites={invites} systemKnowledge={systemKnowledge} onUpdateKnowledge={setSystemKnowledge} onNavigate={setView} onInviteUser={() => {}} />;
-    if (view === 'PROFILE') return <Profile user={user || MOCK_USERS[0]} onNavigate={setView} />;
+    if (view === 'ADMIN' && user?.role === UserRole.ADMIN) return <AdminPanel systemKnowledge={systemKnowledge} onUpdateKnowledge={setSystemKnowledge} onNavigate={setView} />;
+    if (view === 'PROFILE') return <Profile user={user!} onNavigate={setView} />;
     return <PlanBuilder portalType={portalType || PortalType.LTS} activeSection={view} isReadOnly={isDemo} user={user} />;
   };
- 
-  if (!isAuthReady) return <div className="min-h-screen flex items-center justify-center">Ladataan...</div>;
+
+  // Shield the app until we know the Auth status
+  if (!isAuthReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 1.5 }} className="font-bold text-slate-400">
+          Ladataan...
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary>
