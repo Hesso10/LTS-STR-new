@@ -1,3 +1,8 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React, { useState, useEffect } from 'react';
 import { LanguageProvider } from './LanguageContext';
 import { LandingPage } from './LandingPage';
@@ -15,9 +20,9 @@ import { MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, collection, addDoc, query, where } from 'firebase/firestore';
 
-// Error Boundary stays the same...
+// Simple Error Boundary
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode }) {
     super(props);
@@ -28,7 +33,10 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 p-8 text-center">
-          <button onClick={() => window.location.reload()} className="bg-black text-white px-8 py-4 rounded-2xl font-bold">Lataa sivu uudelleen</button>
+          <div className="max-w-md">
+            <h1 className="text-4xl font-black mb-4">Hups! Jotain meni vikaan.</h1>
+            <button onClick={() => window.location.reload()} className="bg-black text-white px-8 py-4 rounded-2xl font-bold">Lataa sivu uudelleen</button>
+          </div>
         </div>
       );
     }
@@ -43,14 +51,19 @@ const DEFAULT_KNOWLEDGE: SystemKnowledge = {
 };
 
 export default function App() {
+  // --- UI & Basic State ---
   const [user, setUser] = useState<UserAccount | null>(null);
   const [portalType, setPortalType] = useState<PortalType | null>(null);
   const [view, setView] = useState('LANDING');
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
   const [isDemo, setIsDemo] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [systemKnowledge, setSystemKnowledge] = useState<SystemKnowledge>(DEFAULT_KNOWLEDGE);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [systemKnowledge, setSystemKnowledge] = useState<SystemKnowledge>(DEFAULT_KNOWLEDGE);
+
+  // --- Admin Specific State ---
+  const [allUsers, setAllUsers] = useState<UserAccount[]>([]);
+  const [invites, setInvites] = useState<any[]>([]);
 
   // Handle Resize
   useEffect(() => {
@@ -59,61 +72,100 @@ export default function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // --- THE MASTER AUTH LISTENER ---
+  // --- THE MASTER AUTH & DATA LISTENER ---
   useEffect(() => {
     let unsubscribeUserDoc: (() => void) | null = null;
+    let unsubscribeUsersList: (() => void) | null = null;
+    let unsubscribeInvites: (() => void) | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // User found, now listen to their specific document for Role/Portal updates
+        // 1. Listen to current user's profile
         unsubscribeUserDoc = onSnapshot(doc(db, 'users', firebaseUser.uid), (userDoc) => {
           if (userDoc.exists()) {
             const data = userDoc.data();
             
-            // 1. Role Logic (Admin check)
+            // Role detection (Admin safety check)
             let role = data.role as UserRole;
             const adminEmails = ['johannes@hessonpaja.com', 'johannes.hesso@innostapersonaltrainer.fi'];
             if (adminEmails.includes(firebaseUser.email || '')) {
               role = UserRole.ADMIN;
             }
 
-            // 2. Portal Logic
             const userPortal = data.portalType as PortalType || PortalType.LTS;
 
-            // 3. Update States
             setUser({
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
               displayName: data.displayName || firebaseUser.email?.split('@')[0] || 'User',
               role: role,
               portalType: userPortal,
-              teamMembers: data.teamMembers,
+              companyName: data.companyName,
               canInviteTeamMembers: data.canInviteTeamMembers || false
             });
+
             setPortalType(userPortal);
 
-            // 4. Navigation: If we are on login screens, move to Dashboard
+            // Redirect away from login/landing if now logged in
             setView(prev => (prev === 'LANDING' || prev === 'AUTH') ? 'DASHBOARD' : prev);
+
+            // 2. If user is ADMIN, also listen to ALL users and ALL invites
+            if (role === UserRole.ADMIN && !unsubscribeUsersList) {
+              // Listen to users collection
+              unsubscribeUsersList = onSnapshot(collection(db, 'users'), (snapshot) => {
+                const uList = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserAccount));
+                setAllUsers(uList);
+              });
+              
+              // Listen to invites collection
+              unsubscribeInvites = onSnapshot(collection(db, 'invites'), (snapshot) => {
+                const iList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setInvites(iList);
+              });
+            }
           }
         });
       } else {
-        // User is logged out
+        // Cleanup listeners on logout
         if (unsubscribeUserDoc) unsubscribeUserDoc();
+        if (unsubscribeUsersList) unsubscribeUsersList();
+        if (unsubscribeInvites) unsubscribeInvites();
         setUser(null);
         if (!isDemo) {
           setView('LANDING');
           setPortalType(null);
         }
       }
-      // CRITICAL: We only stop the loading screen AFTER Firebase has finished its first check
       setIsAuthReady(true);
     });
 
     return () => {
       unsubscribeAuth();
       if (unsubscribeUserDoc) unsubscribeUserDoc();
+      if (unsubscribeUsersList) unsubscribeUsersList();
+      if (unsubscribeInvites) unsubscribeInvites();
     };
-  }, [isDemo]); // Removed 'view' and 'portalType' to prevent the mess
+  }, [isDemo]);
+
+  // --- Admin Actions ---
+  const handleInviteUser = async (name: string, email: string, role: UserRole, pType?: PortalType, company?: string) => {
+    try {
+      await addDoc(collection(db, 'invites'), {
+        displayName: name,
+        email: email,
+        role: role,
+        portalType: pType || portalType || PortalType.LTS,
+        companyName: company || '',
+        status: 'pending',
+        invitedBy: user?.uid,
+        createdAt: new Date().toISOString()
+      });
+      alert("Kutsu tallennettu tietokantaan!");
+    } catch (error) {
+      console.error("Invite error:", error);
+      alert("Virhe kutsun tallentamisessa.");
+    }
+  };
 
   const handleLogin = (email: string, role: UserRole, portal: PortalType) => {
     setPortalType(portal);
@@ -130,17 +182,30 @@ export default function App() {
       if (portalType === PortalType.STRATEGY) return <StrategyPortal onNavigate={setView} user={user} />;
       return <Dashboard portalType={PortalType.LTS} onNavigate={setView} user={user} />;
     }
-    if (view === 'ADMIN' && user?.role === UserRole.ADMIN) return <AdminPanel systemKnowledge={systemKnowledge} onUpdateKnowledge={setSystemKnowledge} onNavigate={setView} />;
+    
+    if (view === 'ADMIN' && user?.role === UserRole.ADMIN) {
+      return (
+        <AdminPanel 
+          users={allUsers} 
+          invites={invites}
+          systemKnowledge={systemKnowledge} 
+          onUpdateKnowledge={setSystemKnowledge} 
+          onInviteUser={handleInviteUser}
+          onNavigate={setView} 
+        />
+      );
+    }
+    
     if (view === 'PROFILE') return <Profile user={user!} onNavigate={setView} />;
+    
     return <PlanBuilder portalType={portalType || PortalType.LTS} activeSection={view} isReadOnly={isDemo} user={user} />;
   };
 
-  // Shield the app until we know the Auth status
   if (!isAuthReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
-        <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 1.5 }} className="font-bold text-slate-400">
-          Ladataan...
+        <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 1.5 }} className="font-bold text-slate-400 uppercase tracking-widest text-xs">
+          Ladataan järjestelmää...
         </motion.div>
       </div>
     );
@@ -151,7 +216,11 @@ export default function App() {
       <LanguageProvider>
         <div className="font-sans antialiased text-slate-900">
           {view === 'LANDING' ? (
-            <LandingPage onSelectPortal={setPortalType} onLogin={() => setView('AUTH')} onDemo={() => { setIsDemo(true); setView('DASHBOARD'); }} />
+            <LandingPage 
+              onSelectPortal={setPortalType} 
+              onLogin={() => setView('AUTH')} 
+              onDemo={() => { setIsDemo(true); setView('DASHBOARD'); }} 
+            />
           ) : view === 'AUTH' ? (
             <Auth onLogin={handleLogin} portalType={portalType || undefined} />
           ) : (
@@ -168,15 +237,29 @@ export default function App() {
               />
               <main className="flex-1 overflow-y-auto relative p-8">
                 <AnimatePresence mode="wait">
-                  <motion.div key={view} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+                  <motion.div 
+                    key={view} 
+                    initial={{ opacity: 0, y: 10 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    exit={{ opacity: 0, y: -10 }} 
+                    transition={{ duration: 0.2 }}
+                  >
                     {renderView()}
                   </motion.div>
                 </AnimatePresence>
+                
                 <div className="fixed bottom-8 right-8">
-                  <button onClick={() => setIsChatOpen(!isChatOpen)} className="w-16 h-16 rounded-full bg-emerald-600 text-white shadow-xl flex items-center justify-center">
+                  <button onClick={() => setIsChatOpen(!isChatOpen)} className="w-16 h-16 rounded-full bg-emerald-600 text-white shadow-xl flex items-center justify-center hover:scale-105 transition-transform active:scale-95">
                     <MessageSquare size={28} />
                   </button>
-                  {isChatOpen && <AIChat portalType={portalType || PortalType.LTS} onClose={() => setIsChatOpen(false)} user={user} systemKnowledge={systemKnowledge} />}
+                  {isChatOpen && (
+                    <AIChat 
+                      portalType={portalType || PortalType.LTS} 
+                      onClose={() => setIsChatOpen(false)} 
+                      user={user} 
+                      systemKnowledge={systemKnowledge} 
+                    />
+                  )}
                 </div>
               </main>
             </div>
