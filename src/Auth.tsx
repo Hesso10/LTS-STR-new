@@ -4,243 +4,45 @@ import { useLanguage } from './LanguageContext';
 import { PortalType, UserRole } from './types';
 import { Mail, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
 import { auth, db } from './firebase';
-import { signInWithEmailAndPassword,
-createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where,
-getDocs } from 'firebase/firestore';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
  
 interface AuthProps {
-  onLogin: (email: string, role: UserRole, portal:
-PortalType) => void;
+  onLogin: (email: string, role: UserRole, portal: PortalType) => void;
   portalType?: PortalType;
 }
  
-export const Auth: React.FC<AuthProps> = ({ onLogin,
-portalType }) => {
+export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
   const { t } = useLanguage();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
  
-  const handleResetPassword = async () => {
-    if (!email) {
-      setError('Syötä sähköpostiosoite ensin.');
-      return;
-    }
-    setIsLoading(true);
-    setError('');
-    setMessage('');
-    try {
-      await sendPasswordResetEmail(auth,
-email);
-      setMessage('Salasanan palautuslinkki lähetetty sähköpostiisi.');
-    } catch (err: any) {
-      console.error(err);
-      setError('Salasanan palautus epäonnistui. Tarkista sähköpostiosoite.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
- 
-  const handleSubmit = async (e: React.FormEvent) =>
-{
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      setError(t('Email or password is incorrect'));
+      setError('Täytä kaikki kentät');
       return;
     }
     setIsLoading(true);
     setError('');
     try {
       if (isLogin) {
-        let userCred;
-        try {
-          userCred = await
-signInWithEmailAndPassword(auth, email, password);
-        } catch (err: any) {
-          if (err.code ===
-'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-            try {
-              const
-invitesRef = collection(db, 'invites');
-              const q =
-query(invitesRef, where('email', '==', email));
-              const
-querySnapshot = await getDocs(q);
-              const validInvite
-= querySnapshot.docs.find(doc => doc.data().used === false);
-              if
-(validInvite) {
-                
-userCred = await createUserWithEmailAndPassword(auth, email, password);
-              } else {
-                
-throw err;
-              }
-            } catch
-(inviteErr: any) {
-              if
-(inviteErr.code === 'auth/email-already-in-use') {
-                
-throw new Error('Väärä salasana.');
-              }
-              throw err;
-            }
-          } else {
-            throw err;
-          }
-        }
- 
-        let role = UserRole.STUDENT;
-        let userDocExists = false;
-        let userPortalType = portalType;
-        let userDocData: any = null;
-        try {
-          const userDoc = await
-getDoc(doc(db, 'users', userCred.user.uid));
-          if (userDoc.exists()) {
-            userDocData =
-userDoc.data();
-            role =
-userDocData.role as UserRole;
-            userDocExists =
-true;
-            if
-(userDocData.portalType) {
-              
-userPortalType = userDocData.portalType;
-            }
-          }
-        } catch (e) {
-          console.error('Error fetching user role:', e);
-        }
- 
-        let shouldUpdateUserDoc = false;
-        const userDataToUpdate: any =
-{};
-        if (userDocExists &&
-portalType && userDocData?.portalType !== portalType) {
-          shouldUpdateUserDoc =
-true;
-          
-userDataToUpdate.portalType = portalType;
-          userPortalType =
-portalType;
-        }
- 
-        try {
-          const invitesRef =
-collection(db, 'invites');
-          const q =
-query(invitesRef, where('email', '==', email));
-          const querySnapshot =
-await getDocs(q);
-          const validInvite =
-querySnapshot.docs.find(doc => doc.data().used === false);
-          if (validInvite) {
-            const inviteData =
-validInvite.data();
-            const inviteRole =
-inviteData.role as UserRole;
-            if
-(inviteData.portalType) userPortalType = inviteData.portalType;
-            if
-(inviteData.companyName) {
-              
-userDataToUpdate.companyName = inviteData.companyName;
-              
-shouldUpdateUserDoc = true;
-            }
-            if (!userDocExists
-|| (role === UserRole.STUDENT && inviteRole !== UserRole.STUDENT)) {
-              role =
-inviteRole;
-              shouldUpdateUserDoc
-= true;
-              
-userDataToUpdate.role = inviteRole;
-              
-userDataToUpdate.inviteId = validInvite.id;
-              
-if (inviteData.canInviteTeamMembers !== undefined)
-userDataToUpdate.canInviteTeamMembers = inviteData.canInviteTeamMembers;
-              if
-(!userDocExists) userDataToUpdate.email = email;
-              if
-(userPortalType) userDataToUpdate.portalType = userPortalType;
-            }
-            await
-setDoc(doc(db, 'invites', validInvite.id), { used: true }, { merge: true });
-          }
-        } catch (e) {
-          console.error('Error checking invites on login:', e);
-        }
-        if (shouldUpdateUserDoc ||
-!userDocExists) {
-          await setDoc(doc(db,
-'users', userCred.user.uid), userDataToUpdate, { merge: true });
-        }
-        onLogin(email, role,
-userPortalType || PortalType.LTS);
+        const userCred = await signInWithEmailAndPassword(auth, email, password);
+        const userDoc = await getDoc(doc(db, 'users', userCred.user.uid));
+        const role = userDoc.exists() ? (userDoc.data().role as UserRole) : UserRole.STUDENT;
+        const pType = userDoc.exists() && userDoc.data().portalType ? (userDoc.data().portalType as PortalType) : (portalType || PortalType.LTS);
+        onLogin(email, role, pType);
       } else {
-        const userCred = await
-createUserWithEmailAndPassword(auth, email, password);
-        let assignedRole =
-UserRole.STUDENT;
-        let inviteId: string | undefined
-= undefined;
-        let canInviteTeamMembers =
-false;
-        let userPortalType = portalType;
-        let userCompanyName: string |
-undefined = undefined;
-        try {
-          const invitesRef =
-collection(db, 'invites');
-          const q =
-query(invitesRef, where('email', '==', email));
-          const querySnapshot =
-await getDocs(q);
-          const validInvite =
-querySnapshot.docs.find(doc => doc.data().used === false);
-          if (validInvite) {
-            const inviteData =
-validInvite.data();
-            assignedRole =
-inviteData.role as UserRole;
-            inviteId =
-validInvite.id;
-            if
-(inviteData.canInviteTeamMembers !== undefined) canInviteTeamMembers =
-inviteData.canInviteTeamMembers;
-            if
-(inviteData.portalType) userPortalType = inviteData.portalType;
-            if
-(inviteData.companyName) userCompanyName = inviteData.companyName;
-            await
-setDoc(doc(db, 'invites', inviteId), { used: true }, { merge: true });
-          }
-        } catch (e) {
-          console.error('Error checking invites:', e);
-        }
-        const userData: any = { email,
-role: assignedRole, canInviteTeamMembers };
-        if (inviteId) userData.inviteId
-= inviteId;
-        if (userPortalType)
-userData.portalType = userPortalType;
-        if (userCompanyName)
-userData.companyName = userCompanyName;
-        await setDoc(doc(db, 'users',
-userCred.user.uid), userData);
-        onLogin(email, assignedRole,
-userPortalType || PortalType.LTS);
+        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+        const userData = { email, role: UserRole.STUDENT, portalType: portalType || PortalType.LTS };
+        await setDoc(doc(db, 'users', userCred.user.uid), userData);
+        onLogin(email, UserRole.STUDENT, userData.portalType);
       }
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -248,71 +50,31 @@ userPortalType || PortalType.LTS);
  
   const handleAdminLogin = async () => {
     setIsLoading(true);
-    const adminEmail = 'johannes@hessonpaja.com';
-    const adminPassword = 'Studio80!';
     try {
-      const userCred = await
-signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-      
-      await setDoc(doc(db, 'users',
-userCred.user.uid), { 
-        email: adminEmail, 
-        role: UserRole.ADMIN,
-        portalType: portalType 
-      }, { merge: true });
- 
-      onLogin(adminEmail, UserRole.ADMIN,
-portalType || PortalType.LTS);
+      const userCred = await signInWithEmailAndPassword(auth, 'johannes@hessonpaja.com', 'Studio80!');
+      await setDoc(doc(db, 'users', userCred.user.uid), { email: 'johannes@hessonpaja.com', role: UserRole.ADMIN, portalType: portalType || PortalType.LTS }, { merge: true });
+      onLogin('johannes@hessonpaja.com', UserRole.ADMIN, portalType || PortalType.LTS);
     } catch (err: any) {
-      setError(err.message || 'Admin login failed');
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 relative">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md border border-black/5">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold mb-2">{portalType === PortalType.STRATEGY ? 'STRATEGIA' : 'LTS'}</h2>
-          <p className="text-slate-500 text-sm">{isLogin ? 'Kirjaudu sisään' : 'Luo tunnus'}</p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md">
+        <h2 className="text-3xl font-bold text-center mb-8">{isLogin ? 'Kirjaudu' : 'Luo tunnus'}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">{t('email')}</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-slate-50 border-none rounded-2xl outline-none" placeholder="email@example.com" />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <div className="flex justify-between px-1">
-              <label className="text-xs font-semibold text-slate-400 uppercase">{t('password')}</label>
-              {isLogin && <button type="button" onClick={handleResetPassword} className="text-[10px] font-bold text-indigo-600">{t('forgotPassword')}</button>}
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-slate-50 border-none rounded-2xl outline-none" placeholder="••••••••" />
-            </div>
-          </div>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 bg-slate-50 rounded-xl outline-none" placeholder="Sähköposti" />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 bg-slate-50 rounded-xl outline-none" placeholder="Salasana" />
           {error && <p className="text-red-500 text-xs text-center">{error}</p>}
-          {message && <p className="text-emerald-500 text-xs text-center">{message}</p>}
-          <button type="submit" disabled={isLoading} className="w-full bg-black text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2">
-            <span>{isLogin ? 'Luo tunnus / Kirjaudu sisään' : 'Luo tunnus'}</span>
-            <ArrowRight size={18} />
-          </button>
+          <button type="submit" disabled={isLoading} className="w-full bg-black text-white py-4 rounded-xl font-bold">Jatka</button>
         </form>
-        <div className="mt-6 text-center">
-          <button onClick={() => setIsLogin(!isLogin)} className="text-sm font-medium text-slate-500">
-            {isLogin ? 'Eikö sinulla ole tunnusta? Luo tunnus' : 'Onko sinulla jo tunnus? Kirjaudu'}
-          </button>
-        </div>
-        <div className="mt-8 pt-8 border-t border-slate-100">
-          <button onClick={handleAdminLogin} disabled={isLoading} className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100">
-            <ShieldCheck className="text-indigo-500" size={20} />
-            <span className="text-sm font-bold text-indigo-600">Kirjaudu Adminina</span>
-          </button>
-        </div>
+        <button onClick={() => setIsLogin(!isLogin)} className="w-full text-center text-sm mt-4 text-slate-500">
+          {isLogin ? 'Eikö tunnusta? Rekisteröidy' : 'Onko jo tunnus? Kirjaudu'}
+        </button>
+        <button onClick={handleAdminLogin} className="w-full mt-8 p-4 border border-indigo-100 rounded-xl text-indigo-600 font-bold bg-indigo-50">Kirjaudu Adminina</button>
       </motion.div>
     </div>
   );
