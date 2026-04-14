@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { useLanguage } from './LanguageContext';
 import { PortalType, UserRole } from './types';
-import { Mail, Lock, ArrowRight } from 'lucide-react'; // ShieldCheck poistettu täältä
+import { Mail, Lock, ArrowRight } from 'lucide-react';
 import { auth, db } from './firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
