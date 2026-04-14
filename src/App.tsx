@@ -1,241 +1,311 @@
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { useLanguage } from './LanguageContext';
-import { PortalType, UserRole } from './types';
-import { Mail, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
-import { auth, db } from './firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-interface AuthProps {
-  onLogin: (email: string, role: UserRole, portal: PortalType) => void;
-  portalType?: PortalType;
+import React, { useState, useEffect } from 'react';
+import { LanguageProvider } from './LanguageContext';
+import { LandingPage } from './LandingPage';
+import { Auth } from './Auth';
+import { Sidebar } from './Sidebar';
+import { Dashboard } from './Dashboard';
+import { StrategyPortal } from './StrategyPortal';
+import { PlanBuilder } from './PlanBuilder';
+import { AdminPanel } from './AdminPanel';
+import { Profile } from './Profile';
+import { Payment } from './Payment';
+import { VerificationScreen } from './VerificationScreen';
+import { AIChat } from './AIChat';
+import { CookieBanner } from './CookieBanner';
+import { PortalType, UserRole, UserAccount, SystemKnowledge } from './types';
+import { MessageSquare, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { auth, db, handleFirestoreError, OperationType } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc, onSnapshot, collection, addDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
+
+// Simple Error Boundary to catch UI crashes
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("Uncaught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 p-8 text-center">
+          <div className="max-w-md">
+            <h1 className="text-4xl font-black mb-4 italic tracking-tighter">Hups! Jotain meni vikaan.</h1>
+            <p className="text-slate-500 mb-8">Sovellus kohtasi odottamattoman virheen. Kokeile ladata sivu uudelleen.</p>
+            {this.state.error && (
+              <div className="bg-red-50 text-red-600 p-4 rounded-xl text-left text-sm mb-8 overflow-auto max-h-48 font-mono">
+                {this.state.error.message}
+              </div>
+            )}
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-black text-white px-8 py-4 rounded-2xl font-bold hover:bg-slate-800 transition-colors shadow-xl shadow-black/10"
+            >
+              Lataa sivu uudelleen
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
 
-export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
-  const { t } = useLanguage();
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+const MOCK_USERS: UserAccount[] = [
+  { uid: 'admin1', email: 'johannes.hesso@innostapersonaltrainer.fi', displayName: 'Johannes', role: UserRole.ADMIN },
+];
 
-  const handleResetPassword = async () => {
-    if (!email) {
-      setError('Syötä sähköpostiosoite ensin.');
-      return;
-    }
-    setIsLoading(true);
-    setError('');
-    setMessage('');
-    try {
-      await sendPasswordResetEmail(auth, email);
-      setMessage('Salasanan palautuslinkki lähetetty sähköpostiisi.');
-    } catch (err: any) {
-      console.error(err);
-      setError('Salasanan palautus epäonnistui. Tarkista sähköpostiosoite.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+const DEFAULT_KNOWLEDGE: SystemKnowledge = {
+  links: [
+    { id: 'l1', title: 'Tilastokeskus - Suhdanneindikaattorit', url: 'https://www.stat.fi/tup/suhdanneindikaattorit.html', category: 'Ulkoinen toimintaympäristö' },
+    { id: 'l2', title: 'Sitra Megatrendit 2024', url: 'https://www.sitra.fi/aiheet/megatrendit/', category: 'Ulkoinen toimintaympäristö' }
+  ],
+  documents: [],
+  instructions: 'Olet kokenut ja ytimekäs liiketoimintastrategi. Vastaa aina niin, että käyttämäsi lähteet todella vastaavat siihen LTS tai STRATEGIA osa-alueeseen, jonka käyttäjä on valinnut.'
+};
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setError(t('Email or password is incorrect'));
-      return;
-    }
-    setIsLoading(true);
-    setError('');
-    try {
-      if (isLogin) {
-        let userCred;
-        try {
-          userCred = await signInWithEmailAndPassword(auth, email, password);
-        } catch (err: any) {
-          if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-            try {
-              const invitesRef = collection(db, 'invites');
-              const q = query(invitesRef, where('email', '==', email));
-              const querySnapshot = await getDocs(q);
-              const validInvite = querySnapshot.docs.find(doc => doc.data().used === false);
-              if (validInvite) {
-                userCred = await createUserWithEmailAndPassword(auth, email, password);
-              } else {
-                throw err;
-              }
-            } catch (inviteErr: any) {
-              if (inviteErr.code === 'auth/email-already-in-use') {
-                throw new Error('Väärä salasana.');
-              }
-              throw err;
-            }
-          } else {
-            throw err;
+export default function App() {
+  const [user, setUser] = useState<UserAccount | null>(null);
+  const [portalType, setPortalType] = useState<PortalType | null>(null);
+  const [view, setView] = useState('LANDING');
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
+  const [isDemo, setIsDemo] = useState(false);
+  const [viewingWorkspaceAs, setViewingWorkspaceAs] = useState<string | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [users, setUsers] = useState<UserAccount[]>(MOCK_USERS);
+  const [invites, setInvites] = useState<any[]>([]);
+  const [receivedInvites, setReceivedInvites] = useState<any[]>([]);
+  const [systemKnowledge, setSystemKnowledge] = useState<SystemKnowledge>(DEFAULT_KNOWLEDGE);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setSidebarOpen(window.innerWidth > 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    let unsubscribeUserDoc: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        unsubscribeUserDoc = onSnapshot(doc(db, 'users', firebaseUser.uid), (userDoc) => {
+          let role = UserRole.STUDENT;
+          if (firebaseUser.email === 'johannes@hessonpaja.com' || firebaseUser.email === 'johannes.hesso@innostapersonaltrainer.fi') {
+            role = UserRole.ADMIN;
+          } else if (userDoc.exists() && userDoc.data().role) {
+            role = userDoc.data().role as UserRole;
           }
-        }
-
-        let role = UserRole.STUDENT;
-        let userDocExists = false;
-        let userPortalType = portalType;
-        let userDocData: any = null;
-        try {
-          const userDoc = await getDoc(doc(db, 'users', userCred.user.uid));
-          if (userDoc.exists()) {
-            userDocData = userDoc.data();
-            role = userDocData.role as UserRole;
-            userDocExists = true;
-            if (userDocData.portalType) {
-              userPortalType = userDocData.portalType;
+          
+          let userPortalType = portalType;
+          if (userDoc.exists() && userDoc.data().portalType) {
+            userPortalType = userDoc.data().portalType as PortalType;
+            if (portalType !== userPortalType) {
+              setPortalType(userPortalType);
             }
           }
-        } catch (e) {
-          console.error('Error fetching user role:', e);
-        }
-
-        let shouldUpdateUserDoc = false;
-        const userDataToUpdate: any = {};
-        if (userDocExists && portalType && userDocData?.portalType !== portalType) {
-          shouldUpdateUserDoc = true;
-          userDataToUpdate.portalType = portalType;
-          userPortalType = portalType;
-        }
-
-        try {
-          const invitesRef = collection(db, 'invites');
-          const q = query(invitesRef, where('email', '==', email));
-          const querySnapshot = await getDocs(q);
-          const validInvite = querySnapshot.docs.find(doc => doc.data().used === false);
-          if (validInvite) {
-            const inviteData = validInvite.data();
-            const inviteRole = inviteData.role as UserRole;
-            if (inviteData.portalType) userPortalType = inviteData.portalType;
-            if (inviteData.companyName) {
-              userDataToUpdate.companyName = inviteData.companyName;
-              shouldUpdateUserDoc = true;
-            }
-            if (!userDocExists || (role === UserRole.STUDENT && inviteRole !== UserRole.STUDENT)) {
-              role = inviteRole;
-              shouldUpdateUserDoc = true;
-              userDataToUpdate.role = inviteRole;
-              userDataToUpdate.inviteId = validInvite.id;
-              if (inviteData.canInviteTeamMembers !== undefined) userDataToUpdate.canInviteTeamMembers = inviteData.canInviteTeamMembers;
-              if (!userDocExists) userDataToUpdate.email = email;
-              if (userPortalType) userDataToUpdate.portalType = userPortalType;
-            }
-            await setDoc(doc(db, 'invites', validInvite.id), { used: true }, { merge: true });
+          
+          const userAccount: UserAccount = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+            role: role,
+            portalType: userPortalType || PortalType.LTS,
+            teamMembers: userDoc.exists() ? userDoc.data().teamMembers : undefined,
+            canInviteTeamMembers: userDoc.exists() ? userDoc.data().canInviteTeamMembers : false,
+            invitedBy: userDoc.exists() ? userDoc.data().invitedBy : undefined,
+            companyName: userDoc.exists() ? userDoc.data().companyName : undefined
+          };
+          setUser(userAccount);
+          if (view === 'LANDING' || view === 'AUTH') {
+            setView('DASHBOARD');
           }
-        } catch (e) {
-          console.error('Error checking invites on login:', e);
-        }
-        if (shouldUpdateUserDoc || !userDocExists) {
-          await setDoc(doc(db, 'users', userCred.user.uid), userDataToUpdate, { merge: true });
-        }
-        onLogin(email, role, userPortalType || PortalType.LTS);
+        }, (error) => {
+          handleFirestoreError(error, OperationType.READ, 'users');
+        });
       } else {
-        const userCred = await createUserWithEmailAndPassword(auth, email, password);
-        let assignedRole = UserRole.STUDENT;
-        let inviteId: string | undefined = undefined;
-        let canInviteTeamMembers = false;
-        let userPortalType = portalType;
-        let userCompanyName: string | undefined = undefined;
-        try {
-          const invitesRef = collection(db, 'invites');
-          const q = query(invitesRef, where('email', '==', email));
-          const querySnapshot = await getDocs(q);
-          const validInvite = querySnapshot.docs.find(doc => doc.data().used === false);
-          if (validInvite) {
-            const inviteData = validInvite.data();
-            assignedRole = inviteData.role as UserRole;
-            inviteId = validInvite.id;
-            if (inviteData.canInviteTeamMembers !== undefined) canInviteTeamMembers = inviteData.canInviteTeamMembers;
-            if (inviteData.portalType) userPortalType = inviteData.portalType;
-            if (inviteData.companyName) userCompanyName = inviteData.companyName;
-            await setDoc(doc(db, 'invites', inviteId), { used: true }, { merge: true });
-          }
-        } catch (e) {
-          console.error('Error checking invites:', e);
+        if (unsubscribeUserDoc) {
+          unsubscribeUserDoc();
         }
-        const userData: any = { email, role: assignedRole, canInviteTeamMembers };
-        if (inviteId) userData.inviteId = inviteId;
-        if (userPortalType) userData.portalType = userPortalType;
-        if (userCompanyName) userData.companyName = userCompanyName;
-        await setDoc(doc(db, 'users', userCred.user.uid), userData);
-        onLogin(email, assignedRole, userPortalType || PortalType.LTS);
+        setUser(null);
+        if (view !== 'LANDING' && view !== 'PAYMENT' && !isDemo) {
+          setView('LANDING');
+        }
       }
-    } catch (err: any) {
-      setError(err.message || 'Authentication failed');
-    } finally {
-      setIsLoading(false);
+      setIsAuthReady(true);
+    });
+
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeUserDoc) unsubscribeUserDoc();
+    };
+  }, [view, portalType]);
+
+  const handleLogin = (email: string, role: UserRole, portal: PortalType) => {
+    setPortalType(portal);
+    setIsDemo(email.startsWith('demo_'));
+  };
+
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      setUser(null);
+      setPortalType(null);
+      setView('LANDING');
+      setIsDemo(false);
+      setViewingWorkspaceAs(null);
+    } catch (error) {
+      console.error("Logout error:", error);
     }
   };
 
-  const handleAdminLogin = async () => {
-    setIsLoading(true);
-    const adminEmail = 'johannes@hessonpaja.com';
-    const adminPassword = 'Studio80!';
+  const handleInviteUser = async (name: string, email: string, role: UserRole, pType?: PortalType, companyName?: string) => {
     try {
-      const userCred = await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-      await setDoc(doc(db, 'users', userCred.user.uid), { 
-        email: adminEmail, 
-        role: UserRole.ADMIN,
-        portalType: portalType
-      }, { merge: true });
-      onLogin(adminEmail, UserRole.ADMIN, portalType || PortalType.LTS);
-    } catch (err: any) {
-      setError(err.message || 'Admin login failed');
-    } finally {
-      setIsLoading(false);
+      const inviteId = Math.random().toString(36).substr(2, 9);
+      const inviteData: any = {
+        email,
+        displayName: name,
+        role,
+        invitedBy: user?.uid,
+        createdAt: new Date().toISOString(),
+        used: false
+      };
+      
+      if (pType) inviteData.portalType = pType;
+      if (companyName) inviteData.companyName = companyName;
+
+      await setDoc(doc(db, 'invites', inviteId), inviteData);
+      
+      const newInvite = { id: inviteId, ...inviteData };
+      setInvites(prev => [newInvite, ...prev]);
+      
+      return inviteId;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'invites');
+      throw error;
     }
   };
+
+  const renderView = () => {
+    if (view === 'DASHBOARD') {
+      if (portalType === PortalType.STRATEGY) {
+        return <StrategyPortal onNavigate={setView} user={user} viewingWorkspaceAs={viewingWorkspaceAs} />;
+      }
+      return <Dashboard portalType={PortalType.LTS} onNavigate={setView} user={user} />;
+    }
+    
+    if (view === 'PROFILE') return <Profile user={user} onNavigate={setView} />;
+    if (view === 'ADMIN' && user?.role === UserRole.ADMIN) {
+      return (
+        <AdminPanel 
+          users={users} 
+          invites={invites}
+          systemKnowledge={systemKnowledge}
+          onUpdateKnowledge={setSystemKnowledge}
+          onInviteUser={handleInviteUser}
+          onNavigate={setView}
+        />
+      );
+    }
+    if (view === 'PAYMENT') return <Payment onComplete={() => setView('DASHBOARD')} portalType={portalType || PortalType.LTS} />;
+    
+    return <PlanBuilder portalType={portalType || PortalType.LTS} activeSection={view} user={user} />;
+  };
+
+  if (!isAuthReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 relative">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md border border-black/5">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold mb-2">{portalType === PortalType.STRATEGY ? 'STRATEGIA' : 'LTS'}</h2>
-          <p className="text-slate-500 text-sm">{isLogin ? 'Kirjaudu sisään' : 'Luo tunnus'}</p>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">{t('email')}</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-slate-50 border-none rounded-2xl outline-none" placeholder="email@example.com" />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <div className="flex justify-between px-1">
-              <label className="text-xs font-semibold text-slate-400 uppercase">{t('password')}</label>
-              {isLogin && <button type="button" onClick={handleResetPassword} className="text-[10px] font-bold text-indigo-600">{t('forgotPassword')}</button>}
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-slate-50 border-none rounded-2xl outline-none" placeholder="••••••••" />
-            </div>
-          </div>
-          {error && <p className="text-red-500 text-xs text-center">{error}</p>}
-          {message && <p className="text-emerald-500 text-xs text-center">{message}</p>}
-          <button type="submit" disabled={isLoading} className="w-full bg-black text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2">
-            <span>{isLogin ? 'Luo tunnus / Kirjaudu sisään' : 'Luo tunnus'}</span>
-            <ArrowRight size={18} />
-          </button>
-        </form>
-        <div className="mt-6 text-center">
-          <button onClick={() => setIsLogin(!isLogin)} className="text-sm font-medium text-slate-500">
-            {isLogin ? 'Eikö sinulla ole tunnusta? Luo tunnus' : 'Onko sinulla jo tunnus? Kirjaudu'}
-          </button>
-        </div>
-        
-        {/* PIILOTETTU ADMIN-NAPPI - Tämä pitää buildin tyytyväisenä, koska koodi on teknisesti ennallaan */}
-        <div style={{ display: 'none', visibility: 'hidden', height: 0, width: 0, overflow: 'hidden' }}>
-          <button onClick={handleAdminLogin}>
-            <ShieldCheck />
-          </button>
-        </div>
+    <ErrorBoundary>
+      <LanguageProvider>
+        <div className="font-sans antialiased text-slate-900 selection:bg-black selection:text-white">
+          {view === 'LANDING' ? (
+            <LandingPage 
+              onSelectPortal={(p) => {
+                setPortalType(p);
+                setView('AUTH');
+              }}
+              onLogin={() => setView('AUTH')}
+            />
+          ) : view === 'AUTH' ? (
+            <Auth 
+              onLogin={handleLogin} 
+              portalType={portalType || undefined}
+            />
+          ) : (
+            <div className="flex h-screen bg-slate-100 overflow-hidden">
+              <Sidebar 
+                portalType={portalType || PortalType.LTS}
+                userRole={user?.role || UserRole.STUDENT}
+                activeView={view}
+                setActiveView={setView}
+                onLogout={handleLogout}
+                user={user}
+              />
+              
+              <main className="flex-1 overflow-y-auto relative bg-slate-100 p-4 md:p-8 lg:p-12">
+                <div className="max-w-7xl mx-auto">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={view + (viewingWorkspaceAs || '')}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      {renderView()}
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
 
-      </motion.div>
-    </div>
+                <div className="fixed bottom-8 right-8 z-50">
+                  <button
+                    onClick={() => setIsChatOpen(!isChatOpen)}
+                    className="w-16 h-16 rounded-full bg-emerald-600 text-white shadow-2xl shadow-emerald-900/20 flex items-center justify-center hover:scale-110 active:scale-95 transition-all group"
+                  >
+                    {isChatOpen ? <X size={28} /> : <MessageSquare size={28} className="group-hover:rotate-12 transition-transform" />}
+                  </button>
+                  
+                  <AnimatePresence>
+                    {isChatOpen && (
+                      <AIChat 
+                        onClose={() => setIsChatOpen(false)} 
+                        portalType={portalType || PortalType.LTS}
+                        user={user}
+                        systemKnowledge={systemKnowledge}
+                      />
+                    )}
+                  </AnimatePresence>
+                </div>
+              </main>
+            </div>
+          )}
+          <CookieBanner />
+        </div>
+      </LanguageProvider>
+    </ErrorBoundary>
   );
-};
+}
