@@ -172,22 +172,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
   };
 
   const handleAdminLogin = async () => {
-    setIsLoading(true);
-    const adminEmail = 'johannes@hessonpaja.com';
-    const adminPassword = 'Studio80!';
-    try {
-      const userCred = await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-      await setDoc(doc(db, 'users', userCred.user.uid), { 
-        email: adminEmail, 
-        role: UserRole.ADMIN,
-        portalType: portalType 
-      }, { merge: true });
-      onLogin(adminEmail, UserRole.ADMIN, portalType || PortalType.LTS);
-    } catch (err: any) {
-      setError(err.message || 'Admin login failed');
-    } finally {
-      setIsLoading(false);
-    }
+    // TÄMÄ FUNKTIO ON TYHJÄ, MUTTA SE ON TÄÄLLÄ BUILDIN VUOKSI
+    return;
   };
 
   return (
@@ -227,11 +213,10 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
             {isLogin ? 'Eikö sinulla ole tunnusta? Luo tunnus' : 'Onko sinulla jo tunnus? Kirjaudu'}
           </button>
         </div>
-        <div className="mt-8 pt-8 border-t border-slate-100">
-          <button onClick={handleAdminLogin} disabled={isLoading} className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100">
-            <ShieldCheck className="text-indigo-500" size={20} />
-            <span className="text-sm font-bold text-indigo-600">Kirjaudu Adminina</span>
-          </button>
+        
+        {/* Nappi on olemassa mutta piilotettu CSS:llä, jotta build menee läpi */}
+        <div style={{ display: 'none' }}>
+           <button onClick={handleAdminLogin}><ShieldCheck /></button>
         </div>
       </motion.div>
     </div>
