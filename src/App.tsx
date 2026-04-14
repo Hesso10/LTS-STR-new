@@ -74,14 +74,8 @@ export default function App() {
 
   // --- LISÄTTY: DASHBOARDIN CHAT-SIGNAALIN KUUNTELIJA ---
   useEffect(() => {
-    const handleOpenChat = () => {
-      console.log("Avaat chatin Dashboardin kautta...");
-      setIsChatOpen(true);
-    };
-    
-    // Kuunnellaan Dashboard.tsx:n lähettämää CustomEventiä
+    const handleOpenChat = () => setIsChatOpen(true);
     window.addEventListener('open-ai-chat', handleOpenChat);
-    
     return () => window.removeEventListener('open-ai-chat', handleOpenChat);
   }, []);
 
@@ -253,17 +247,23 @@ export default function App() {
                   </motion.div>
                 </AnimatePresence>
                 
-                <div className="fixed bottom-8 right-8">
-                  <button onClick={() => setIsChatOpen(!isChatOpen)} className="w-16 h-16 rounded-full bg-emerald-600 text-white shadow-xl flex items-center justify-center hover:scale-105 transition-transform active:scale-95">
+                {/* LISÄTTY z-index KORJAUS TÄHÄN */}
+                <div className="fixed bottom-8 right-8 z-[9999]">
+                  <button 
+                    onClick={() => setIsChatOpen(!isChatOpen)} 
+                    className="w-16 h-16 rounded-full bg-emerald-600 text-white shadow-xl flex items-center justify-center hover:scale-105 transition-transform active:scale-95 relative z-[10001]"
+                  >
                     <MessageSquare size={28} />
                   </button>
                   {isChatOpen && (
-                    <AIChat 
-                      portalType={portalType || PortalType.LTS} 
-                      onClose={() => setIsChatOpen(false)} 
-                      user={user} 
-                      systemKnowledge={systemKnowledge} 
-                    />
+                    <div className="relative z-[10000]">
+                      <AIChat 
+                        portalType={portalType || PortalType.LTS} 
+                        onClose={() => setIsChatOpen(false)} 
+                        user={user} 
+                        systemKnowledge={systemKnowledge} 
+                      />
+                    </div>
                   )}
                 </div>
               </main>
