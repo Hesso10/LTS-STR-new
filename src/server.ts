@@ -5,13 +5,14 @@ import path from "path";
 import cors from "cors";
 import dotenv from "dotenv";
 import fs from "fs";
-import * as admin from "firebase-admin"; // 1. LISÄTTY: Firebase Admin SDK
+// KORJAUS: Tuodaan admin-objekti suoraan, jotta se ei ole 'undefined' palvelimella
+import admin from "firebase-admin"; 
 
 dotenv.config();
 
 // --- FIREBASE ADMIN ALUSTUS ---
-// Alustetaan ilman erillisiä avaimia, koska Cloud Run käyttää palvelimen omaa Service Accountia
-if (!admin.apps.length) {
+// Korjattu alustustapa, joka toimii varmasti Cloud Run -ympäristössä
+if (!admin.apps || admin.apps.length === 0) {
   admin.initializeApp();
 }
 const db = admin.firestore();
@@ -25,7 +26,7 @@ const PROJECT_ID = "superb-firefly-489705-g3";
 const LOCATION = "global"; 
 const ENGINE_ID = "lts-str_1775635155437"; 
 const MODEL_LOCATION = "us-central1"; 
-const MODEL_NAME = "gemini-1.5-flash"; // SUOSITUS: Vaihdettu vakaaseen 1.5-versioon (2.5 ei ole vielä julkaistu)
+const MODEL_NAME = "gemini-1.5-flash"; 
 
 const searchClient = new ConversationalSearchServiceClient();
 const vertexAI = new VertexAI({ project: PROJECT_ID, location: MODEL_LOCATION });
@@ -37,21 +38,21 @@ const googleSearchTool: any = {
 app.post("/api/chat", async (req, res) => {
   try {
     const { message, sessionId, history = [], uid } = req.body;
-    if (!message) return res.status(400).json({ error: "Missing message" });
     
-    // 2. LISÄTTY: UID-tarkistus (vaaditaan rajoitinta varten)
-    if (!uid) return res.status(401).json({ error: "Unauthorized: Missing UID" });
+    // Perustarkistukset
+    if (!message) return res.status(400).json({ error: "Viesti puuttuu" });
+    if (!uid) return res.status(401).json({ error: "Unauthorized: Kirjaudu sisään ensin" });
 
     // --- VAIHE 0: 100 KYSYMYKSEN RAJOITIN ---
     const now = new Date();
-    const monthId = `${now.getFullYear()}-${now.getUTCMonth() + 1}`; // Esim: "2026-4"
+    const monthId = `${now.getFullYear()}-${now.getUTCMonth() + 1}`;
     const usageRef = db.collection("users").doc(uid).collection("usage").doc("currentMonth");
 
     try {
       const usageDoc = await usageRef.get();
       if (usageDoc.exists) {
         const data = usageDoc.data();
-        // Jos ollaan samassa kuukaudessa ja laskuri on >= 100
+        // Jos ollaan samassa kuukaudessa ja laskuri on saavuttanut 100
         if (data?.monthId === monthId && data?.count >= 100) {
           return res.status(429).json({ 
             error: "Kuukausittainen kyselyraja (100) on täyttynyt. Raja nollautuu ensi kuun alussa." 
@@ -94,16 +95,8 @@ app.post("/api/chat", async (req, res) => {
 
     const systemInstruction = `
       Toimi analyyttisena ja motivoivana liiketoiminnan sparraajana. 
-
-      TÄRKEÄÄ: Vastaa suoraan ja ytimekkäästi. Älä käytä pitkiä johdantoja. 
-      Varmista, että vastaus päättyy AINA pisteeseen.
-
-      TUNNUSSANA-LOGIIKKA (LTS / STR):
-      1. PDF-dokumenttien otsikot vastaavat suoraan portaalien täytettäviä kenttiä.
-      2. Jos käyttäjä kirjoittaa "LTS [kentän nimi]" tai "STR [kentän nimi]", etsi PDF-datasta juuri kyseisen otsikon ohje ja tiivistä se (100-150 sanaa).
-      
-      LÄHDE-DATA (PDF):
-      "${rawDataContent}"
+      Vastaa suoraan ja ytimekkäästi PDF-datan pohjalta.
+      LÄHDE-DATA: "${rawDataContent}"
     `;
 
     // --- VAIHE 2: GENERATIIVINEN VASTAUS ---
@@ -120,7 +113,6 @@ app.post("/api/chat", async (req, res) => {
     const responseText = result.response.candidates?.[0].content.parts?.[0].text || "Vastausta ei voitu luoda.";
 
     // --- VAIHE 3: LASKURIN PÄIVITYS ---
-    // Kasvatetaan laskuria vain jos vastaus saatiin onnistuneesti
     try {
       await usageRef.set({
         count: admin.firestore.FieldValue.increment(1),
@@ -140,10 +132,11 @@ app.post("/api/chat", async (req, res) => {
 
   } catch (err: any) {
     console.error("API Error:", err);
-    res.status(500).json({ error: "Yhteysvirhe. Yritä uudelleen." });
+    res.status(500).json({ error: "Yhteysvirhe palvelimeen. Yritä uudelleen." });
   }
 });
 
+// Staattisten tiedostojen tarjoilu (Frontend)
 const distPath = path.join(process.cwd(), "dist");
 if (fs.existsSync(distPath)) { 
   app.use(express.static(distPath)); 
