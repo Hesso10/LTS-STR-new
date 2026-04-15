@@ -25,8 +25,8 @@ const LOCATION = "global";
 const ENGINE_ID = "lts-str_1775635155437"; 
 const MODEL_LOCATION = "us-central1"; 
 
-// TÄRKEÄ MUUTOS: Käytetään Gemini 2.0 Flashia, joka on nykyinen "Stable"-malli
-const MODEL_NAME = "gemini-2.0-flash-001"; 
+// TÄMÄ ON SE RATKAISEVA KORJAUS: Vuoden 2026 virallinen Stable-nimi
+const MODEL_NAME = "gemini-2.5-flash"; 
 
 const searchClient = new ConversationalSearchServiceClient();
 const vertexAI = new VertexAI({ project: PROJECT_ID, location: MODEL_LOCATION });
@@ -39,11 +39,10 @@ app.post("/api/chat", async (req, res) => {
   try {
     const { message, sessionId, history = [], uid } = req.body;
     
-    // Perustarkistukset
     if (!message) return res.status(400).json({ error: "Viesti puuttuu" });
-    if (!uid) return res.status(401).json({ error: "Kirjaudu sisään ensin (UID puuttuu)" });
+    if (!uid) return res.status(401).json({ error: "Kirjaudu sisään ensin" });
 
-    // --- VAIHE 0: 100 KYSYMYKSEN RAJOITIN (FIRESTORE) ---
+    // --- 100 RAJAN TARKISTUS ---
     const now = new Date();
     const monthId = `${now.getFullYear()}-${now.getUTCMonth() + 1}`;
     const usageRef = db.collection("users").doc(uid).collection("usage").doc("currentMonth");
@@ -59,10 +58,10 @@ app.post("/api/chat", async (req, res) => {
         }
       }
     } catch (dbErr) {
-      console.error("Firestore limit check error:", dbErr);
+      console.error("Firestore error:", dbErr);
     }
 
-    // --- VAIHE 1: HAKU DATASTORESTA (Discovery Engine) ---
+    // --- HAKU DATASTORESTA ---
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
     
     let rawDataContent = "";
@@ -78,7 +77,7 @@ app.post("/api/chat", async (req, res) => {
       });
       rawDataContent = searchResponse.answer?.answerText || "";
     } catch (searchErr) {
-      console.error("Discovery Engine error:", searchErr);
+      console.error("Search error:", searchErr);
     }
 
     const generativeModel = vertexAI.getGenerativeModel({ 
@@ -92,25 +91,24 @@ app.post("/api/chat", async (req, res) => {
     });
 
     const systemInstruction = `
-      Toimi analyyttisena ja motivoivana liiketoiminnan sparraajana. 
-      Vastaa suoraan ja ytimekkäästi PDF-datan pohjalta.
-      LÄHDE-DATA: "${rawDataContent}"
+      Toimi analyyttisena liiketoiminnan sparraajana. 
+      Vastaa PDF-datan pohjalta: "${rawDataContent}"
     `;
 
-    // --- VAIHE 2: GENERATIIVINEN VASTAUS ---
+    // --- VASTAUKSEN LUONTI ---
     const result = await generativeModel.generateContent({
       contents: [
         ...history,
         { 
           role: "user", 
-          parts: [{ text: `${systemInstruction}\n\nKäyttäjän viesti: ${message}` }] 
+          parts: [{ text: `${systemInstruction}\n\nKysymys: ${message}` }] 
         }
       ]
     });
 
     const responseText = result.response.candidates?.[0].content.parts?.[0].text || "Vastausta ei voitu luoda.";
 
-    // --- VAIHE 3: LASKURIN PÄIVITYS FIRESTOREEN ---
+    // --- LASKURIN PÄIVITYS ---
     try {
       await usageRef.set({
         count: admin.firestore.FieldValue.increment(1),
@@ -119,22 +117,17 @@ app.post("/api/chat", async (req, res) => {
         userId: uid
       }, { merge: true });
     } catch (updateErr) {
-      console.error("Failed to increment usage counter:", updateErr);
+      console.error("Counter error:", updateErr);
     }
 
-    res.json({ 
-      text: responseText, 
-      sessionId: sessionId,
-      sources: result.response.candidates?.[0].groundingMetadata 
-    });
+    res.json({ text: responseText, sessionId });
 
   } catch (err: any) {
-    console.error("API Error (Full):", err);
-    res.status(500).json({ error: "Yhteysvirhe palvelimeen." });
+    console.error("API Error:", err);
+    res.status(500).json({ error: "Palvelinvirhe." });
   }
 });
 
-// Staattisten tiedostojen tarjoilu (Frontend)
 const distPath = path.join(process.cwd(), "dist");
 if (fs.existsSync(distPath)) { 
   app.use(express.static(distPath)); 
@@ -143,13 +136,9 @@ if (fs.existsSync(distPath)) {
 app.get("*", (req, res) => {
   if (!req.path.startsWith('/api')) {
     const indexPath = path.join(distPath, "index.html");
-    if (fs.existsSync(indexPath)) { 
-      res.sendFile(indexPath); 
-    }
+    if (fs.existsSync(indexPath)) res.sendFile(indexPath);
   }
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Palvelin valmiina portissa ${PORT}`);
-});
+app.listen(PORT, "0.0.0.0");
