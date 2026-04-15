@@ -9,7 +9,6 @@ import admin from "firebase-admin";
 
 dotenv.config();
 
-// --- FIREBASE ADMIN ALUSTUS ---
 if (!admin.apps || admin.apps.length === 0) {
   admin.initializeApp();
 }
@@ -19,96 +18,81 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- KONFIGURAATIO ---
 const PROJECT_ID = "superb-firefly-489705-g3"; 
 const LOCATION = "global"; 
 const ENGINE_ID = "lts-str_1775635155437"; 
 const MODEL_LOCATION = "us-central1"; 
-
-// TÄMÄ ON SE RATKAISEVA KORJAUS: Vuoden 2026 virallinen Stable-nimi
 const MODEL_NAME = "gemini-2.5-flash"; 
 
 const searchClient = new ConversationalSearchServiceClient();
 const vertexAI = new VertexAI({ project: PROJECT_ID, location: MODEL_LOCATION });
 
-const googleSearchTool: any = {
-  google_search: {} 
-};
+const googleSearchTool: any = { google_search: {} };
 
 app.post("/api/chat", async (req, res) => {
   try {
     const { message, sessionId, history = [], uid } = req.body;
     
-    if (!message) return res.status(400).json({ error: "Viesti puuttuu" });
-    if (!uid) return res.status(401).json({ error: "Kirjaudu sisään ensin" });
+    if (!message || !uid) return res.status(400).json({ error: "Tietoja puuttuu" });
 
-    // --- 100 RAJAN TARKISTUS ---
+    // --- 1. 100 KYSYMYKSEN RAJOITIN ---
     const now = new Date();
     const monthId = `${now.getFullYear()}-${now.getUTCMonth() + 1}`;
     const usageRef = db.collection("users").doc(uid).collection("usage").doc("currentMonth");
 
     try {
       const usageDoc = await usageRef.get();
-      if (usageDoc.exists) {
-        const data = usageDoc.data();
-        if (data?.monthId === monthId && data?.count >= 100) {
-          return res.status(429).json({ 
-            error: "Kuukausittainen kyselyraja (100) on täyttynyt." 
-          });
-        }
+      if (usageDoc.exists && usageDoc.data()?.count >= 100) {
+        return res.status(429).json({ error: "Kuukausittainen kyselyraja (100) on täyttynyt." });
       }
-    } catch (dbErr) {
-      console.error("Firestore error:", dbErr);
-    }
+    } catch (e) { console.error("Counter check error", e); }
 
-    // --- HAKU DATASTORESTA ---
+    // --- 2. HAKU PDF-DATASTA ---
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
-    
-    let rawDataContent = "";
+    let context = "";
     try {
       const [searchResponse] = await searchClient.answerQuery({
         servingConfig,
         query: { text: message },
-        session: sessionId ? { name: sessionId } : undefined,
-        answerGenerationSpec: { 
-          answerLanguageCode: "fi", 
-          includeCitations: true 
-        }
+        answerGenerationSpec: { answerLanguageCode: "fi" }
       });
-      rawDataContent = searchResponse.answer?.answerText || "";
-    } catch (searchErr) {
-      console.error("Search error:", searchErr);
-    }
+      context = searchResponse.answer?.answerText || "";
+    } catch (e) { console.error("Search error", e); }
 
-    const generativeModel = vertexAI.getGenerativeModel({ 
-      model: MODEL_NAME,
-      tools: [googleSearchTool], 
-      generationConfig: { 
-        temperature: 0.4, 
-        topP: 0.95, 
-        maxOutputTokens: 2000 
-      }
-    });
+    // --- 3. KAKSIVAIHEINEN SYSTEM INSTRUCTION ---
+    const instructionText = `
+      Toimi analyyttisena ja motivoivana liiketoiminnan sparraajana. 
+      Käytä ammattimaista mutta helposti lähestyttävää kieltä.
+      LÄHDE-DATA PDF-TIEDOISTA: "${context}"
 
-    const systemInstruction = `
-      Toimi analyyttisena liiketoiminnan sparraajana. 
-      Vastaa PDF-datan pohjalta: "${rawDataContent}"
+      ERIKOISLOGIIKKA:
+      - Jos käyttäjän viesti sisältää tunnussanan "LTS" tai "STR" ja portaalin valikon otsikon:
+        1. Toimi tiukasti käyttöohjeena.
+        2. Etsi LÄHDE-DATASTA juuri se kohta, joka vastaa otsikkoa.
+        3. Vastaa ytimekkäästi ja suoraan PDF-ohjeen mukaisesti.
+      
+      - MUISSA TAPAUKSISSA (Jos tunnussanoja ei ole):
+        1. Toimi motivoivana sparraajana.
+        2. Hyödynnä PDF-dataa soveltuvin osin (erityisesti STR- ja LTS-malleja).
+        3. Vastaa suoraan ja kannustavasti käyttäjän kysymykseen.
     `;
 
-    // --- VASTAUKSEN LUONTI ---
+    const generativeModel = vertexAI.getGenerativeModel({ 
+      model: MODEL_NAME, 
+      tools: [googleSearchTool],
+      generationConfig: { temperature: 0.4 } 
+    });
+
     const result = await generativeModel.generateContent({
       contents: [
         ...history,
-        { 
-          role: "user", 
-          parts: [{ text: `${systemInstruction}\n\nKysymys: ${message}` }] 
-        }
+        { role: "user", parts: [{ text: `${instructionText}\n\nKÄYTTÄJÄN VIESTI: ${message}` }] }
       ]
     });
 
     const responseText = result.response.candidates?.[0].content.parts?.[0].text || "Vastausta ei voitu luoda.";
 
-    // --- LASKURIN PÄIVITYS ---
+    // --- 4. LASKURIN PÄIVITYS ---
     try {
       await usageRef.set({
         count: admin.firestore.FieldValue.increment(1),
@@ -116,23 +100,18 @@ app.post("/api/chat", async (req, res) => {
         lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
         userId: uid
       }, { merge: true });
-    } catch (updateErr) {
-      console.error("Counter error:", updateErr);
-    }
+    } catch (e) { console.error("Counter update error", e); }
 
     res.json({ text: responseText, sessionId });
 
-  } catch (err: any) {
+  } catch (err) {
     console.error("API Error:", err);
-    res.status(500).json({ error: "Palvelinvirhe." });
+    res.status(500).json({ error: "Palvelinvirhe" });
   }
 });
 
 const distPath = path.join(process.cwd(), "dist");
-if (fs.existsSync(distPath)) { 
-  app.use(express.static(distPath)); 
-}
-
+if (fs.existsSync(distPath)) { app.use(express.static(distPath)); }
 app.get("*", (req, res) => {
   if (!req.path.startsWith('/api')) {
     const indexPath = path.join(distPath, "index.html");
@@ -140,5 +119,4 @@ app.get("*", (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, "0.0.0.0");
+app.listen(process.env.PORT || 8080);
