@@ -2,7 +2,10 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// Hardcoded with your verified project credentials to bypass "temp" environment issues
+/**
+ * Firebase-konfiguraatio
+ * Huom: Nämä ovat julkisia tunnuksia, jotka on suojattu Firestore Rules -säännöillä.
+ */
 const firebaseConfig = {
   projectId: "superb-firefly-489705-g3",
   appId: "1:16978149266:web:41987cbf5121df8db18b4b",
@@ -13,11 +16,16 @@ const firebaseConfig = {
   measurementId: "G-LYM92JJCR6"
 };
 
-// Initialize Firebase
+// Alusta Firebase-sovellus
 const app = initializeApp(firebaseConfig);
+
+// Eksportoi palvelut muiden komponenttien käyttöön
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
+/**
+ * Tietotyypit Firestore-operaatioille ja virheen käsittelyyn
+ */
 export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
@@ -36,16 +44,13 @@ export interface FirestoreErrorInfo {
     email?: string | null;
     emailVerified?: boolean;
     isAnonymous?: boolean;
-    tenantId?: string | null;
-    providerInfo: {
-      providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
-    }[];
+    providerInfo: any[];
   }
 }
 
+/**
+ * Yleinen virheidenkäsittelijä Firestore-kutsuille
+ */
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
@@ -54,17 +59,17 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
       email: auth.currentUser?.email,
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
+      providerInfo: auth.currentUser?.providerData.map(p => ({
+        providerId: p.providerId,
+        displayName: p.displayName,
+        email: p.email,
+        photoUrl: p.photoURL
       })) || []
     },
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  
+  console.error('Firestore Error Details: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }
