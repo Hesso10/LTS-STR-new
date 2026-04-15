@@ -18,6 +18,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// --- ASETUKSET ---
 const PROJECT_ID = "superb-firefly-489705-g3"; 
 const LOCATION = "global"; 
 const ENGINE_ID = "lts-str_1775635155437"; 
@@ -35,7 +36,7 @@ app.post("/api/chat", async (req, res) => {
     
     if (!message || !uid) return res.status(400).json({ error: "Tietoja puuttuu" });
 
-    // --- 1. 100 KYSYMYKSEN RAJOITIN ---
+    // --- 1. LASKURIN TARKISTUS ---
     const now = new Date();
     const monthId = `${now.getFullYear()}-${now.getUTCMonth() + 1}`;
     const usageRef = db.collection("users").doc(uid).collection("usage").doc("currentMonth");
@@ -43,9 +44,9 @@ app.post("/api/chat", async (req, res) => {
     try {
       const usageDoc = await usageRef.get();
       if (usageDoc.exists && usageDoc.data()?.count >= 100) {
-        return res.status(429).json({ error: "Kuukausittainen kyselyraja (100) on täyttynyt." });
+        return res.status(429).json({ error: "Kuukausiraja täynnä." });
       }
-    } catch (e) { console.error("Counter check error", e); }
+    } catch (e) { console.error(e); }
 
     // --- 2. HAKU PDF-DATASTA ---
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
@@ -59,22 +60,23 @@ app.post("/api/chat", async (req, res) => {
       context = searchResponse.answer?.answerText || "";
     } catch (e) { console.error("Search error", e); }
 
-    // --- 3. KAKSIVAIHEINEN SYSTEM INSTRUCTION ---
+    // --- 3. KOLMIVAIHEINEN SYSTEM INSTRUCTION ---
     const instructionText = `
-      Toimi analyyttisena ja motivoivana liiketoiminnan sparraajana. 
-      Käytä ammattimaista mutta helposti lähestyttävää kieltä.
-      LÄHDE-DATA PDF-TIEDOISTA: "${context}"
+      Olet asiantunteva ja motivoiva liiketoiminnan sparraaja. Tyylisi on analyyttinen, kannustava ja ammattimainen.
 
-      ERIKOISLOGIIKKA:
-      - Jos käyttäjän viesti sisältää tunnussanan "LTS" tai "STR" ja portaalin valikon otsikon:
-        1. Toimi tiukasti käyttöohjeena.
-        2. Etsi LÄHDE-DATASTA juuri se kohta, joka vastaa otsikkoa.
-        3. Vastaa ytimekkäästi ja suoraan PDF-ohjeen mukaisesti.
+      KÄYTTÖLOGIIKKA:
       
-      - MUISSA TAPAUKSISSA (Jos tunnussanoja ei ole):
-        1. Toimi motivoivana sparraajana.
-        2. Hyödynnä PDF-dataa soveltuvin osin (erityisesti STR- ja LTS-malleja).
-        3. Vastaa suoraan ja kannustavasti käyttäjän kysymykseen.
+      1. TÄSMÄLLINEN OHJEISTUS (LTS tai STR mainittu):
+         - Jos viesti sisältää tunnussanan "LTS" tai "STR" ja otsikon, toimi teknisenä käyttöohjeena.
+         - Etsi LÄHDE-DATASTA kyseinen kohta ja palauta teksti LÄHES YKSI YHTEEN sisältäen esimerkit.
+         - Aloita vastaus: "Työstetään [Portaali]:n [Otsikko]-kohtaa:"
+      
+      2. VAPAA SPARRAUS:
+         - Jos tunnussanoja ei ole, toimi strategisena neuvonantajana.
+         - Hyödynnä PDF-dataa ("${context}") ja rikastuta vastausta hyödyntämällä globaaleja metodologioita (HBR, McKinsey, BCG, Gartner).
+         - Auta käyttäjää oivaltamaan syy-seuraussuhteita ja motivoi häntä strategisessa ajattelussa.
+      
+      LÄHDE-DATA: "${context}"
     `;
 
     const generativeModel = vertexAI.getGenerativeModel({ 
@@ -86,21 +88,20 @@ app.post("/api/chat", async (req, res) => {
     const result = await generativeModel.generateContent({
       contents: [
         ...history,
-        { role: "user", parts: [{ text: `${instructionText}\n\nKÄYTTÄJÄN VIESTI: ${message}` }] }
+        { role: "user", parts: [{ text: `${instructionText}\n\nKÄYTTÄJÄ: ${message}` }] }
       ]
     });
 
-    const responseText = result.response.candidates?.[0].content.parts?.[0].text || "Vastausta ei voitu luoda.";
+    const responseText = result.response.candidates?.[0].content.parts?.[0].text || "Virhe.";
 
     // --- 4. LASKURIN PÄIVITYS ---
     try {
       await usageRef.set({
         count: admin.firestore.FieldValue.increment(1),
         monthId: monthId,
-        lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
         userId: uid
       }, { merge: true });
-    } catch (e) { console.error("Counter update error", e); }
+    } catch (e) { console.error(e); }
 
     res.json({ text: responseText, sessionId });
 
