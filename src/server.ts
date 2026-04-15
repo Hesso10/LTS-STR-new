@@ -5,7 +5,6 @@ import path from "path";
 import cors from "cors";
 import dotenv from "dotenv";
 import fs from "fs";
-// KORJAUS: Tuodaan admin-objekti oikein ES-moduulina
 import admin from "firebase-admin"; 
 
 dotenv.config();
@@ -26,8 +25,8 @@ const LOCATION = "global";
 const ENGINE_ID = "lts-str_1775635155437"; 
 const MODEL_LOCATION = "us-central1"; 
 
-// KORJAUS: Käytetään tarkkaa versionumeroa (snapshot), jotta 404-virhe poistuu
-const MODEL_NAME = "gemini-1.5-flash-002"; 
+// TÄRKEÄ MUUTOS: Käytetään Gemini 2.0 Flashia, joka on nykyinen "Stable"-malli
+const MODEL_NAME = "gemini-2.0-flash-001"; 
 
 const searchClient = new ConversationalSearchServiceClient();
 const vertexAI = new VertexAI({ project: PROJECT_ID, location: MODEL_LOCATION });
@@ -42,9 +41,9 @@ app.post("/api/chat", async (req, res) => {
     
     // Perustarkistukset
     if (!message) return res.status(400).json({ error: "Viesti puuttuu" });
-    if (!uid) return res.status(401).json({ error: "Unauthorized: Kirjaudu sisään ensin" });
+    if (!uid) return res.status(401).json({ error: "Kirjaudu sisään ensin (UID puuttuu)" });
 
-    // --- VAIHE 0: 100 KYSYMYKSEN RAJOITIN ---
+    // --- VAIHE 0: 100 KYSYMYKSEN RAJOITIN (FIRESTORE) ---
     const now = new Date();
     const monthId = `${now.getFullYear()}-${now.getUTCMonth() + 1}`;
     const usageRef = db.collection("users").doc(uid).collection("usage").doc("currentMonth");
@@ -53,16 +52,14 @@ app.post("/api/chat", async (req, res) => {
       const usageDoc = await usageRef.get();
       if (usageDoc.exists) {
         const data = usageDoc.data();
-        // Tarkistetaan onko kuukausittainen raja (100) täynnä
         if (data?.monthId === monthId && data?.count >= 100) {
           return res.status(429).json({ 
-            error: "Kuukausittainen kyselyraja (100) on täyttynyt. Raja nollautuu ensi kuun alussa." 
+            error: "Kuukausittainen kyselyraja (100) on täyttynyt." 
           });
         }
       }
     } catch (dbErr) {
       console.error("Firestore limit check error:", dbErr);
-      // Fail-safe: jos tietokantavirhe, päästetään läpi, mutta lokitetaan
     }
 
     // --- VAIHE 1: HAKU DATASTORESTA (Discovery Engine) ---
@@ -113,7 +110,7 @@ app.post("/api/chat", async (req, res) => {
 
     const responseText = result.response.candidates?.[0].content.parts?.[0].text || "Vastausta ei voitu luoda.";
 
-    // --- VAIHE 3: LASKURIN PÄIVITYS ---
+    // --- VAIHE 3: LASKURIN PÄIVITYS FIRESTOREEN ---
     try {
       await usageRef.set({
         count: admin.firestore.FieldValue.increment(1),
@@ -132,8 +129,8 @@ app.post("/api/chat", async (req, res) => {
     });
 
   } catch (err: any) {
-    console.error("API Error:", err);
-    res.status(500).json({ error: "Yhteysvirhe palvelimeen. Yritä uudelleen." });
+    console.error("API Error (Full):", err);
+    res.status(500).json({ error: "Yhteysvirhe palvelimeen." });
   }
 });
 
