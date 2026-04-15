@@ -5,13 +5,12 @@ import path from "path";
 import cors from "cors";
 import dotenv from "dotenv";
 import fs from "fs";
-// KORJAUS: Tuodaan admin-objekti suoraan, jotta se ei ole 'undefined' palvelimella
+// KORJAUS: Oikea tapa tuoda admin-objekti
 import admin from "firebase-admin"; 
 
 dotenv.config();
 
 // --- FIREBASE ADMIN ALUSTUS ---
-// Korjattu alustustapa, joka toimii varmasti Cloud Run -ympäristössä
 if (!admin.apps || admin.apps.length === 0) {
   admin.initializeApp();
 }
@@ -26,7 +25,8 @@ const PROJECT_ID = "superb-firefly-489705-g3";
 const LOCATION = "global"; 
 const ENGINE_ID = "lts-str_1775635155437"; 
 const MODEL_LOCATION = "us-central1"; 
-const MODEL_NAME = "gemini-1.5-flash"; 
+// KORJAUS: Tarkka mallin nimi, joka välttää 404-virheen
+const MODEL_NAME = "gemini-1.5-flash-001"; 
 
 const searchClient = new ConversationalSearchServiceClient();
 const vertexAI = new VertexAI({ project: PROJECT_ID, location: MODEL_LOCATION });
@@ -39,7 +39,6 @@ app.post("/api/chat", async (req, res) => {
   try {
     const { message, sessionId, history = [], uid } = req.body;
     
-    // Perustarkistukset
     if (!message) return res.status(400).json({ error: "Viesti puuttuu" });
     if (!uid) return res.status(401).json({ error: "Unauthorized: Kirjaudu sisään ensin" });
 
@@ -52,19 +51,17 @@ app.post("/api/chat", async (req, res) => {
       const usageDoc = await usageRef.get();
       if (usageDoc.exists) {
         const data = usageDoc.data();
-        // Jos ollaan samassa kuukaudessa ja laskuri on saavuttanut 100
         if (data?.monthId === monthId && data?.count >= 100) {
           return res.status(429).json({ 
-            error: "Kuukausittainen kyselyraja (100) on täyttynyt. Raja nollautuu ensi kuun alussa." 
+            error: "Kuukausittainen kyselyraja (100) on täyttynyt." 
           });
         }
       }
     } catch (dbErr) {
       console.error("Firestore limit check error:", dbErr);
-      // Fail-safe: jos tietokantavirhe, päästetään läpi mutta lokitetaan
     }
 
-    // --- VAIHE 1: HAKU DATASTORESTA (Discovery Engine) ---
+    // --- VAIHE 1: HAKU DATASTORESTA ---
     const servingConfig = `projects/${PROJECT_ID}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/servingConfigs/default_search`;
     
     let rawDataContent = "";
@@ -136,7 +133,6 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// Staattisten tiedostojen tarjoilu (Frontend)
 const distPath = path.join(process.cwd(), "dist");
 if (fs.existsSync(distPath)) { 
   app.use(express.static(distPath)); 
