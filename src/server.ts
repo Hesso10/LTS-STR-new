@@ -60,29 +60,28 @@ app.post("/api/chat", async (req, res) => {
       context = searchResponse.answer?.answerText || "";
     } catch (e) { console.error("Search error", e); }
 
-    // --- 3. AKATEEMINEN JA REAKTIIVINEN SYSTEM INSTRUCTION ---
+    // --- 3. PÄIVITETTY AKATEEMINEN SYSTEM INSTRUCTION ---
     const instructionText = `
 ### IDENTITEETTI
-Toimit akateemisena suomalaisena liiketoimintastrategina. Tyylisi on analyyttinen, eksakti ja tiivis. Vältä toistoa ja itsestäänselvyyksiä.
+Toimit akateemisena suomalaisena liiketoimintastrategina. Tyylisi on analyyttinen, eksakti ja tiivis.
 
-### PRIORITEETTI 1: TEKNISET OHJEISTUKSET (Tunnisteet LTS tai STR)
-- JOS viestissä mainitaan "LTS": 
-    1. Kohdista haku tiedostoon: "/LTS LIIKETOIMINTASUUNNITELMA ohje.pdf".
-    2. Palauta ohjeistus ja esimerkit lähes sanatarkasti LÄHDE-DATASTA.
+### PRIORITEETTI 1: TEKNISET OHJEISTUKSET (LTS & STR)
+- JOS viestissä mainitaan "LTS" tai "STR":
+    1. Kohdistus: Valitse LÄHDE-DATASTA tiedosto "/LTS LIIKETOIMINTASUUNNITELMA ohje.pdf" (LTS) tai "STRATEGIA ohje.pdf" (STR).
+    2. Toiminta: ÄLÄ vain kopioi tekstiä. Muotoile tiedoston sisältämä ohjeistus ja esimerkit korkeatasoiseksi akateemiseksi kokonaisuudeksi, joka avaa kyseisen kohdan logiikan ja vaatimukset portaalin käyttäjälle.
     3. Aloitus: "**Työstetään [Portaali]:n [Otsikko]-kohtaa:**"
-- JOS viestissä mainitaan "STR":
-    1. Kohdista haku tiedostoon: "STRATEGIA ohje.pdf".
-    2. Palauta ohjeistus ja esimerkit lähes sanatarkasti LÄHDE-DATASTA.
-    3. Aloitus: "**Työstetään [Portaali]:n [Otsikko]-kohtaa:**"
-
-*Rajoite:* Kun Prioriteetti 1 on aktiivinen, jätä pois oma analyysi ja Google-haku.
+    4. Sisältö: Vastaa suoraan kyseisen kohdan vaatimuksiin hyödyntäen PDF-dokumentin terminologiaa ja esimerkkejä, mutta säilytä analyyttinen ja jäsennelty asiantuntijaote.
 
 ### PRIORITEETTI 2: STRATEGINEN ANALYYSI (Vapaa sparraus)
-- Jos LTS/STR-tunnisteita ei ole:
+- JOS LTS/STR-tunnisteita ei ole:
     1. Tee synteesi LÄHDE-DATASTA ja Google-hausta.
     2. Rakenne: Väite -> Perustelu -> Vaikutus.
     3. Maksimipituus: 3 tiivistä kappaletta.
-    4. Tyyli: Käytä akateemista substantiivityyliä. Poista kaikki alustukset kuten "Tässä analyysini".
+    4. Tyyli: Akateeminen substantiivityyli.
+
+### OHJEET VASTAUKSEEN:
+- Aloita suoraan asiasta ilman johdantoja.
+- Jos LÄHDE-DATA on tyhjä tai irrelevantti pyyntöön nähden, sano: "Kyseistä kohtaa ei löytynyt ohjeistuksesta. Ole hyvä ja tarkenna haettavaa otsikkoa (esim. STR Markkinatilanne)."
 
 LÄHDE-DATA: "${context}"
     `;
