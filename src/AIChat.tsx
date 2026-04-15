@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bot, Send, Loader2, ShieldCheck, X, Lightbulb } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { auth } from './firebase'; // LISÄTTY: Tuodaan auth, jotta saadaan käyttäjän UID
 
 interface AIChatProps {
   onClose?: () => void;
@@ -27,6 +28,13 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
 
+    // Tarkistetaan, että käyttäjä on kirjautunut
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      setMessages(prev => [...prev, { role: 'ai', text: "Sinun täytyy olla kirjautunut sisään käyttääksesi chattia." }]);
+      return;
+    }
+
     const userMsg = input;
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
@@ -36,8 +44,22 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg, sessionId }),
+        body: JSON.stringify({ 
+          message: userMsg, 
+          sessionId,
+          uid: currentUser.uid // LISÄTTY: Lähetetään UID palvelimelle rajoitinta varten
+        }),
       });
+
+      // Erityiskäsittely 429-virheelle (raja täynnä)
+      if (response.status === 429) {
+        const errorData = await response.json();
+        setMessages(prev => [...prev, { 
+          role: 'ai', 
+          text: `⚠️ **Kiintiö täynnä:** ${errorData.error || "Kuukausittainen kyselyrajasi on täyttynyt."}` 
+        }]);
+        return;
+      }
 
       if (!response.ok) throw new Error('Yhteysvirhe palvelimeen');
 
@@ -57,10 +79,6 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
   };
 
   return (
-    /* MUUTOS TÄSSÄ: 
-       - bottom-4 ja right-4 mobiilissa, md:bottom-6 md:right-6 työpöydällä
-       - w-[calc(100%-2rem)] mobiilissa, md:w-[450px] työpöydällä
-    */
     <div className="fixed bottom-4 right-4 left-4 md:left-auto md:bottom-6 md:right-6 w-[calc(100%-2rem)] md:w-[450px] h-[600px] md:h-[700px] max-h-[90vh] flex flex-col bg-slate-900 text-white rounded-2xl overflow-hidden border border-slate-700 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[9999]">
       
       {/* Header */}
