@@ -11,7 +11,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([
     { 
       role: 'ai', 
-      text: 'Kysy neuvoja minulta. Voit tarkentaa vastauksia kertomalla, minkä otsikon kohtaa työstät.\n\nJos haluat lyhyen ohjeen vaikkapa Miten-kohdan tekoon, syötä portaalin tunnus **LTS** tai **STR** ja täytettävän kentän nimi **"Miten"**.' 
+      text: 'Kysy neuvoja minulta. Voit tarkentaa vastauksia kertomalla, minkä otsikon kohtaa työstät.\n\nEsimerkki: **"Mitä kohtia kuuluu ulkoisen toimintaympäristön analyysiin?"**' 
     }
   ]);
   const [input, setInput] = useState('');
@@ -79,7 +79,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 left-4 md:left-auto md:bottom-6 md:right-6 w-[calc(100%-2rem)] md:w-[450px] h-[600px] md:h-[700px] max-h-[90vh] flex flex-col bg-slate-900 text-white rounded-2xl overflow-hidden border border-slate-700 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[9999]">
+    <div className="fixed bottom-4 right-4 left-4 md:left-auto md:bottom-6 md:right-6 w-[calc(100%-2rem)] md:w-[450px] h-[600px] md:h-[700px] max-h-[90vh] flex flex-col bg-slate-900 text-white rounded-2xl overflow-hidden border border-slate-700 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[10000]">
       
       {/* Header */}
       <div className="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center shrink-0">
@@ -96,7 +96,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
           </div>
         </div>
         {onClose && (
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors p-1">
             <X size={20} />
           </button>
         )}
@@ -108,7 +108,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
           <Lightbulb size={14} className="text-blue-400" />
         </div>
         <span className="text-[11px] text-blue-100/80 leading-snug">
-          Kokeile: <strong className="text-blue-300">"LTS miten"</strong> tai <strong className="text-blue-300">"STR visio"</strong>
+          Kokeile: <strong className="text-blue-300">"Hyvä strategia"</strong> tai <strong className="text-blue-300">"Megatrendit Suomi"</strong>
         </span>
       </div>
 
@@ -136,7 +136,8 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
             <span className="font-medium tracking-wide uppercase italic">Analysoidaan lähteitä...</span>
           </div>
         )}
-        <div ref={scrollRef} />
+        {/* Lisätty pieni h-4 marginaali scroll-kohdistimeen */}
+        <div ref={scrollRef} className="h-4" />
       </div>
 
       {/* Input Area */}
@@ -147,12 +148,12 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Kirjoita kysymys tai tunnussana..."
+            placeholder="Kirjoita kysymys tähän..."
           />
           <button 
             onClick={handleSend}
             disabled={!input.trim() || isTyping}
-            className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:cursor-not-allowed p-3 rounded-xl transition-all shadow-lg active:scale-95"
+            className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:cursor-not-allowed p-3 rounded-xl transition-all shadow-lg active:scale-95 flex items-center justify-center min-w-[48px]"
           >
             <Send size={20} />
           </button>
