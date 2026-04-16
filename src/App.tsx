@@ -16,7 +16,7 @@ import { Profile } from './Profile';
 import { AIChat } from './AIChat';
 import { CookieBanner } from './CookieBanner';
 import { PortalType, UserRole, UserAccount, SystemKnowledge } from './types';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, X, Info } from 'lucide-react'; // Lisätty Info-ikoni
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -61,6 +61,9 @@ export default function App() {
   const [systemKnowledge, setSystemKnowledge] = useState<SystemKnowledge>(DEFAULT_KNOWLEDGE);
   const [allUsers, setAllUsers] = useState<UserAccount[]>([]);
   const [invites, setInvites] = useState<any[]>([]);
+
+  // UUSI: Tila ohjeen tilalle ('open' tai 'minimized')
+  const [helpState, setHelpState] = useState<'open' | 'minimized'>('open');
 
   useEffect(() => {
     const handleResize = () => setSidebarOpen(window.innerWidth > 768);
@@ -211,37 +214,62 @@ export default function App() {
                   </motion.div>
                 </AnimatePresence>
                 
-                <div className="fixed bottom-8 right-8 z-[9999] flex flex-col items-end gap-4">
-                  {/* KÄYTTÖOHJEKUPLA */}
+                {/* CHAT JA OHJE KONTEINNERI */}
+                <div className="fixed bottom-8 right-4 md:right-8 z-[9999] flex flex-col items-end gap-4">
+                  
                   <AnimatePresence>
                     {!isChatOpen && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="mb-2 max-w-[260px] bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-2xl md:block hidden"
-                      >
-                        <div className="space-y-4">
-                          <div>
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">1. Kirjoita ja Tallenna</h4>
-                            <p className="text-[11px] text-slate-600 leading-tight font-medium">Täytä portaalin kentät ja muista painaa Tallenna-nappia osion yläreunasta.</p>
-                          </div>
-                          <div>
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">2. Avaa Sparraaja</h4>
-                            <p className="text-[11px] text-slate-600 leading-tight font-medium">Klikkaa vihreää palloa avataksesi tekoälyn. Voit kysyä neuvoja missä vaiheessa vain.</p>
-                          </div>
-                          <div>
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">3. Haasta valmis työ</h4>
-                            <p className="text-[11px] text-slate-600 leading-tight font-medium">Kun olet valmis, käytä chatin punaista nappia saadaksesi kriittisen arvion.</p>
-                          </div>
-                        </div>
-                        {/* Nuoli */}
-                        <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white rotate-45 border-r border-b border-slate-200"></div>
-                      </motion.div>
+                      <>
+                        {/* 1. ISO OHJEKUPLA */}
+                        {helpState === 'open' && (
+                          <motion.div 
+                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                            className="mb-2 max-w-[240px] md:max-w-[260px] bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-2xl relative"
+                          >
+                            <button 
+                              onClick={() => setHelpState('minimized')}
+                              className="absolute top-3 right-3 p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                            >
+                              <X size={16} />
+                            </button>
+                            <div className="space-y-4 pr-2">
+                              <div>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">1. Kirjoita ja Tallenna</h4>
+                                <p className="text-[11px] text-slate-600 leading-tight font-medium">Täytä portaali ja muista painaa Tallenna-nappia.</p>
+                              </div>
+                              <div>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">2. Avaa Sparraaja</h4>
+                                <p className="text-[11px] text-slate-600 leading-tight font-medium">Klikkaa vihreää palloa avataksesi tekoälyn.</p>
+                              </div>
+                              <div>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">3. Haasta valmis työ</h4>
+                                <p className="text-[11px] text-slate-600 leading-tight font-medium">Käytä chatin punaista nappia saadaksesi arvion.</p>
+                              </div>
+                            </div>
+                            <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white rotate-45 border-r border-b border-slate-200"></div>
+                          </motion.div>
+                        )}
+
+                        {/* 2. MINIMOITU OHJE (Pieni pallo chatin päällä) */}
+                        {helpState === 'minimized' && (
+                          <motion.button
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            whileHover={{ scale: 1.1 }}
+                            onClick={() => setHelpState('open')}
+                            className="absolute -top-2 -right-1 w-7 h-7 bg-emerald-100 text-emerald-600 border-2 border-white rounded-full flex items-center justify-center shadow-lg z-[10002] hover:bg-emerald-200 transition-colors"
+                            title="Näytä ohjeet"
+                          >
+                            <Info size={14} strokeWidth={3} />
+                          </motion.button>
+                        )}
+                      </>
                     )}
                   </AnimatePresence>
 
-                  {/* CHAT-NAPPI */}
+                  {/* CHAT-AVAUSNAPPI */}
                   <AnimatePresence>
                     {!isChatOpen && (
                       <motion.button 
@@ -254,6 +282,7 @@ export default function App() {
                     )}
                   </AnimatePresence>
 
+                  {/* ITSE CHAT-IKKUNA */}
                   {isChatOpen && (
                     <div className="relative z-[10000]">
                       <AIChat portalType={portalType || PortalType.LTS} onClose={() => setIsChatOpen(false)} user={user} systemKnowledge={systemKnowledge} />
