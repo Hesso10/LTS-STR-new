@@ -247,14 +247,23 @@ export default function App() {
                   </motion.div>
                 </AnimatePresence>
                 
-                {/* LISÄTTY z-index KORJAUS TÄHÄN */}
+                {/* CHAT-INTEGRAATIO: Nappi piilotetaan, kun chat on auki */}
                 <div className="fixed bottom-8 right-8 z-[9999]">
-                  <button 
-                    onClick={() => setIsChatOpen(!isChatOpen)} 
-                    className="w-16 h-16 rounded-full bg-emerald-600 text-white shadow-xl flex items-center justify-center hover:scale-105 transition-transform active:scale-95 relative z-[10001]"
-                  >
-                    <MessageSquare size={28} />
-                  </button>
+                  <AnimatePresence>
+                    {!isChatOpen && (
+                      <motion.button 
+                        key="chat-trigger"
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        onClick={() => setIsChatOpen(true)} 
+                        className="w-16 h-16 rounded-full bg-emerald-600 text-white shadow-xl flex items-center justify-center hover:scale-105 transition-transform active:scale-95 relative z-[10001]"
+                      >
+                        <MessageSquare size={28} />
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+
                   {isChatOpen && (
                     <div className="relative z-[10000]">
                       <AIChat 
