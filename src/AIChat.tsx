@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, Send, Loader2, ShieldCheck, X, Lightbulb } from 'lucide-react';
+import { Bot, Send, Loader2, ShieldCheck, X, Lightbulb, ShieldAlert } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { auth } from './firebase'; // LISÄTTY: Tuodaan auth, jotta saadaan käyttäjän UID
+import { auth, db } from './firebase'; 
+import { doc, getDoc } from 'firebase/firestore';
 
 interface AIChatProps {
   onClose?: () => void;
+  portalType?: 'LTS' | 'STRATEGY';
 }
 
-export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
+export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) => {
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([
     { 
       role: 'ai', 
@@ -25,19 +27,81 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
     }
   }, [messages, isTyping]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
+  const handleRedTeamChallenge = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser || isTyping) return;
 
-    // Tarkistetaan, että käyttäjä on kirjautunut
+    setIsTyping(true);
+    try {
+      const planRef = doc(db, 'users', currentUser.uid, 'businessPlan', portalType);
+      const planSnap = await getDoc(planRef);
+
+      if (planSnap.exists()) {
+        const data = planSnap.data();
+        let redTeamPrompt = "";
+
+        if (portalType === 'LTS') {
+          const ltsContext = `
+          KOHTEEN TIEDOT (Liiketoimintasuunnitelma):
+          - Liikeidea: ${data.basics?.businessIdea || 'Ei määritelty'}
+          - Markkinointi ja myynti: ${data.genericNotes?.marketSize || 'Ei määritelty'}
+          - Liikevaihtotavoite: ${data.products?.reduce((acc: any, p: any) => acc + (p.price * p.volume), 0)} €
+          - Henkilöstökulut: ${data.personnel?.reduce((acc: any, p: any) => acc + (p.salary * p.count), 0)} €/kk
+          `;
+
+          redTeamPrompt = `Olet kokenut sijoittaja ja rahoitusasiantuntija. Arvioi yllä oleva liiketoimintasuunnitelma "Red Team" -hengessä. 
+          Keskity erityisesti:
+          1. Realistisuuteen: Onko myyntitavoitteiden ja kulurakenteen suhde uskottava?
+          2. Sijoitetun pääoman tuottoon: Näetkö tässä polun, jolla rahoittaja saa rahansa takaisin?
+          3. Markkinariskiin: Onko markkinapositio ja kohderyhmä kuvattu riittävän tarkasti?
+          
+          Ole kriittinen, mutta rakentava. Lopeta analyysisi AINA listaukseen: "TOP 3 kriittisintä korjausehdotusta rahoituksen varmistamiseksi".\n\n${ltsContext}`;
+
+        } else {
+          const strContext = `
+          STRATEGIA-KEHYS:
+          - Visio ja Arvot: ${data.strategy?.visionAndValues || 'Ei määritelty'}
+          - Diagnoosi: ${data.strategy?.diagnosis || 'Ei määritelty'}
+          - Toimenpide-ehdot (Miten): ${data.strategy?.howItems?.map((h: any) => h.text).join(", ") || 'Ei määritelty'}
+          - Liiketoimintamalli (Arvolupaus): ${data.businessModel?.valueProposition || 'Ei määritelty'}
+          `;
+
+          redTeamPrompt = `Olet kokenut strategia-analyytikko. Arvioi strategiaa Richard Rumeltin "Good Strategy / Bad Strategy" -logiikalla. 
+          Etsi erityisesti yhdenmukaisuutta (coherence):
+          1. Onko Diagnoosi tunnistettu kriittinen haaste?
+          2. Onko "Miten"-kohta (Guiding Policy) suora vastaus diagnoosiin?
+          3. Tukeeko Liiketoimintamallin arvolupaus valittua strategiaa?
+          
+          Etsi "Bad Strategy" -merkkejä (fluff, failure to face the problem). Lopeta analyysisi AINA listaukseen: "TOP 3 kriittisintä korjausehdotusta strategian loogisuuden parantamiseksi".\n\n${strContext}`;
+        }
+
+        handleSend(redTeamPrompt); 
+      } else {
+        setMessages(prev => [...prev, { role: 'ai', text: "⚠️ En löytänyt tallennettua dataa. Muista painaa 'Tallenna' portaalissa, jotta voin analysoida suunnitelmasi!" }]);
+      }
+    } catch (err) {
+      console.error("Red Team Fetch Error:", err);
+      setMessages(prev => [...prev, { role: 'ai', text: "Pahoittelut, en saanut haettua tietoja analyysia varten." }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const handleSend = async (overrideText?: string) => {
+    const textToSend = overrideText || input;
+    if (!textToSend.trim() || isTyping) return;
+
     const currentUser = auth.currentUser;
     if (!currentUser) {
       setMessages(prev => [...prev, { role: 'ai', text: "Sinun täytyy olla kirjautunut sisään käyttääksesi chattia." }]);
       return;
     }
 
-    const userMsg = input;
-    setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+    const userMsg = textToSend;
+    if (!overrideText) setInput('');
+    
+    const displayMsg = overrideText ? "🔴 Haasta nykyinen suunnitelmani" : userMsg;
+    setMessages(prev => [...prev, { role: 'user', text: displayMsg }]);
     setIsTyping(true);
 
     try {
@@ -47,31 +111,21 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
         body: JSON.stringify({ 
           message: userMsg, 
           sessionId,
-          uid: currentUser.uid // LISÄTTY: Lähetetään UID palvelimelle rajoitinta varten
+          uid: currentUser.uid
         }),
       });
 
-      // Erityiskäsittely 429-virheelle (raja täynnä)
       if (response.status === 429) {
         const errorData = await response.json();
-        setMessages(prev => [...prev, { 
-          role: 'ai', 
-          text: `⚠️ **Kiintiö täynnä:** ${errorData.error || "Kuukausittainen kyselyrajasi on täyttynyt."}` 
-        }]);
+        setMessages(prev => [...prev, { role: 'ai', text: `⚠️ **Kiintiö täynnä:** ${errorData.error || "Kuukausittainen kyselyrajasi on täyttynyt."}` }]);
         return;
       }
 
       if (!response.ok) throw new Error('Yhteysvirhe palvelimeen');
-
       const data = await response.json();
-      
-      if (data.sessionId) {
-        setSessionId(data.sessionId);
-      }
-
+      if (data.sessionId) setSessionId(data.sessionId);
       setMessages(prev => [...prev, { role: 'ai', text: data.text }]);
     } catch (err) {
-      console.error("Chat error:", err);
       setMessages(prev => [...prev, { role: 'ai', text: "Pahoittelut, yhteys katkesi. Yritä hetken kuluttua uudelleen." }]);
     } finally {
       setIsTyping(false);
@@ -102,7 +156,18 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
         )}
       </div>
 
-      {/* Pikavinkki (Prompt Tip) */}
+      {/* Red Team Nappi */}
+      <div className="px-4 py-2 border-b border-slate-700 flex gap-2 overflow-x-auto bg-slate-800/30">
+        <button 
+          onClick={handleRedTeamChallenge}
+          className="flex items-center gap-2 px-3 py-1.5 bg-red-900/30 border border-red-500/40 rounded-full text-[10px] font-bold text-red-200 hover:bg-red-900/50 transition-all whitespace-nowrap active:scale-95"
+        >
+          <ShieldAlert size={14} className="text-red-500" />
+          🔴 Haasta nykyinen suunnitelma
+        </button>
+      </div>
+
+      {/* Pikavinkki */}
       <div className="px-4 py-2.5 bg-blue-500/10 border-b border-blue-500/20 flex items-center gap-3">
         <div className="p-1 bg-blue-500/20 rounded">
           <Lightbulb size={14} className="text-blue-400" />
@@ -127,7 +192,6 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
             </div>
           </div>
         ))}
-        
         {isTyping && (
           <div className="flex items-center gap-3 text-slate-400 text-xs animate-pulse ml-2">
             <div className="p-2 bg-slate-800 rounded-full">
@@ -136,7 +200,6 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
             <span className="font-medium tracking-wide uppercase italic">Analysoidaan lähteitä...</span>
           </div>
         )}
-        {/* Lisätty pieni h-4 marginaali scroll-kohdistimeen */}
         <div ref={scrollRef} className="h-4" />
       </div>
 
@@ -151,7 +214,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
             placeholder="Kirjoita kysymys tähän..."
           />
           <button 
-            onClick={handleSend}
+            onClick={() => handleSend()}
             disabled={!input.trim() || isTyping}
             className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:cursor-not-allowed p-3 rounded-xl transition-all shadow-lg active:scale-95 flex items-center justify-center min-w-[48px]"
           >
