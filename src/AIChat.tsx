@@ -18,6 +18,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -29,9 +30,11 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
 
   const handleRedTeamChallenge = async () => {
     const currentUser = auth.currentUser;
-    if (!currentUser || isTyping) return;
+    if (!currentUser || isTyping || isAnalyzing) return;
 
+    setIsAnalyzing(true);
     setIsTyping(true);
+    
     try {
       const planRef = doc(db, 'users', currentUser.uid, 'businessPlan', portalType);
       const planSnap = await getDoc(planRef);
@@ -41,6 +44,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
         let redTeamPrompt = "";
 
         if (portalType === 'LTS') {
+          // --- LTS: RAHOITTAJAN NÄKÖKULMA ---
           const ltsContext = `
           KOHTEEN TIEDOT (Liiketoimintasuunnitelma):
           - Liikeidea: ${data.basics?.businessIdea || 'Ei määritelty'}
@@ -49,47 +53,54 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
           - Henkilöstökulut: ${data.personnel?.reduce((acc: any, p: any) => acc + (p.salary * p.count), 0)} €/kk
           `;
 
-          redTeamPrompt = `Olet kokenut sijoittaja ja rahoitusasiantuntija. Arvioi yllä oleva liiketoimintasuunnitelma "Red Team" -hengessä. 
+          redTeamPrompt = `Olet kokenut rahoitusasiantuntija. Arvioi yllä oleva suunnitelma sparraavalla otteella. 
           Keskity erityisesti:
-          1. Realistisuuteen: Onko myyntitavoitteiden ja kulurakenteen suhde uskottava?
-          2. Sijoitetun pääoman tuottoon: Näetkö tässä polun, jolla rahoittaja saa rahansa takaisin?
-          3. Markkinariskiin: Onko markkinapositio ja kohderyhmä kuvattu riittävän tarkasti?
+          1. Realistisuuteen: Ovatko tavoitteet ja resurssit tasapainossa?
+          2. Kannattavuuteen: Onko tässä selkeä polku kestävään liiketoimintaan?
+          3. Markkinaymmärrykseen: Onko kohderyhmä ja tarve tunnistettu riittävän hyvin?
           
-          Ole kriittinen, mutta rakentava. Lopeta analyysisi AINA listaukseen: "TOP 3 kriittisintä korjausehdotusta rahoituksen varmistamiseksi".\n\n${ltsContext}`;
+          Ole rehellinen mutta kannustava. Lopeta analyysisi AINA listaukseen: "TOP 3 kriittisintä vinkkiä suunnitelman vahvistamiseksi".\n\n${ltsContext}`;
 
         } else {
+          // --- STR: STRATEGIA- JA LIIKETOIMINTAMALLI-ANALYYSI (Strategyzer & Punainen lanka) ---
           const strContext = `
           STRATEGIA-KEHYS:
           - Visio ja Arvot: ${data.strategy?.visionAndValues || 'Ei määritelty'}
-          - Diagnoosi: ${data.strategy?.diagnosis || 'Ei määritelty'}
-          - Toimenpide-ehdot (Miten): ${data.strategy?.howItems?.map((h: any) => h.text).join(", ") || 'Ei määritelty'}
-          - Liiketoimintamalli (Arvolupaus): ${data.businessModel?.valueProposition || 'Ei määritelty'}
+          - Nykytila/Diagnoosi: ${data.strategy?.diagnosis || 'Ei määritelty'}
+          - Valitut toimenpiteet: ${data.strategy?.howItems?.map((h: any) => h.text).join(", ") || 'Ei määritelty'}
+          
+          LIIKETOIMINTAMALLI (Business Model):
+          - Arvolupaus: ${data.businessModel?.valueProposition || 'Ei määritelty'}
+          - Avaintoiminnot & Resurssit: ${data.businessModel?.keyActivities || 'Ei määritelty'} / ${data.businessModel?.keyResources || 'Ei määritelty'}
+          - Asiakkaat & Kanavat: ${data.businessModel?.customers || 'Ei määritelty'} / ${data.businessModel?.channels || 'Ei määritelty'}
+          - Tulot & Kulut: ${data.businessModel?.revenues || 'Ei määritelty'} / ${data.businessModel?.costs || 'Ei määritelty'}
           `;
 
-          redTeamPrompt = `Olet kokenut strategia-analyytikko. Arvioi strategiaa Richard Rumeltin "Good Strategy / Bad Strategy" -logiikalla. 
-          Etsi erityisesti yhdenmukaisuutta (coherence):
-          1. Onko Diagnoosi tunnistettu kriittinen haaste?
-          2. Onko "Miten"-kohta (Guiding Policy) suora vastaus diagnoosiin?
-          3. Tukeeko Liiketoimintamallin arvolupaus valittua strategiaa?
+          redTeamPrompt = `Olet kokenut strategian ja liiketoimintamallien asiantuntija. Arvioi suunnitelmaa etsimällä "punaista lankaa" ja kokonaisvaltaista eheyttä. 
+          Käytä analyysissäsi väljää Strategyzer/Business Model Canvas -logiikkaa ja tarkastele erityisesti:
+          1. Strategista jatkumoa: Vastaavatko valitut toimenpiteet suoraan tunnistettuun nykytilaan?
+          2. Arvolupauksen istuvuutta: Onko arvolupaus linjassa asiakaskohderyhmän ja yrityksen avainresurssien kanssa?
+          3. Mallin toimivuutta: Ovatko liiketoimintamallin palaset (toiminnot, asiakkaat, tulovirrat) keskenään loogisia ja tukeeko malli valittua strategiaa?
           
-          Etsi "Bad Strategy" -merkkejä (fluff, failure to face the problem). Lopeta analyysisi AINA listaukseen: "TOP 3 kriittisintä korjausehdotusta strategian loogisuuden parantamiseksi".\n\n${strContext}`;
+          Haasta ystävällisesti kohdat, joissa malli on ristiriitainen tai liian yleisellä tasolla. Lopeta analyysisi AINA listaukseen: "TOP 3 tärkeintä askelta strategian ja liiketoimintamallin kirkastamiseksi".\n\n${strContext}`;
         }
 
-        handleSend(redTeamPrompt); 
+        await handleSend(redTeamPrompt); 
       } else {
-        setMessages(prev => [...prev, { role: 'ai', text: "⚠️ En löytänyt tallennettua dataa. Muista painaa 'Tallenna' portaalissa, jotta voin analysoida suunnitelmasi!" }]);
+        setMessages(prev => [...prev, { role: 'ai', text: "⚠️ En löytänyt vielä tallennettua dataa. Muista painaa 'Tallenna' portaalissa, jotta voin analysoida suunnitelmasi!" }]);
       }
     } catch (err) {
       console.error("Red Team Fetch Error:", err);
       setMessages(prev => [...prev, { role: 'ai', text: "Pahoittelut, en saanut haettua tietoja analyysia varten." }]);
     } finally {
       setIsTyping(false);
+      setIsAnalyzing(false);
     }
   };
 
   const handleSend = async (overrideText?: string) => {
     const textToSend = overrideText || input;
-    if (!textToSend.trim() || isTyping) return;
+    if (!textToSend.trim()) return;
 
     const currentUser = auth.currentUser;
     if (!currentUser) {
@@ -100,7 +111,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
     const userMsg = textToSend;
     if (!overrideText) setInput('');
     
-    const displayMsg = overrideText ? "🔴 Haasta nykyinen suunnitelmani" : userMsg;
+    const displayMsg = overrideText ? "🔴 Haasta valmis suunnitelma" : userMsg;
     setMessages(prev => [...prev, { role: 'user', text: displayMsg }]);
     setIsTyping(true);
 
@@ -156,14 +167,28 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
         )}
       </div>
 
-      {/* Red Team Nappi */}
+      {/* Red Team Nappi hohde-efektillä */}
       <div className="px-4 py-2 border-b border-slate-700 flex gap-2 overflow-x-auto bg-slate-800/30">
         <button 
           onClick={handleRedTeamChallenge}
-          className="flex items-center gap-2 px-3 py-1.5 bg-red-900/30 border border-red-500/40 rounded-full text-[10px] font-bold text-red-200 hover:bg-red-900/50 transition-all whitespace-nowrap active:scale-95"
+          disabled={isAnalyzing}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all whitespace-nowrap active:scale-95 shadow-sm
+            ${isAnalyzing 
+              ? 'bg-red-600 text-white animate-pulse ring-4 ring-red-500/20 cursor-wait' 
+              : 'bg-red-900/30 border border-red-500/40 text-red-200 hover:bg-red-900/50'
+            }`}
         >
-          <ShieldAlert size={14} className="text-red-500" />
-          🔴 Haasta nykyinen suunnitelma
+          {isAnalyzing ? (
+            <>
+              <Loader2 size={14} className="animate-spin" />
+              Analysoidaan suunnitelmaa...
+            </>
+          ) : (
+            <>
+              <ShieldAlert size={14} className="text-red-500" />
+              🔴 Haasta valmis suunnitelma
+            </>
+          )}
         </button>
       </div>
 
@@ -197,7 +222,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
             <div className="p-2 bg-slate-800 rounded-full">
               <Loader2 className="animate-spin text-blue-400" size={16} />
             </div>
-            <span className="font-medium tracking-wide uppercase italic">Analysoidaan lähteitä...</span>
+            <span className="font-medium tracking-wide uppercase italic">Haetaan vastausta...</span>
           </div>
         )}
         <div ref={scrollRef} className="h-4" />
