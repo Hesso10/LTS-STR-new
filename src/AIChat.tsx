@@ -44,25 +44,32 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
         let redTeamPrompt = "";
 
         if (portalType === 'LTS') {
-          // --- LTS: RAHOITTAJAN NÄKÖKULMA ---
+          // --- TUUNATTU LTS: NYT NÄKEE KAIKKI KENTÄT ---
           const ltsContext = `
-          KOHTEEN TIEDOT (Liiketoimintasuunnitelma):
-          - Liikeidea: ${data.basics?.businessIdea || 'Ei määritelty'}
-          - Markkinointi ja myynti: ${data.genericNotes?.marketSize || 'Ei määritelty'}
-          - Liikevaihtotavoite: ${data.products?.reduce((acc: any, p: any) => acc + (p.price * p.volume), 0)} €
-          - Henkilöstökulut: ${data.personnel?.reduce((acc: any, p: any) => acc + (p.salary * p.count), 0)} €/kk
+          LIIKETOIMINTASUUNNITELMAN DATA:
+          - Liikeidea (Mitä/Miten/Kenelle): ${data.basics?.businessIdeaWhat || ''} / ${data.basics?.businessIdeaHow || ''} / ${data.basics?.businessIdeaForWhom || ''}
+          - Yrityskuvaus: ${data.basics?.companyDescription || 'Ei määritelty'}
+          - Markkinan kuvaus: ${data.genericNotes?.marketSize || 'Ei määritelty'}
+          - Ostajapersoonat: ${data.buyerPersonas?.map((p: any) => `${p.name}: ${p.description}`).join("; ") || 'Ei määritelty'}
+          - Tuotteet & Myyntitavoite: ${data.products?.map((p: any) => `${p.name}: ${p.price}€ x ${p.volume}`).join(", ") || 'Ei määritelty'}
+          - Henkilöstörakenne: ${data.personnel?.map((p: any) => `${p.role} (${p.count}hlö, ${p.salary}€/kk)`).join(", ") || 'Ei määritelty'}
+          - Markkinointitoimenpiteet: ${data.marketing?.map((m: any) => `${m.activity}: ${m.monthlyCost}€/kk`).join(", ") || 'Ei määritelty'}
+          - Hallinnon kulut: ${data.admin?.map((a: any) => `${a.item}: ${a.monthlyCost}€/kk`).join(", ") || 'Ei määritelty'}
+          - Investoinnit: ${data.investments?.map((i: any) => `${i.description} ${i.amount}€`).join(", ") || 'Ei määritelty'}
+          - Toteutussuunnitelma: ${data.implementationPhases?.map((ph: any) => ph.task).join(" -> ") || 'Ei määritelty'}
           `;
 
-          redTeamPrompt = `Olet kokenut rahoitusasiantuntija. Arvioi yllä oleva suunnitelma sparraavalla otteella. 
-          Keskity erityisesti:
-          1. Realistisuuteen: Ovatko tavoitteet ja resurssit tasapainossa?
-          2. Kannattavuuteen: Onko tässä selkeä polku kestävään liiketoimintaan?
-          3. Markkinaymmärrykseen: Onko kohderyhmä ja tarve tunnistettu riittävän hyvin?
+          redTeamPrompt = `Olet tiukka mutta rakentava rahoitusasiantuntija ja enkelisijoittaja. Tehtäväsi on arvioida tämän liiketoimintasuunnitelman rahoituskelpoisuutta ja uskottavuutta.
           
-          Ole rehellinen mutta kannustava. Lopeta analyysisi AINA listaukseen: "TOP 3 kriittisintä vinkkiä suunnitelman vahvistamiseksi".\n\n${ltsContext}`;
+          Analysoi suunnitelmaa seuraavista kulmista:
+          1. Myynnin realismi: Onko tuotteiden hinnoittelu ja arvioitu volyymi linjassa markkinakuvauksen ja markkinointitoimenpiteiden kanssa?
+          2. Kulurakenteen kestävyys: Riittääkö henkilöstö tavoitteen saavuttamiseen, ja ovatko markkinointi- ja hallintokulut tasapainossa tavoitteen kanssa?
+          3. Sijoittajan riski: Mitkä ovat suunnitelman suurimmat sokeat pisteet (esim. puuttuvat ostajapersoonat tai epämääräinen liikeidea)?
+          
+          Puhu suoraan mutta ammattimaisesti. Lopeta analyysisi AINA listaukseen: "TOP 3 kriittisintä kehityskohdetta rahoituskelpoisuuden varmistamiseksi".\n\n${ltsContext}`;
 
         } else {
-          // --- STR: STRATEGIA- JA LIIKETOIMINTAMALLI-ANALYYSI (Strategyzer & Punainen lanka) ---
+          // --- STR: STRATEGIA- JA LIIKETOIMINTAMALLI-ANALYYSI ---
           const strContext = `
           STRATEGIA-KEHYS:
           - Visio ja Arvot: ${data.strategy?.visionAndValues || 'Ei määritelty'}
