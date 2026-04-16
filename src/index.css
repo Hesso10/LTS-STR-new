@@ -48,3 +48,25 @@ body {
 .table-scrollbar::-webkit-scrollbar-thumb:horizontal:hover {
   background: #059669;
 }
+
+/* --- VERTEX AI CHAT FIXES --- */
+
+/* Piilotetaan aloituskupla, kun chat-ikkuna on auki, jotta se ei peitä lähetysnappia */
+df-messenger[expanded="true"] {
+  --df-messenger-chat-bubble-display: none;
+}
+
+/* Säädetään widgetin sijaintia ja varmistetaan, että se on muiden päällä */
+df-messenger {
+  z-index: 9999;
+  --df-messenger-button-bottom: 25px;
+  --df-messenger-button-right: 25px;
+}
+
+/* Mobiilikorjaus: Nostetaan suljettua ikonia ylemmäs, jos se peittää sovelluksen omia nappeja */
+@media screen and (max-width: 640px) {
+  df-messenger {
+    --df-messenger-button-bottom: 85px;
+    --df-messenger-button-right: 15px;
+  }
+}
