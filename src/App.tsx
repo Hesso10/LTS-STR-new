@@ -16,11 +16,11 @@ import { Profile } from './Profile';
 import { AIChat } from './AIChat';
 import { CookieBanner } from './CookieBanner';
 import { PortalType, UserRole, UserAccount, SystemKnowledge } from './types';
-import { MessageSquare, X, Info } from 'lucide-react'; // Lisätty Info-ikoni
+import { MessageSquare, X, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot, collection, addDoc } from 'firebase/firestore';
+import { doc, onSnapshot, collection, addDoc, query, where } from 'firebase/firestore'; // Added query, where
 
 // Simple Error Boundary
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
@@ -61,9 +61,10 @@ export default function App() {
   const [systemKnowledge, setSystemKnowledge] = useState<SystemKnowledge>(DEFAULT_KNOWLEDGE);
   const [allUsers, setAllUsers] = useState<UserAccount[]>([]);
   const [invites, setInvites] = useState<any[]>([]);
-
-  // UUSI: Tila ohjeen tilalle ('open' tai 'minimized')
   const [helpState, setHelpState] = useState<'open' | 'minimized'>('open');
+
+  // NEW: Manage the invite modal state at the App level so Sidebar can trigger it
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setSidebarOpen(window.innerWidth > 768);
@@ -89,9 +90,12 @@ export default function App() {
             const data = userDoc.data();
             let role = data.role as UserRole;
             const adminEmails = ['johannes@hessonpaja.com', 'johannes.hesso@innostapersonaltrainer.fi'];
-            if (adminEmails.includes(firebaseUser.email || '')) {
+            const isAdmin = adminEmails.includes(firebaseUser.email || '');
+            
+            if (isAdmin) {
               role = UserRole.ADMIN;
             }
+
             const userPortal = data.portalType as PortalType || PortalType.LTS;
             setUser({
               uid: firebaseUser.uid,
@@ -104,15 +108,28 @@ export default function App() {
             });
             setPortalType(userPortal);
             setView(prev => (prev === 'LANDING' || prev === 'AUTH') ? 'DASHBOARD' : prev);
-            if (role === UserRole.ADMIN && !unsubscribeUsersList) {
-              unsubscribeUsersList = onSnapshot(collection(db, 'users'), (snapshot) => {
-                const uList = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserAccount));
-                setAllUsers(uList);
-              });
-              unsubscribeInvites = onSnapshot(collection(db, 'invites'), (snapshot) => {
-                const iList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                setInvites(iList);
-              });
+
+            // UPDATED FETCHING LOGIC
+            if (isAdmin) {
+              // ADMIN: Fetch everything
+              if (!unsubscribeUsersList) {
+                unsubscribeUsersList = onSnapshot(collection(db, 'users'), (snapshot) => {
+                  setAllUsers(snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserAccount)));
+                });
+              }
+              if (!unsubscribeInvites) {
+                unsubscribeInvites = onSnapshot(collection(db, 'invites'), (snapshot) => {
+                  setInvites(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                });
+              }
+            } else if (role === UserRole.TEACHER) {
+              // TEACHER: Only fetch THEIR invites for the "Sent History" check
+              if (!unsubscribeInvites) {
+                const teacherInvitesQuery = query(collection(db, 'invites'), where("invitedBy", "==", firebaseUser.uid));
+                unsubscribeInvites = onSnapshot(teacherInvitesQuery, (snapshot) => {
+                  setInvites(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                });
+              }
             }
           }
         });
@@ -169,6 +186,7 @@ export default function App() {
       if (portalType === PortalType.STRATEGY) return <StrategyPortal onNavigate={setView} user={user} />;
       return <Dashboard portalType={PortalType.LTS} onNavigate={setView} user={user} />;
     }
+    // STRICT ADMIN VIEW: Only actual Admins can enter the AdminPanel
     if (view === 'ADMIN' && user?.role === UserRole.ADMIN) {
       return (
         <AdminPanel 
@@ -206,6 +224,8 @@ export default function App() {
                 portalType={portalType || PortalType.LTS} userRole={user?.role || UserRole.STUDENT}
                 activeView={view} setActiveView={setView} onLogout={handleLogout}
                 sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user}
+                invites={invites} // Pass filtered invites to Sidebar for Teachers
+                onOpenInviteModal={() => setIsInviteModalOpen(true)} // Allow Sidebar to open invite modal
               />
               <main className="flex-1 overflow-y-auto relative p-8">
                 <AnimatePresence mode="wait">
@@ -213,14 +233,37 @@ export default function App() {
                     {renderView()}
                   </motion.div>
                 </AnimatePresence>
+
+                {/* SHARED INVITE MODAL (Used by Admin via AdminPanel and Teachers via Sidebar) */}
+                {isInviteModalOpen && (
+                  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10005] flex items-center justify-center p-4">
+                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-md rounded-[40px] p-10 shadow-2xl relative">
+                      <button onClick={() => setIsInviteModalOpen(false)} className="absolute top-8 right-8 p-2 text-slate-400"><X size={24} /></button>
+                      <h2 className="text-3xl font-black tracking-tighter uppercase mb-8">Kutsu opiskelija</h2>
+                      <div className="space-y-4">
+                        <input id="invite-name" type="text" placeholder="Koko nimi" className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl outline-none font-medium" />
+                        <input id="invite-email" type="email" placeholder="Sähköposti" className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl outline-none font-medium" />
+                        <button 
+                          onClick={() => {
+                            const n = (document.getElementById('invite-name') as HTMLInputElement).value;
+                            const e = (document.getElementById('invite-email') as HTMLInputElement).value;
+                            handleInviteUser(n, e, UserRole.STUDENT);
+                            setIsInviteModalOpen(false);
+                          }} 
+                          className="w-full bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl mt-4"
+                        >
+                          Lähetä kutsu
+                        </button>
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
                 
                 {/* CHAT JA OHJE KONTEINNERI */}
                 <div className="fixed bottom-8 right-4 md:right-8 z-[9999] flex flex-col items-end gap-4">
-                  
                   <AnimatePresence>
                     {!isChatOpen && (
                       <>
-                        {/* 1. ISO OHJEKUPLA */}
                         {helpState === 'open' && (
                           <motion.div 
                             initial={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -251,8 +294,6 @@ export default function App() {
                             <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white rotate-45 border-r border-b border-slate-200"></div>
                           </motion.div>
                         )}
-
-                        {/* 2. MINIMOITU OHJE (Pieni pallo chatin päällä) */}
                         {helpState === 'minimized' && (
                           <motion.button
                             initial={{ scale: 0 }}
@@ -269,7 +310,6 @@ export default function App() {
                     )}
                   </AnimatePresence>
 
-                  {/* CHAT-AVAUSNAPPI */}
                   <AnimatePresence>
                     {!isChatOpen && (
                       <motion.button 
@@ -282,7 +322,6 @@ export default function App() {
                     )}
                   </AnimatePresence>
 
-                  {/* ITSE CHAT-IKKUNA */}
                   {isChatOpen && (
                     <div className="relative z-[10000]">
                       <AIChat portalType={portalType || PortalType.LTS} onClose={() => setIsChatOpen(false)} user={user} systemKnowledge={systemKnowledge} />
