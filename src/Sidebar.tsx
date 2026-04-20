@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from './LanguageContext';
 import { 
   Layout, 
@@ -20,7 +20,9 @@ import {
   ArrowRight,
   Target,
   Calculator,
-  Calendar
+  Calendar,
+  UserPlus,
+  MailCheck
 } from 'lucide-react';
 import { PortalType, UserRole, PlanSection, UserAccount } from './types';
 
@@ -35,6 +37,8 @@ interface SidebarProps {
   onSwitchPortal?: () => void;
   showSwitchPortal?: boolean;
   user?: UserAccount | null;
+  invites?: any[]; // Added to receive filtered invites from App.tsx
+  onOpenInviteModal?: () => void; // Added to trigger the modal in App.tsx
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -47,10 +51,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setSidebarOpen,
   onSwitchPortal,
   showSwitchPortal,
-  user
+  user,
+  invites = [],
+  onOpenInviteModal
 }) => {
   const { t } = useLanguage();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showSentInvites, setShowSentInvites] = useState(false); // Teacher local state
 
   const [isMobile, setIsMobile] = React.useState(window.innerWidth <= 768);
 
@@ -95,7 +102,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* Mobile Toggle Button (Floating when sidebar is closed) */}
       {isMobile && !sidebarOpen && (
         <button 
           onClick={() => setSidebarOpen(true)}
@@ -129,6 +135,51 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1">
+          {/* TEACHER TOOLS SECTION */}
+          {userRole === UserRole.TEACHER && sidebarOpen && (
+            <div className="mb-6 p-2 bg-slate-50 rounded-2xl border border-black/5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-2">Opettajan työkalu</p>
+              <button 
+                onClick={onOpenInviteModal}
+                className="w-full flex items-center gap-3 px-4 py-2.5 bg-black text-white rounded-xl shadow-md hover:bg-slate-800 transition-all mb-2"
+              >
+                <UserPlus size={16} />
+                <span className="text-xs font-bold uppercase tracking-wider text-left">Kutsu opiskelija</span>
+              </button>
+              <button 
+                onClick={() => setShowSentInvites(!showSentInvites)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:bg-white rounded-xl transition-all"
+              >
+                <MailCheck size={16} />
+                <span className="text-xs font-bold text-left">{showSentInvites ? 'Piilota kutsut' : 'Lähetetyt kutsut'}</span>
+              </button>
+              
+              <AnimatePresence>
+                {showSentInvites && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden bg-white/50 rounded-xl mt-1 px-2"
+                  >
+                    <div className="py-2 space-y-2 max-h-40 overflow-y-auto">
+                      {invites.length === 0 ? (
+                        <p className="text-[10px] text-slate-400 italic p-2 text-center">Ei lähetettyjä kutsuja</p>
+                      ) : (
+                        invites.map((inv) => (
+                          <div key={inv.id} className="p-2 border-b border-black/5 last:border-0">
+                            <p className="text-[10px] font-bold truncate text-slate-700">{inv.email}</p>
+                            <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest">{inv.status === 'pending' ? 'Odottaa' : 'Hyväksytty'}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
           {menuItems.map((item: any) => (
             <React.Fragment key={item.id}>
               <button
@@ -173,7 +224,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               )}
             </React.Fragment>
           ))}
-
         </div>
 
         <div className="p-4 space-y-2 relative">
@@ -252,14 +302,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {sidebarOpen && (
               <div className="flex-1 text-left overflow-hidden">
                 <p className="text-xs font-bold truncate">{user?.displayName || 'Käyttäjä'}</p>
-                <p className="text-[10px] text-slate-400 truncate">{user?.role || 'Käyttäjä'}</p>
+                <p className="text-[10px] text-slate-400 truncate tracking-tight font-medium uppercase">{user?.role === UserRole.ADMIN ? 'Pääkäyttäjä' : user?.role === UserRole.TEACHER ? 'Opettaja' : 'Käyttäjä'}</p>
               </div>
             )}
           </button>
         </div>
       </motion.aside>
 
-      {/* Mobile Overlay */}
       {isMobile && sidebarOpen && (
         <motion.div 
           initial={{ opacity: 0 }}
