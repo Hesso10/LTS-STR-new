@@ -20,7 +20,7 @@ import { MessageSquare, X, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot, collection, addDoc, query, where } from 'firebase/firestore'; // Added query, where
+import { doc, onSnapshot, collection, addDoc, query, where } from 'firebase/firestore';
 
 // Simple Error Boundary
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
@@ -63,7 +63,7 @@ export default function App() {
   const [invites, setInvites] = useState<any[]>([]);
   const [helpState, setHelpState] = useState<'open' | 'minimized'>('open');
 
-  // NEW: Manage the invite modal state at the App level so Sidebar can trigger it
+  // Logic for the shared invite modal
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
   useEffect(() => {
@@ -109,9 +109,8 @@ export default function App() {
             setPortalType(userPortal);
             setView(prev => (prev === 'LANDING' || prev === 'AUTH') ? 'DASHBOARD' : prev);
 
-            // UPDATED FETCHING LOGIC
+            // Filtered data fetching based on role
             if (isAdmin) {
-              // ADMIN: Fetch everything
               if (!unsubscribeUsersList) {
                 unsubscribeUsersList = onSnapshot(collection(db, 'users'), (snapshot) => {
                   setAllUsers(snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserAccount)));
@@ -123,10 +122,9 @@ export default function App() {
                 });
               }
             } else if (role === UserRole.TEACHER) {
-              // TEACHER: Only fetch THEIR invites for the "Sent History" check
               if (!unsubscribeInvites) {
-                const teacherInvitesQuery = query(collection(db, 'invites'), where("invitedBy", "==", firebaseUser.uid));
-                unsubscribeInvites = onSnapshot(teacherInvitesQuery, (snapshot) => {
+                const qTeacher = query(collection(db, 'invites'), where("invitedBy", "==", firebaseUser.uid));
+                unsubscribeInvites = onSnapshot(qTeacher, (snapshot) => {
                   setInvites(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
                 });
               }
@@ -155,19 +153,47 @@ export default function App() {
 
   const handleInviteUser = async (name: string, email: string, role: UserRole, pType?: PortalType, company?: string) => {
     try {
+      const pTypeFinal = pType || portalType || PortalType.LTS;
+      const inviterName = user?.displayName || 'Ylläpitäjä';
+
+      // 1. Internal record for UI lists
       await addDoc(collection(db, 'invites'), {
         displayName: name,
         email: email,
         role: role,
-        portalType: pType || portalType || PortalType.LTS,
+        portalType: pTypeFinal,
         companyName: company || '',
         status: 'pending',
         invitedBy: user?.uid,
         createdAt: new Date().toISOString()
       });
-      alert("Kutsu tallennettu!");
+
+      // 2. TRIGGER DOCUMENT: This fires your email extension
+      await addDoc(collection(db, 'mail'), {
+        to: email,
+        invitedRole: role,
+        message: {
+          subject: `Kutsu järjestelmään - ${role}`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+              <h2 style="color: #333;">Hei ${name}!</h2>
+              <p style="color: #555; line-height: 1.5;"><strong>${inviterName}</strong> on kutsunut sinut järjestelmään roolilla: <strong>${role}</strong>.</p>
+              <p style="color: #555; line-height: 1.5;">Pääset kirjautumaan sisään ja aloittamaan käytön alla olevasta painikkeesta:</p>
+              <div style="margin: 30px 0;">
+                <a href="https://ais-pre-hpl7kz6ait7qmayqvaei3v-45373452921.europe-west2.run.app" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Siirry sovellukseen</a>
+              </div>
+              <p style="color: #555; line-height: 1.5;">Tervetuloa mukaan!</p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
+              <p style="color: #999; font-size: 12px;">Tämä on automaattinen viesti, älä vastaa tähän sähköpostiin.</p>
+            </div>
+          `
+        }
+      });
+
+      alert("Kutsu tallennettu ja sähköposti lähetetty!");
     } catch (error) {
-      alert("Virhe kutsussa.");
+      console.error("Invite error:", error);
+      alert("Virhe kutsussa. Tarkista konsoli.");
     }
   };
 
@@ -186,7 +212,7 @@ export default function App() {
       if (portalType === PortalType.STRATEGY) return <StrategyPortal onNavigate={setView} user={user} />;
       return <Dashboard portalType={PortalType.LTS} onNavigate={setView} user={user} />;
     }
-    // STRICT ADMIN VIEW: Only actual Admins can enter the AdminPanel
+    // Only Super Admins (hardcoded emails) can see the AdminPanel
     if (view === 'ADMIN' && user?.role === UserRole.ADMIN) {
       return (
         <AdminPanel 
@@ -224,8 +250,8 @@ export default function App() {
                 portalType={portalType || PortalType.LTS} userRole={user?.role || UserRole.STUDENT}
                 activeView={view} setActiveView={setView} onLogout={handleLogout}
                 sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user}
-                invites={invites} // Pass filtered invites to Sidebar for Teachers
-                onOpenInviteModal={() => setIsInviteModalOpen(true)} // Allow Sidebar to open invite modal
+                invites={invites}
+                onOpenInviteModal={() => setIsInviteModalOpen(true)}
               />
               <main className="flex-1 overflow-y-auto relative p-8">
                 <AnimatePresence mode="wait">
@@ -234,7 +260,6 @@ export default function App() {
                   </motion.div>
                 </AnimatePresence>
 
-                {/* SHARED INVITE MODAL (Used by Admin via AdminPanel and Teachers via Sidebar) */}
                 {isInviteModalOpen && (
                   <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10005] flex items-center justify-center p-4">
                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-md rounded-[40px] p-10 shadow-2xl relative">
@@ -247,8 +272,12 @@ export default function App() {
                           onClick={() => {
                             const n = (document.getElementById('invite-name') as HTMLInputElement).value;
                             const e = (document.getElementById('invite-email') as HTMLInputElement).value;
-                            handleInviteUser(n, e, UserRole.STUDENT);
-                            setIsInviteModalOpen(false);
+                            if(n && e) {
+                                handleInviteUser(n, e, UserRole.STUDENT);
+                                setIsInviteModalOpen(false);
+                            } else {
+                                alert("Täytä molemmat kentät.");
+                            }
                           }} 
                           className="w-full bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl mt-4"
                         >
@@ -259,22 +288,16 @@ export default function App() {
                   </div>
                 )}
                 
-                {/* CHAT JA OHJE KONTEINNERI */}
                 <div className="fixed bottom-8 right-4 md:right-8 z-[9999] flex flex-col items-end gap-4">
                   <AnimatePresence>
                     {!isChatOpen && (
                       <>
                         {helpState === 'open' && (
                           <motion.div 
-                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                            initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.9 }}
                             className="mb-2 max-w-[240px] md:max-w-[260px] bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-2xl relative"
                           >
-                            <button 
-                              onClick={() => setHelpState('minimized')}
-                              className="absolute top-3 right-3 p-1 text-slate-400 hover:text-slate-600 transition-colors"
-                            >
+                            <button onClick={() => setHelpState('minimized')} className="absolute top-3 right-3 p-1 text-slate-400 hover:text-slate-600 transition-colors">
                               <X size={16} />
                             </button>
                             <div className="space-y-4 pr-2">
@@ -296,10 +319,7 @@ export default function App() {
                         )}
                         {helpState === 'minimized' && (
                           <motion.button
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            whileHover={{ scale: 1.1 }}
-                            onClick={() => setHelpState('open')}
+                            initial={{ scale: 0 }} animate={{ scale: 1 }} whileHover={{ scale: 1.1 }} onClick={() => setHelpState('open')}
                             className="absolute -top-2 -right-1 w-7 h-7 bg-emerald-100 text-emerald-600 border-2 border-white rounded-full flex items-center justify-center shadow-lg z-[10002] hover:bg-emerald-200 transition-colors"
                             title="Näytä ohjeet"
                           >
