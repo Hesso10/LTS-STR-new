@@ -35,7 +35,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
   const [isDemo, setIsDemo] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [showBubble, setShowBubble] = useState(true); // Hallitsee puhekuplaa
+  const [showBubble, setShowBubble] = useState(true);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [systemKnowledge, setSystemKnowledge] = useState<SystemKnowledge>(DEFAULT_KNOWLEDGE);
   const [allUsers, setAllUsers] = useState<UserAccount[]>([]);
@@ -189,7 +189,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* FLOATING CHAT & BUBBLE SECTION */}
               <div className="fixed bottom-8 right-8 z-[10000] flex flex-col items-end">
                 <AnimatePresence>
                   {showBubble && !isChatOpen && (
@@ -212,7 +211,6 @@ export default function App() {
                         <p className="font-bold text-emerald-600">Haasta valmis suunnitelma painamalla punaista nappia chatin yläreunasta.</p>
                       </div>
 
-                      {/* Puhekuplan nuoli */}
                       <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white rotate-45 border-r border-b border-slate-100" />
                     </motion.div>
                   )}
@@ -221,21 +219,25 @@ export default function App() {
                 {isChatOpen ? (
                   <AIChat portalType={portalType || PortalType.LTS} onClose={() => setIsChatOpen(false)} user={user} systemKnowledge={systemKnowledge} />
                 ) : (
-                  <div className="relative group">
+                  <div className="relative">
                     <button 
-                      onClick={() => { setIsChatOpen(true); setShowBubble(false); }} 
+                      onClick={() => setIsChatOpen(true)} 
                       className="w-16 h-16 rounded-full bg-emerald-600 text-white shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
                     >
                       <MessageSquare size={28} />
                     </button>
                     
-                    {/* Pieni "tappable even smaller icon" attached to the main one when bubble is closed */}
                     {!showBubble && (
-                      <motion.div 
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-400 rounded-full border-2 border-white shadow-sm pointer-events-none"
-                      />
+                      <button 
+                        onClick={() => setShowBubble(true)}
+                        className="absolute -top-1 -right-1 w-6 h-6 bg-emerald-400 rounded-full border-2 border-white shadow-md flex items-center justify-center hover:bg-emerald-300 transition-colors z-10"
+                      >
+                        <motion.div 
+                          initial={{ scale: 0 }} 
+                          animate={{ scale: 1 }} 
+                          className="w-2 h-2 bg-white rounded-full"
+                        />
+                      </button>
                     )}
                   </div>
                 )}
