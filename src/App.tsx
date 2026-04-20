@@ -35,6 +35,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
   const [isDemo, setIsDemo] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [showBubble, setShowBubble] = useState(true); // Hallitsee puhekuplaa
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [systemKnowledge, setSystemKnowledge] = useState<SystemKnowledge>(DEFAULT_KNOWLEDGE);
   const [allUsers, setAllUsers] = useState<UserAccount[]>([]);
@@ -74,7 +75,6 @@ export default function App() {
             setPortalType(userPortal);
             setView(prev => (prev === 'LANDING' || prev === 'AUTH') ? 'DASHBOARD' : prev);
 
-            // VAIN TÄMÄ MUUTTUI: Opettajan oma haku lisätty
             if (role === UserRole.ADMIN) {
               unsubscribeUsersList = onSnapshot(collection(db, 'users'), (s) => 
                 setAllUsers(s.docs.map(d => ({ uid: d.id, ...d.data() } as UserAccount)))
@@ -107,7 +107,6 @@ export default function App() {
     };
   }, [isDemo]);
 
-  // VAIN TÄMÄ MUUTTUI: Lisätty mail-kirjoitus sähköpostia varten
   const handleInviteUser = async (name: string, email: string, role: UserRole, pType?: PortalType, company?: string) => {
     try {
       const pTypeFinal = pType || portalType || PortalType.LTS;
@@ -190,13 +189,55 @@ export default function App() {
                 </div>
               )}
 
-              <div className="fixed bottom-8 right-8 z-[10000]">
+              {/* FLOATING CHAT & BUBBLE SECTION */}
+              <div className="fixed bottom-8 right-8 z-[10000] flex flex-col items-end">
+                <AnimatePresence>
+                  {showBubble && !isChatOpen && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="mb-4 mr-2 bg-white p-6 rounded-[24px] shadow-2xl border border-slate-100 max-w-[280px] relative text-sm text-slate-700"
+                    >
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setShowBubble(false); }}
+                        className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        <X size={16} />
+                      </button>
+                      
+                      <div className="space-y-3 pr-2">
+                        <p className="font-medium text-slate-900">Käytä Aichattia saadaksesi ohjeita suunnitelmasi tekoon.</p>
+                        <p>Etsi markkinatietoa tai strategiaesimerkkejä maailmalta.</p>
+                        <p className="font-bold text-emerald-600">Haasta valmis suunnitelma painamalla punaista nappia chatin yläreunasta.</p>
+                      </div>
+
+                      {/* Puhekuplan nuoli */}
+                      <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white rotate-45 border-r border-b border-slate-100" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {isChatOpen ? (
                   <AIChat portalType={portalType || PortalType.LTS} onClose={() => setIsChatOpen(false)} user={user} systemKnowledge={systemKnowledge} />
                 ) : (
-                  <button onClick={() => setIsChatOpen(true)} className="w-16 h-16 rounded-full bg-emerald-600 text-white shadow-2xl flex items-center justify-center">
-                    <MessageSquare size={28} />
-                  </button>
+                  <div className="relative group">
+                    <button 
+                      onClick={() => { setIsChatOpen(true); setShowBubble(false); }} 
+                      className="w-16 h-16 rounded-full bg-emerald-600 text-white shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                    >
+                      <MessageSquare size={28} />
+                    </button>
+                    
+                    {/* Pieni "tappable even smaller icon" attached to the main one when bubble is closed */}
+                    {!showBubble && (
+                      <motion.div 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-400 rounded-full border-2 border-white shadow-sm pointer-events-none"
+                      />
+                    )}
+                  </div>
                 )}
               </div>
             </main>
