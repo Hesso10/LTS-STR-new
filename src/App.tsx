@@ -42,6 +42,18 @@ export default function App() {
   const [invites, setInvites] = useState<any[]>([]);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
+  // --- TÄMÄ OSA PUUTTUI JA KORJAA NAPULAT ---
+  useEffect(() => {
+    const handleOpenAIChat = () => {
+      setIsChatOpen(true);
+      setShowBubble(false);
+    };
+
+    window.addEventListener('open-ai-chat', handleOpenAIChat);
+    return () => window.removeEventListener('open-ai-chat', handleOpenAIChat);
+  }, []);
+  // ------------------------------------------
+
   useEffect(() => {
     const handleResize = () => setSidebarOpen(window.innerWidth > 768);
     window.addEventListener('resize', handleResize);
@@ -140,7 +152,7 @@ export default function App() {
   const renderView = () => {
     if (view === 'DASHBOARD') {
       if (portalType === PortalType.STRATEGY) return <StrategyPortal onNavigate={setView} user={user} />;
-      return <Dashboard portalType={PortalType.LTS} onNavigate={setView} user={user} />;
+      return <Dashboard portalType={portalType || PortalType.LTS} onNavigate={setView} user={user} />;
     }
     if (view === 'ADMIN' && user?.role === UserRole.ADMIN) {
       return <AdminPanel users={allUsers} invites={invites} systemKnowledge={systemKnowledge} onUpdateKnowledge={setSystemKnowledge} onInviteUser={handleInviteUser} onNavigate={setView} />;
