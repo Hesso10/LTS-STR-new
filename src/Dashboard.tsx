@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Layout, FileText, Globe, Shield, Layers, Download, CheckCircle2, Clock, Plus, ArrowRight } from 'lucide-react';
-import { PortalType, PlanSection, UserAccount } from './types';
+import { Globe, Shield, Zap, ArrowRight, Puzzle, Target, Info, RefreshCw, Briefcase, ListChecks } from 'lucide-react';
+import { PortalType, UserAccount } from './types';
 
 interface DashboardProps {
   portalType: PortalType;
@@ -10,108 +10,148 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ portalType, onNavigate, user }) => {
-  const phases = portalType === PortalType.LTS ? [
-    { id: 'PERUSTEET', label: 'PERUSTEET', icon: FileText, color: 'bg-blue-50 text-blue-600' },
-    { id: 'YMPÄRISTÖ', label: 'TOIMINTAYMPÄRISTÖ', icon: Globe, color: 'bg-blue-50 text-blue-600' },
-    { id: 'STRATEGIA', label: 'STRATEGIA', icon: Shield, color: 'bg-blue-50 text-blue-600' },
-    { id: 'OSASUUNNITELMAT', label: 'OSASUUNNITELMAT', icon: Layers, color: 'bg-blue-50 text-blue-600' },
-  ] : [
-    { id: 'YRITYS', label: 'YRITYS', icon: FileText, color: 'bg-emerald-50 text-emerald-600' },
-    { id: 'YMPÄRISTÖ', label: 'TOIMINTAYMPÄRISTÖ', icon: Globe, color: 'bg-emerald-50 text-emerald-600' },
-    { id: 'STRATEGIA', label: 'STRATEGIA', icon: Shield, color: 'bg-emerald-50 text-emerald-600' },
-    { id: 'BUSINESS_MODEL', label: 'LIIKETOIMINTAMALLI', icon: Layout, color: 'bg-emerald-50 text-emerald-600' },
-  ];
-
   return (
-    <div className="space-y-8 md:space-y-12">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase mb-2">
-            {portalType === PortalType.LTS ? 'LTS Yleisnäkymä' : 'Strategia Etusivu'}
-          </h1>
-          <p className="text-slate-400 font-medium">Tervetuloa takaisin, {user?.displayName || 'Käyttäjä'}.</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="bg-white px-4 md:px-6 py-2 md:py-3 rounded-2xl border border-black/5 shadow-sm flex items-center gap-3 w-fit">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-            <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400">Status: Aktiivinen</span>
+    <div className="max-w-6xl mx-auto space-y-12 pb-20">
+      {/* HEADER: PROSESSIN KUVAUS JA LOGIIKKA */}
+      <div className="bg-white p-8 rounded-[32px] border border-black/5 shadow-sm">
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0 text-blue-600">
+            <Info size={20} />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase leading-none">
+              {portalType === PortalType.LTS ? 'Liiketoimintasuunnitelma' : 'Strategiaprosessi'}
+            </h1>
+            <p className="text-slate-500 font-medium leading-relaxed italic">
+              Tervetuloa, {user?.displayName || 'Käyttäjä'}. Strategia on reagointiresepti, joka alkaa analyysillä[cite: 96, 279]. Järjestelmä siirtää ympäristön löydökset automaattisesti diagnoosin pohjaksi[cite: 101, 284].
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-        {phases.map((phase, index) => (
+      {/* STRATEGIAN YDIN: ANALYYSI JA STRATEGIA-KOKONAISUUS */}
+      <section className="space-y-8">
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-slate-200" />
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Suunnittelun ydin</span>
+          <div className="h-px flex-1 bg-slate-200" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
+          {/* VAIHE 1: TOIMINTAYMPÄRISTÖ (ANALYYSI) */}
           <motion.div
-            key={phase.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            onClick={() => onNavigate(phase.id)}
-            className="bg-white p-6 md:p-8 rounded-[24px] md:rounded-[32px] border border-black/5 shadow-lg hover:shadow-xl transition-all cursor-pointer group"
+            whileHover={{ y: -5 }}
+            onClick={() => onNavigate('YMPÄRISTÖ')}
+            className="bg-white p-10 rounded-[40px] border-2 border-slate-100 shadow-sm hover:border-blue-500 transition-all cursor-pointer group relative z-10"
           >
-            <div className={`w-12 h-12 md:w-14 md:h-14 ${phase.color} rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:scale-110 transition-transform`}>
-              <phase.icon size={24} className="md:w-7 md:h-7" />
-            </div>
-            <h3 className="text-xs md:text-sm font-black tracking-widest uppercase mb-2">{phase.label}</h3>
-            <div className="flex items-center justify-between mt-6 md:mt-8">
-              <div className="flex -space-x-2">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="w-5 h-5 md:w-6 md:h-6 rounded-full border-2 border-white bg-slate-100" />
-                ))}
-              </div>
-              <span className="text-[9px] md:text-[10px] font-bold text-slate-300 uppercase tracking-widest">0% Valmis</span>
+            <Globe className="text-blue-500 mb-6" size={48} />
+            <h3 className="text-2xl font-black uppercase tracking-tight italic">1. TOIMINTAYMPÄRISTÖ</h3>
+            <p className="text-slate-500 text-sm mt-4 font-medium leading-relaxed">
+              **Analyysivaihe:** Tunnista markkinan ja sisäisen toiminnan ilmiöt[cite: 16, 75, 205, 259]. Nämä löydökset ovat raaka-ainetta, jotka siirtyvät automaattisesti strategian diagnoosiin[cite: 101, 284].
+            </p>
+            <div className="mt-8 flex items-center text-blue-600 text-xs font-bold uppercase tracking-widest">
+              Aloita analyysi <ArrowRight size={16} className="ml-2" />
             </div>
           </motion.div>
-        ))}
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-        <div className="lg:col-span-2 bg-white p-6 md:p-10 rounded-[32px] md:rounded-[40px] border border-black/5 shadow-xl">
-          <div className="flex items-center justify-between mb-6 md:mb-8">
-            <h2 className="text-xl md:text-2xl font-black tracking-tight uppercase">Viimeisimmät toiminnot</h2>
-            <button className="text-[10px] md:text-xs font-bold text-blue-600 uppercase tracking-widest hover:underline">Näytä kaikki</button>
-          </div>
-          <div className="space-y-4 md:space-y-6">
-            {[
-              { action: 'Päivitti liikeidean', time: '2 tuntia sitten', icon: CheckCircle2, color: 'text-emerald-500' },
-              { action: 'Lisäsi uuden tiedoston', time: '5 tuntia sitten', icon: Plus, color: 'text-blue-500' },
-              { action: 'Muokkasi strategiaa', time: 'Eilen', icon: Clock, color: 'text-amber-500' },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl hover:bg-slate-50 transition-colors">
-                <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl bg-slate-50 flex items-center justify-center ${item.color}`}>
-                  <item.icon className="w-4 h-4 md:w-5 md:h-5" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs md:text-sm font-bold">{item.action}</p>
-                  <p className="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-widest">{item.time}</p>
-                </div>
-                <ArrowRight className="text-slate-200 w-3.5 h-3.5 md:w-4 md:h-4" />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-slate-900 p-6 md:p-10 rounded-[32px] md:rounded-[40px] text-white shadow-2xl relative overflow-hidden">
-          <div className="relative z-10">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-white/10 rounded-xl flex items-center justify-center mb-4 md:mb-6">
-              <Shield className="text-blue-400 w-5 h-5 md:w-6 md:h-6" />
+          {/* VAIHE 2: STRATEGIA (VISIO, ARVOT, DIAGNOOSI, MITEN) */}
+          <motion.div
+            whileHover={{ y: -5 }}
+            onClick={() => onNavigate('STRATEGIA')}
+            className="bg-blue-600 p-10 rounded-[40px] text-white shadow-xl hover:bg-blue-700 transition-all cursor-pointer group relative z-10"
+          >
+            <Shield className="text-blue-200 mb-6" size={48} />
+            <h3 className="text-2xl font-black uppercase tracking-tight italic">2. STRATEGIA</h3>
+            <div className="space-y-4 mt-4">
+              <p className="text-blue-100 text-sm font-medium leading-relaxed">
+                Tämä on kokonaisuus, jolla saavutat tavoitteesi[cite: 96, 279]:
+              </p>
+              <ul className="grid grid-cols-2 gap-3">
+                <li className="bg-blue-500/50 p-3 rounded-2xl border border-blue-400/30 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
+                  <Target size={14} /> Visio
+                </li>
+                <li className="bg-blue-500/50 p-3 rounded-2xl border border-blue-400/30 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
+                  <ListChecks size={14} /> Arvot
+                </li>
+                <li className="bg-blue-500/50 p-3 rounded-2xl border border-blue-400/30 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 text-amber-200">
+                  <RefreshCw size={14} /> Diagnoosi
+                </li>
+                <li className="bg-emerald-500/50 p-3 rounded-2xl border border-emerald-400/30 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 text-emerald-100">
+                  <Zap size={14} /> Miten
+                </li>
+              </ul>
+              <p className="text-blue-100 text-[10px] italic pt-2">
+                * Miten-kohta on vastaus diagnoosiin[cite: 104, 287].
+              </p>
             </div>
-            <h2 className="text-xl md:text-2xl font-black tracking-tight uppercase mb-3 md:mb-4">AI-Tuki</h2>
-            <p className="text-slate-400 text-xs md:text-sm leading-relaxed mb-6 md:mb-8">
-              Saat vastauksia ja oivalluksia suunnitelmasi kehittämiseen laadukkaalla datalla sparratun ja Google Grounding -menetelmää hyödyntävän LLM -mallin avulla.
-            </p>
-            <button 
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('open-ai-chat'));
-              }}
-              className="w-full bg-white text-black py-3 md:py-4 rounded-2xl font-bold text-xs md:text-sm uppercase tracking-widest hover:bg-slate-100 transition-all active:scale-95"
-            >
-              Avaa AI-Tuki
-            </button>
-          </div>
-          <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-600/20 rounded-full blur-3xl" />
+          </motion.div>
         </div>
-      </div>
+      </section>
+
+      {/* RAAMIT JA TOTEUTUSVAIHEET */}
+      <section className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-slate-200" />
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Raamit ja jalkautus</span>
+          <div className="h-px flex-1 bg-slate-200" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* PERUSTEET / YRITYS */}
+          <div 
+            onClick={() => onNavigate(portalType === PortalType.LTS ? 'PERUSTEET' : 'YRITYS')}
+            className="bg-white p-6 rounded-[32px] border border-black/5 hover:bg-slate-50 transition-all cursor-pointer flex flex-col gap-4 group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-white transition-colors">
+              <Briefcase size={20} />
+            </div>
+            <h4 className="font-black uppercase text-xs tracking-tight">
+              {portalType === PortalType.LTS ? 'PERUSTEET' : 'YRITYS'}
+            </h4>
+            <p className="text-slate-400 text-[10px] font-medium leading-tight italic">Liikeidea ja tausta[cite: 1, 159].</p>
+          </div>
+
+          {/* OSASUUNNITELMAT / LIIKETOIMINTAMALLI */}
+          <div 
+            onClick={() => onNavigate(portalType === PortalType.LTS ? 'OSASUUNNITELMAT' : 'BUSINESS_MODEL')}
+            className="bg-white p-6 rounded-[32px] border border-black/5 hover:bg-slate-50 transition-all cursor-pointer flex flex-col gap-4 group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-white transition-colors">
+              <Target size={20} />
+            </div>
+            <h4 className="font-black uppercase text-xs tracking-tight">
+              {portalType === PortalType.LTS ? 'OSASUUNNITELMAT' : 'LIIKETOIMINTAMALLI'}
+            </h4>
+            <p className="text-slate-400 text-[10px] font-medium leading-tight italic">Viedään kyvykkyydet käytäntöön[cite: 112, 113, 169].</p>
+          </div>
+
+          {/* TOTEUTUS / PROJEKTIT */}
+          <div 
+            onClick={() => onNavigate(portalType === PortalType.LTS ? 'TOTEUTUS' : 'PROJEKTINI')}
+            className="bg-white p-6 rounded-[32px] border border-black/5 hover:bg-slate-50 transition-all cursor-pointer flex flex-col gap-4 group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-white transition-colors">
+              <Puzzle size={20} />
+            </div>
+            <h4 className="font-black uppercase text-xs tracking-tight">
+              {portalType === PortalType.LTS ? 'TOTEUTUS' : 'PROJEKTINI'}
+            </h4>
+            <p className="text-slate-400 text-[10px] font-medium leading-tight italic">Aikataulutettu jalkautus[cite: 157, 320].</p>
+          </div>
+
+          {/* AI-SPARRAUS */}
+          <div 
+            onClick={() => window.dispatchEvent(new CustomEvent('open-ai-chat'))}
+            className="bg-slate-900 p-6 rounded-[32px] text-white hover:bg-slate-800 transition-all cursor-pointer flex flex-col gap-4 group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-blue-400">
+              <Zap size={20} />
+            </div>
+            <h4 className="font-black uppercase text-xs tracking-tight tracking-widest italic">AI-SPARRAUS</h4>
+            <p className="text-slate-400 text-[10px] font-medium leading-tight">Haasta strategiasi ydin.</p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
