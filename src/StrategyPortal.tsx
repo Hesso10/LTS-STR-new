@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'motion/react';
 import { 
   Target, 
-  TrendingUp, 
   Shield, 
   Layout, 
   Briefcase, 
@@ -12,9 +11,7 @@ import {
   Zap,
   Globe
 } from 'lucide-react';
-import { PortalType, UserAccount, UserRole } from './types';
-import { db, auth } from './firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { UserAccount } from './types';
 
 interface StrategyPortalProps {
   onNavigate: (section: string) => void;
@@ -22,75 +19,8 @@ interface StrategyPortalProps {
   viewingWorkspaceAs?: string | null;
 }
 
-export const StrategyPortal: React.FC<StrategyPortalProps> = ({ onNavigate, user, viewingWorkspaceAs }) => {
-  const [focusAreas, setFocusAreas] = useState<{title: string, desc: string}[]>([]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      let parsed = null;
-
-      if (auth.currentUser) {
-        try {
-          const targetUid = viewingWorkspaceAs || (user?.role === UserRole.TEAM_MEMBER && user?.invitedBy ? user.invitedBy : auth.currentUser.uid);
-          const planRef = doc(db, 'users', targetUid, 'businessPlan', 'STRATEGIA');
-          const planSnap = await getDoc(planRef);
-          if (planSnap.exists()) {
-            parsed = planSnap.data();
-          }
-        } catch (error) {
-          console.error("Error fetching strategy data from Firestore:", error);
-        }
-      }
-
-      if (!parsed) {
-        const savedData = localStorage.getItem('business_plan_data_STRATEGIA');
-        if (savedData) {
-          try {
-            parsed = JSON.parse(savedData);
-          } catch (e) {
-            console.error("Error parsing local storage data", e);
-          }
-        }
-      }
-
-      if (parsed) {
-        if (parsed.strategy && parsed.strategy.howItems && parsed.strategy.howItems.length > 0) {
-          const parsedAreas = parsed.strategy.howItems.slice(0, 6).map((item: { text: string }, i: number) => {
-            const text = item.text.trim();
-            if (!text) return null;
-            
-            const colonMatch = text.match(/^([^:]+):(.*)$/s);
-            if (colonMatch) {
-              return { title: colonMatch[1].trim(), desc: colonMatch[2].trim() || text };
-            }
-            
-            const periodMatch = text.match(/^([^.]+)\.(.*)$/s);
-            if (periodMatch && periodMatch[1].length < 40) {
-              return { title: periodMatch[1].trim(), desc: periodMatch[2].trim() || text };
-            }
-            
-            const words = text.split(' ');
-            const title = words.length > 3 ? words.slice(0, 3).join(' ') + '...' : `Painopiste ${i + 1}`;
-            return { title, desc: text };
-          }).filter(Boolean);
-          
-          setFocusAreas(parsedAreas.length > 0 ? parsedAreas : getDefaultFocusAreas());
-        } else {
-          setFocusAreas(getDefaultFocusAreas());
-        }
-      } else {
-        setFocusAreas(getDefaultFocusAreas());
-      }
-    };
-
-    loadData();
-  }, [user, viewingWorkspaceAs]);
-
-  const getDefaultFocusAreas = () => [
-    { title: 'Ei määritelty', desc: 'Täydennä strategian "Miten"-osiota nähdäksesi painopisteet tässä.' }
-  ];
-
-  // PÄIVITETTY KORTISTO 1-5 VAIHETTA (EMERALD-TEEMA)
+export const StrategyPortal: React.FC<StrategyPortalProps> = ({ onNavigate, user }) => {
+  // PÄIVITETTY KORTISTO 1-5 VAIHETTA
   const strategyPhases = [
     { 
       id: 'YRITYS', 
@@ -125,93 +55,87 @@ export const StrategyPortal: React.FC<StrategyPortalProps> = ({ onNavigate, user
   ];
 
   return (
-    <div className="space-y-6 md:space-y-12">
-      {/* HEADER */}
-      <div className="bg-white p-8 rounded-[32px] border border-black/5 shadow-sm">
+    <div className="max-w-6xl mx-auto space-y-8 md:space-y-12">
+      {/* HEADER: OPTIMOITU MOBIILIIN JA POISTETTU TILA-IKONI */}
+      <div className="bg-white p-6 md:p-10 rounded-[32px] border border-black/5 shadow-sm">
         <div className="flex items-start gap-4">
-          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 text-emerald-600 mt-1">
+          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 text-emerald-600">
             <Info size={20} />
           </div>
-          <div>
-            <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase leading-none">Strategiaprosessi</h1>
-            <p className="text-slate-500 font-medium leading-relaxed italic text-sm md:text-base mt-2">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl md:text-5xl font-black tracking-tighter uppercase leading-tight md:leading-none break-words">
+              Strategiaprosessi
+            </h1>
+            <p className="text-slate-500 font-medium leading-relaxed italic text-xs md:text-base mt-2">
               Tervetuloa, {user?.displayName || 'Käyttäjä'}. Strategia on reagointiresepti, joka alkaa analyysillä. Järjestelmä siirtää ympäristön löydökset automaattisesti diagnoosin pohjaksi.
             </p>
           </div>
         </div>
-        <div className="bg-white px-4 md:px-6 py-2 md:py-3 rounded-2xl border border-black/5 shadow-sm flex items-center gap-3 w-fit shrink-0 mt-4 md:mt-0">
-          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-          <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Strateginen tila: Aktiivinen</span>
-        </div>
       </div>
 
       {/* 1-5 VAIHEEN KORTIT */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        {strategyPhases.map((phase, index) => (
-          <motion.div
-            key={phase.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            onClick={() => onNavigate(phase.id)}
-            className={`p-6 rounded-[24px] border border-black/5 shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col ${phase.id === 'STRATEGIA' ? 'bg-emerald-600 text-white' : 'bg-white'}`}
-          >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${phase.id === 'STRATEGIA' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-600'}`}>
-              <phase.icon size={20} />
-            </div>
-            <h3 className="text-[10px] font-black tracking-widest uppercase mb-2">{phase.label}</h3>
-            <p className={`text-[10px] leading-tight font-medium line-clamp-4 mb-4 ${phase.id === 'STRATEGIA' ? 'text-emerald-50' : 'text-slate-400'}`}>
-              {phase.desc}
-            </p>
-            <div className="mt-auto flex items-center justify-between">
-              <span className={`text-[8px] font-bold uppercase tracking-widest ${phase.id === 'STRATEGIA' ? 'text-emerald-200' : 'text-slate-300'}`}>Päivitetty tänään</span>
-              <ArrowRight size={14} className={phase.id === 'STRATEGIA' ? 'text-white' : 'text-emerald-500'} />
-            </div>
-          </motion.div>
-        ))}
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 px-2">
+          <div className="h-px flex-1 bg-slate-200" />
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 whitespace-nowrap">Suunnittelun polku</span>
+          <div className="h-px flex-1 bg-slate-200" />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+          {strategyPhases.map((phase, index) => (
+            <motion.div
+              key={phase.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              onClick={() => onNavigate(phase.id)}
+              className={`p-6 rounded-[24px] border border-black/5 shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col min-h-[180px] ${phase.id === 'STRATEGIA' ? 'bg-emerald-600 text-white' : 'bg-white'}`}
+            >
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 shrink-0 ${phase.id === 'STRATEGIA' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-600'}`}>
+                <phase.icon size={20} />
+              </div>
+              <h3 className="text-[10px] font-black tracking-widest uppercase mb-2 leading-none">{phase.label}</h3>
+              <p className={`text-[10px] leading-snug font-medium mb-4 ${phase.id === 'STRATEGIA' ? 'text-emerald-50' : 'text-slate-400'}`}>
+                {phase.desc}
+              </p>
+              <div className="mt-auto flex items-center justify-between pt-2">
+                <span className={`text-[8px] font-bold uppercase tracking-widest ${phase.id === 'STRATEGIA' ? 'text-emerald-200' : 'text-slate-300'}`}>Päivitetty</span>
+                <ArrowRight size={14} className={phase.id === 'STRATEGIA' ? 'text-white' : 'text-emerald-500'} />
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-        {/* PAINOPISTEALUEET */}
-        <div className="lg:col-span-2 bg-white p-6 md:p-10 rounded-[24px] md:rounded-[40px] border border-black/5 shadow-xl">
-          <div className="flex items-center justify-between mb-6 md:mb-8">
-            <h2 className="text-xl md:text-2xl font-black tracking-tight uppercase text-emerald-950">Strategiset painopistealueet</h2>
-            <button 
-              onClick={() => onNavigate('STRATEGIA')}
-              className="text-xs font-bold text-emerald-600 uppercase tracking-widest hover:underline"
-            >
-              Muokkaa
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {focusAreas.map((item, i) => (
-              <div key={i} className="p-6 bg-slate-50 rounded-3xl border border-black/5">
-                <h4 className="font-black text-xs uppercase tracking-widest mb-2 line-clamp-1 text-emerald-900">{item.title}</h4>
-                <p className="text-sm text-slate-500 font-medium line-clamp-3 italic">"{item.desc}"</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* AI-SPARRAUS */}
-        <div className="bg-emerald-950 p-6 md:p-10 rounded-[24px] md:rounded-[40px] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[320px]">
-          <div className="relative z-10">
-            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-6">
+      {/* ALAKERRAN AI-KORTTI */}
+      <div className="flex justify-center">
+        <motion.div
+          whileHover={{ scale: 1.01 }}
+          onClick={() => window.dispatchEvent(new CustomEvent('open-ai-chat'))}
+          className="w-full max-w-4xl bg-emerald-950 p-8 md:p-12 rounded-[40px] text-white shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center gap-8"
+        >
+          <div className="relative z-10 flex-1 text-center md:text-left">
+            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-6 mx-auto md:mx-0">
               <Zap className="text-emerald-400" size={24} />
             </div>
-            <h2 className="text-xl md:text-2xl font-black tracking-tight uppercase mb-4 italic text-white">AI-Strategi</h2>
-            <p className="text-emerald-100/60 text-sm leading-relaxed mb-8">
-              Haasta strategiasi ydin asiantuntevan tekoälyn avulla. Saat oivalluksia markkinadatasta ja menestysresepteistä.
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight uppercase mb-4 italic">AI-Strategi</h2>
+            <p className="text-emerald-100/60 text-sm md:text-base leading-relaxed mb-8">
+              Haasta strategiasi ydin asiantuntevan tekoälyn avulla. Saat oivalluksia markkinadatasta ja menestysresepteistä diagnoosisi tueksi.
             </p>
+            <button className="bg-emerald-500 text-white px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-all active:scale-95 shadow-lg shadow-emerald-500/20">
+              Aloita sparraus
+            </button>
           </div>
-          <button 
-            onClick={() => window.dispatchEvent(new CustomEvent('open-ai-chat'))}
-            className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-all active:scale-95 relative z-10"
-          >
-            Aloita sparraus
-          </button>
-          <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-emerald-400/10 rounded-full blur-3xl" />
-        </div>
+          
+          <div className="hidden md:block w-px h-32 bg-white/10" />
+          
+          <div className="relative z-10 flex-shrink-0 text-center">
+             <div className="text-emerald-400 font-black text-4xl mb-1">24/7</div>
+             <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-100/40">Strateginen tuki</div>
+          </div>
+
+          <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl" />
+        </motion.div>
       </div>
     </div>
   );
