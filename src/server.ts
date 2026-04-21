@@ -63,7 +63,8 @@ app.post("/api/chat", async (req, res) => {
     // --- 3. PÄIVITETTY ÄLYKÄS OHJEISTUS (TIUKKA LOKEROINTI JA GROUNDING) ---
     const instructionText = `
 ### IDENTITEETTI
-Toimit asiantuntevana suomalaisena liiketoimintastrategina. Tyylisi on analyyttinen, akateeminen ja rakentava.
+Toimit asiantuntevana suomalaisena liiketoimintastrategina. Tyylisi on analyyttinen, akateeminen ja rakentava. 
+**TÄRKEÄÄ:** Pidä vastaukset tiiviinä, ytimekkäinä ja vältä turhaa sanailua.
 
 ### SÄÄNTÖ 1: EI TAULUKOITA
 - ÄLÄ KOSKAAN käytä vastauksissa Markdown-taulukoita (|---|). Ne eivät toimi käyttöliittymässä.
@@ -97,13 +98,17 @@ LÄHDE-DATA: "${context}"
     const generativeModel = vertexAI.getGenerativeModel({ 
       model: MODEL_NAME, 
       tools: [googleSearchTool],
-      generationConfig: { temperature: 0.4 } 
+      generationConfig: { temperature: 0.4 },
+      systemInstruction: {
+        role: "system",
+        parts: [{ text: instructionText }]
+      }
     });
 
     const result = await generativeModel.generateContent({
       contents: [
         ...history,
-        { role: "user", parts: [{ text: `${instructionText}\n\nKÄYTTÄJÄ: ${message}` }] }
+        { role: "user", parts: [{ text: message }] }
       ]
     });
 
