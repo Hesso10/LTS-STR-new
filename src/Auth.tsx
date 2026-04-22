@@ -51,7 +51,6 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
     try {
       if (isLogin) {
         // 1. Firebase Sign In
-        // This triggers the onAuthStateChanged listener in App.tsx automatically
         await signInWithEmailAndPassword(auth, email, password);
         
         // 2. Just call onLogin to pass the portal context to the App
@@ -61,10 +60,9 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
         const userCred = await createUserWithEmailAndPassword(auth, email, password);
         
         // 4. Create the initial Firestore document
-        // This is where we define if they are a student/teacher
         const userData = { 
           email, 
-          role: UserRole.STUDENT, // Default to Student; Admin overwrites this in App.tsx
+          role: UserRole.STUDENT, 
           portalType: portalType || PortalType.LTS,
           createdAt: new Date().toISOString()
         };
@@ -74,7 +72,6 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
         onLogin(email, UserRole.STUDENT, userData.portalType);
       }
     } catch (err: any) {
-      // Map Firebase error codes to readable messages if desired
       setError(err.message);
     } finally {
       setIsLoading(false);
@@ -89,11 +86,11 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
         className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md border border-black/5"
       >
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold mb-2">
-            {portalType === PortalType.STRATEGY ? 'STRATEGIA' : 'LTS'}
+          <h2 className="text-3xl font-bold mb-2 tracking-tight">
+            Tervetuloa
           </h2>
           <p className="text-slate-500 text-sm">
-            {isLogin ? 'Kirjaudu sisään' : 'Luo tunnus'}
+            {isLogin ? 'Kirjaudu sisään jatkaaksesi' : 'Luo uusi käyttäjätunnus'}
           </p>
         </div>
 
@@ -173,16 +170,23 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, portalType }) => {
           </button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-4 flex flex-col gap-3">
+          <div className="relative flex items-center py-2">
+            <div className="flex-grow border-t border-slate-200"></div>
+            <span className="flex-shrink mx-4 text-slate-400 text-[10px] uppercase font-bold tracking-widest">tai</span>
+            <div className="flex-grow border-t border-slate-200"></div>
+          </div>
+
           <button 
+            type="button"
             onClick={() => {
               setIsLogin(!isLogin);
               setError('');
               setMessage('');
             }} 
-            className="text-sm font-medium text-slate-500 hover:text-black transition-colors"
+            className="w-full bg-slate-100 text-slate-700 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all hover:bg-slate-200 active:scale-95"
           >
-            {isLogin ? 'Eikö sinulla ole tunnusta? Luo tunnus' : 'Onko sinulla jo tunnus? Kirjaudu'}
+            {isLogin ? 'Sait kutsun! Luo tunnus' : 'Onko sinulla jo tunnus? Kirjaudu'}
           </button>
         </div>
       </motion.div>
