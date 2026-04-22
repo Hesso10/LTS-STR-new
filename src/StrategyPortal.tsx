@@ -1,15 +1,16 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Target, 
   Shield, 
   Layout, 
-  Briefcase, 
+  Building2, 
   ArrowRight,
   Puzzle,
   Info,
   Zap,
-  Globe
+  TrendingUp, 
+  Compass, 
+  X
 } from 'lucide-react';
 import { UserAccount } from './types';
 
@@ -20,43 +21,50 @@ interface StrategyPortalProps {
 }
 
 export const StrategyPortal: React.FC<StrategyPortalProps> = ({ onNavigate, user }) => {
-  // PÄIVITETTY KORTISTO 1-5 VAIHETTA
+  // State for the guidance overlays - surgical addition
+  const [activeHelp, setActiveHelp] = useState<string | null>(null);
+
   const strategyPhases = [
     { 
       id: 'YRITYS', 
       label: '1. YRITYS', 
       desc: 'Määrittele yrityksesi toiminta, osaaminen ja nykytilanne. Tämä luo pohjan koko suunnittelulle.',
-      icon: Briefcase
+      guidance: 'Tunnista organisaatiomallinne: 1. Linjaorganisaatio (perinteinen hierarkia), 2. Matriisiorganisaatio (toiminnot ja tuotelinjat yhdistettynä) vai 3. Projektiorganisaatio (joustava projektipohjainen malli).',
+      icon: Building2
     },
     { 
       id: 'YMPÄRISTÖ', 
       label: '2. TOIMINTAYMPÄRISTÖ', 
       desc: 'Tunnista markkinan ja sisäisen toiminnan tärkeimmät ilmiöt. Nämä löydökset siirtyvät automaattisesti strategian diagnoosiin.',
-      icon: Globe
+      guidance: 'Mieti, mitkä ulkoiset tekijät (kuten teknologia tai lainsäädäntö) vaikuttavat eniten juuri teidän malliinne.',
+      icon: TrendingUp
     },
     { 
       id: 'STRATEGIA', 
       label: '3. STRATEGIA', 
       desc: 'Luo Visio ja perustelet max. kuusi Miten-kohtaa eli kyvykkyyttä, joilla erotut kilpailijoista.',
-      icon: Shield
+      guidance: 'Miten organisaatiomallinne tukee näitä valintoja? Valitse kyvykkyydet, jotka antavat teille etulyöntiaseman.',
+      icon: Compass
     },
     { 
       id: 'BUSINESS_MODEL', 
       label: '4. LIIKETOIMINTAMALLI', 
       desc: 'Määritä kohderyhmät ja palastele kyvykkyydet käytännön aktiviteeteiksi, resursseiksi ja tuloiksi.',
+      guidance: 'Kuka on asiakas ja miksi he ostavat juuri teiltä? Määrittele resurssit, joita strategian toteutus vaatii.',
       icon: Layout
     },
     { 
       id: 'PROJEKTINI', 
       label: '5. PROJEKTINI', 
       desc: 'Toteuta projekti, joka toteuttaa sekä Miten-kohtia että liiketoimintamallin tärkeimpiä resursseja.',
+      guidance: 'Valitse projekti, jolla on suurin vaikutus strategian jalkautukseen. Määrittele selkeät vastuuhenkilöt.',
       icon: Puzzle
     },
   ];
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 md:space-y-12">
-      {/* HEADER: OPTIMOITU MOBIILIIN JA POISTETTU TILA-IKONI */}
+      {/* HEADER: Identical to original structure */}
       <div className="bg-white p-6 md:p-10 rounded-[32px] border border-black/5 shadow-sm">
         <div className="flex items-start gap-4">
           <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 text-emerald-600">
@@ -83,31 +91,72 @@ export const StrategyPortal: React.FC<StrategyPortalProps> = ({ onNavigate, user
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
           {strategyPhases.map((phase, index) => (
-            <motion.div
-              key={phase.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              onClick={() => onNavigate(phase.id)}
-              className={`p-6 rounded-[24px] border border-black/5 shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col min-h-[180px] ${phase.id === 'STRATEGIA' ? 'bg-emerald-600 text-white' : 'bg-white'}`}
-            >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 shrink-0 ${phase.id === 'STRATEGIA' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-600'}`}>
-                <phase.icon size={20} />
-              </div>
-              <h3 className="text-[10px] font-black tracking-widest uppercase mb-2 leading-none">{phase.label}</h3>
-              <p className={`text-[10px] leading-snug font-medium mb-4 ${phase.id === 'STRATEGIA' ? 'text-emerald-50' : 'text-slate-400'}`}>
-                {phase.desc}
-              </p>
-              <div className="mt-auto flex items-center justify-between pt-2">
-                <span className={`text-[8px] font-bold uppercase tracking-widest ${phase.id === 'STRATEGIA' ? 'text-emerald-200' : 'text-slate-300'}`}>Päivitetty</span>
-                <ArrowRight size={14} className={phase.id === 'STRATEGIA' ? 'text-white' : 'text-emerald-500'} />
-              </div>
-            </motion.div>
+            <div key={phase.id} className="relative min-h-[220px]">
+              {/* Guidance Toggle - Stops propagation to keep navigation logic intact */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveHelp(activeHelp === phase.id ? null : phase.id);
+                }}
+                className={`absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center z-30 transition-all ${
+                  activeHelp === phase.id 
+                    ? 'bg-black text-white' 
+                    : phase.id === 'STRATEGIA' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-600'
+                }`}
+              >
+                {activeHelp === phase.id ? <X size={14} /> : <Info size={14} />}
+              </button>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                onClick={() => onNavigate(phase.id)}
+                className={`p-6 rounded-[24px] border border-black/5 shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col h-full relative overflow-hidden ${
+                  phase.id === 'STRATEGIA' ? 'bg-emerald-600 text-white' : 'bg-white'
+                }`}
+              >
+                {/* Main Content Layer - Fades out when help is active */}
+                <div className={`transition-opacity duration-300 ${activeHelp === phase.id ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 shrink-0 ${phase.id === 'STRATEGIA' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-600'}`}>
+                    <phase.icon size={20} />
+                  </div>
+                  <h3 className="text-[10px] font-black tracking-widest uppercase mb-2 leading-none">{phase.label}</h3>
+                  <p className={`text-[10px] leading-snug font-medium mb-4 ${phase.id === 'STRATEGIA' ? 'text-emerald-50' : 'text-slate-400'}`}>
+                    {phase.desc}
+                  </p>
+                  <div className="mt-auto flex items-center justify-between pt-2">
+                    <span className={`text-[8px] font-bold uppercase tracking-widest ${phase.id === 'STRATEGIA' ? 'text-emerald-200' : 'text-slate-300'}`}>Päivitetty</span>
+                    <ArrowRight size={14} className={phase.id === 'STRATEGIA' ? 'text-white' : 'text-emerald-500'} />
+                  </div>
+                </div>
+
+                {/* Guidance Overlay - Fades in over the card */}
+                <AnimatePresence>
+                  {activeHelp === phase.id && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 p-6 bg-emerald-50 flex flex-col z-20"
+                    >
+                      <h4 className="text-[10px] font-black tracking-widest uppercase text-emerald-600 mb-2">Pikaopas</h4>
+                      <p className="text-[11px] leading-relaxed text-slate-700 font-medium italic">
+                        {phase.guidance}
+                      </p>
+                      <div className="mt-auto">
+                        <span className="text-[8px] font-bold uppercase text-emerald-600/50 italic tracking-widest">Määrittele mallisi</span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* ALAKERRAN AI-KORTTI */}
+      {/* ALAKERRAN AI-KORTTI: Identical to original file */}
       <div className="flex justify-center">
         <motion.div
           whileHover={{ scale: 1.01 }}
