@@ -44,7 +44,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ portalType, onNavigate, us
         { 
           id: 'YMPÄRISTÖ', 
           label: '2. TOIMINTAYMPÄRISTÖ', 
-          desc: 'Tunnista markkinan ja sisäisen toiminnan tärkeimmät ilmiöt.',
+          desc: 'Tunnista markkinan ja sisäisen toiminnan tärkeimmät positiiviset ja negatiiviset ilmiöt.',
           longDesc: 'Tunnista markkinan ja sisäisen toiminnan tärkeimmät ilmiöt. Nämä löydökset siirtyvät automaattisesti strategian diagnoosiin. Laatiessasi toimintaympäristön analyysiä keskity vain niihin ilmiöihin, jotka ovat positiivisesti tai negatiivisesti relevantteja yrityksesi tulevalle strategialle.',
           aiExamples: [
             'A.) Havainnollista ajankohtaisella esimerkillä PESTEL ja asiakas- sekä kilpailija-analyysi.',
@@ -55,7 +55,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ portalType, onNavigate, us
         { 
           id: 'STRATEGIA', 
           label: '3. STRATEGIA', 
-          desc: 'Luo Visio ja määritä erottuvat kyvykkyydet eli "Miten"-kohdat.',
+          desc: 'Luo aikaan sidottu ja saavutettavissa oleva tavoite eli Visio.',
           longDesc: 'Luo Visio ja määritä arvot. Diagnoosi-kohta syntyy automaattisesti toimintaympäristöanalyysin löydöksistä. "Miten"-kohta tarkoittaa kyvykkyyksiä. On kriittistä, että valitsemillasi kohdilla todella reagoidaan diagnoosissa esiin nousseisiin haasteisiin. Nämä kyvykkyydet erilaistavat sinut kilpailijoista.',
           aiExamples: [
             'A.) Miten kyvykkyydet ja diagnoosin havainnot liittyvät toisiinsa R.Rumeltin logiikalla havainnollistettuna.',
@@ -89,10 +89,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ portalType, onNavigate, us
       title: 'Strategiaprosessi',
       phases: [
         { id: 'YRITYS', label: '1. YRITYS', desc: 'Määrittele yrityksesi toiminta, osaaminen ja nykytilanne. Tämä luo pohjan koko suunnittelulle.', icon: Briefcase },
-        { id: 'YMPÄRISTÖ', label: '2. TOIMINTAYMPÄRISTÖ', desc: 'Tunnista markkinan ja sisäisen toiminnan tärkeimmät positiiviset ja negatiiviset ilmiöt. Nämä löydökset siirtyvät automaattisesti strategian diagnoosiin.', icon: Globe },
-        { id: 'STRATEGIA', label: '3. STRATEGIA', desc: 'Luo aikaan sidottu ja saavutettavissa oleva tavoite eli Visio. Diagnoosi tiivistää analyysin löydökset automaattisesti, ja Miten-kohta on vastaus diagnoosiin.', icon: Shield },
-        { id: 'BUSINESS_MODEL', label: '4. LIIKETOIMINTAMALLI', desc: 'Määritä tarkemmin kohderyhmät. Palastele strategiset kyvykkyydet käytännön aktiviteeteiksi, resursseiksi, tuloiksi ja kustannuksiksi.', icon: Target },
-        { id: 'PROJEKTINI', label: '5. PROJEKTINI', desc: 'Vie strategia ja liiketoimintamalli käytäntöön. Toteuta projekti, jonka pystyt perustelemaan.', icon: Puzzle }
+        { id: 'YMPÄRISTÖ', label: '2. TOIMINTAYMPÄRISTÖ', desc: 'Tunnista markkinan ja sisäisen toiminnan tärkeimmät positiiviset ja negatiiviset ilmiöt.', icon: Globe },
+        { id: 'STRATEGIA', label: '3. STRATEGIA', desc: 'Luo aikaan sidottu ja saavutettavissa oleva tavoite eli Visio.', icon: Shield },
+        { id: 'BUSINESS_MODEL', label: '4. LIIKETOIMINTAMALLI', desc: 'Määritä tarkemmin kohderyhmät.', icon: Target },
+        { id: 'PROJEKTINI', label: '5. PROJEKTINI', desc: 'Vie strategia ja liiketoimintamalli käytäntöön.', icon: Puzzle }
       ].map(p => ({ ...p, longDesc: p.desc, aiExamples: [] }))
     }
   };
@@ -100,26 +100,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ portalType, onNavigate, us
   const currentPortalContent = content[portalType] || content[PortalType.LTS];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-12 pb-20 p-4">
-      {/* HEADER */}
-      <div className="bg-white p-8 rounded-[32px] border border-black/5 shadow-sm">
+    <div className="max-w-6xl mx-auto space-y-8 md:space-y-12 pb-20 p-4">
+      {/* HEADER: Uusi tervetuloteksti ja optimoitu skaalaus */}
+      <div className="bg-white p-6 md:p-8 rounded-[32px] border border-black/5 shadow-sm">
         <div className="flex items-start gap-4">
           <div className={`w-10 h-10 rounded-full bg-${accentBase}-100 flex items-center justify-center shrink-0 text-${accentBase}-600`}>
             <Info size={20} />
           </div>
-          <div className="space-y-2">
-            <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase leading-none">
+          <div className="space-y-2 min-w-0 flex-1">
+            <h1 className="text-2xl md:text-5xl font-black tracking-tighter uppercase leading-tight md:leading-none break-words overflow-hidden">
               {currentPortalContent.title}
             </h1>
-            <p className="text-slate-500 font-medium leading-relaxed italic text-sm md:text-base">
-              Tervetuloa, {user?.displayName || 'Käyttäjä'}. Strategia on reagointiresepti, joka alkaa analyysillä. Järjestelmä siirtää ympäristön löydökset automaattisesti diagnoosin pohjaksi.
+            <p className="text-slate-500 font-medium leading-relaxed italic text-xs md:text-base">
+              {isSTR 
+                ? `Tervetuloa, ${user?.displayName || 'Käyttäjä'}. Strategia on reagointiresepti, joka alkaa analyysillä. Järjestelmä siirtää ympäristön löydökset automaattisesti diagnoosin pohjaksi.`
+                : "Tutustu alla olevien esimerkkien avulla liiketoimintasuunnitelman tekoon niin, että siitä tulee oikeasti hyvä."}
             </p>
           </div>
         </div>
       </div>
 
-      {/* GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3 md:gap-4 items-start">
         {currentPortalContent.phases.map((phase, index) => {
           const isExpanded = expandedId === phase.id;
           const isHighlight = phase.id === 'STRATEGIA';
@@ -133,18 +134,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ portalType, onNavigate, us
               transition={{ delay: index * 0.1 }}
               onClick={() => setExpandedId(isExpanded ? null : phase.id)}
               className={`
-                p-6 rounded-[28px] border border-black/5 shadow-sm transition-all cursor-pointer relative overflow-hidden
+                p-5 md:p-6 rounded-[28px] border border-black/5 shadow-sm transition-all cursor-pointer relative overflow-hidden
                 ${isHighlight ? `bg-${accentBase}-600 text-white` : 'bg-white hover:bg-slate-50'}
                 ${isExpanded ? 'md:col-span-2 shadow-xl ring-2 ring-opacity-10' : 'col-span-1'}
                 ${isExpanded && isHighlight ? `ring-${accentBase}-400` : ''}
               `}
             >
-              <div className="flex items-center gap-3 mb-4">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 
+              <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                <div className={`w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center shrink-0 
                   ${isHighlight ? 'bg-white/20' : `bg-${accentBase}-50 text-${accentBase}-600`}`}>
-                  <phase.icon size={20} />
+                  <phase.icon size={18} />
                 </div>
-                <h3 className="text-[11px] font-black tracking-widest uppercase leading-none">
+                <h3 className="text-[10px] md:text-[11px] font-black tracking-widest uppercase leading-tight min-w-0">
                   {phase.label}
                 </h3>
               </div>
