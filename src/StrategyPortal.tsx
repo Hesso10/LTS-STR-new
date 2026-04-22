@@ -81,18 +81,18 @@ export const StrategyPortal: React.FC<StrategyPortalProps> = ({ onNavigate, user
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 md:space-y-12">
-      {/* HEADER */}
-      <div className="bg-white p-6 md:p-10 rounded-[32px] border border-black/5 shadow-sm">
+      {/* HEADER: Optimoitu otsikko ja uusi teksti */}
+      <div className="bg-white p-6 md:p-8 rounded-[32px] border border-black/5 shadow-sm">
         <div className="flex items-start gap-4">
           <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 text-emerald-600">
             <Info size={20} />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl md:text-5xl font-black tracking-tighter uppercase leading-tight md:leading-none break-words">
+            <h1 className="text-2xl md:text-5xl font-black tracking-tighter uppercase leading-tight md:leading-none break-words overflow-hidden">
               Strategiaprosessi
             </h1>
             <p className="text-slate-500 font-medium leading-relaxed italic text-xs md:text-base mt-2">
-              Tervetuloa, {user?.displayName || 'Käyttäjä'}. Strategia on reagointiresepti, joka alkaa analyysillä. Järjestelmä siirtää ympäristön löydökset automaattisesti diagnoosin pohjaksi.
+              Tervetuloa! Tee oikeasti hyvä ja yrityksesi erilaistava strategia hyödyntämällä alla olevien kohtien esimerkkejä.
             </p>
           </div>
         </div>
@@ -106,7 +106,7 @@ export const StrategyPortal: React.FC<StrategyPortalProps> = ({ onNavigate, user
           <div className="h-px flex-1 bg-slate-200" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 md:gap-4 items-start">
           {strategyPhases.map((phase, index) => {
             const isExpanded = expandedId === phase.id;
             const isMainStrategy = phase.id === 'STRATEGIA';
@@ -120,17 +120,18 @@ export const StrategyPortal: React.FC<StrategyPortalProps> = ({ onNavigate, user
                 transition={{ delay: index * 0.1 }}
                 onClick={() => setExpandedId(isExpanded ? null : phase.id)}
                 className={`
-                  p-6 rounded-[28px] border border-black/5 shadow-sm transition-all cursor-pointer relative overflow-hidden
+                  p-5 md:p-6 rounded-[28px] border border-black/5 shadow-sm transition-all cursor-pointer relative overflow-hidden
                   ${isMainStrategy ? 'bg-emerald-600 text-white' : 'bg-white hover:bg-slate-50'}
                   ${isExpanded ? 'md:col-span-2 shadow-xl ring-2 ring-emerald-500/10' : 'col-span-1'}
                 `}
               >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 
+                {/* IKONI JA OTSIKKO: Pienennetyt välit ja ikonit desktopissa */}
+                <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                  <div className={`w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center shrink-0 
                     ${isMainStrategy ? 'bg-white/20' : 'bg-emerald-50 text-emerald-600'}`}>
-                    <phase.icon size={20} />
+                    <phase.icon size={18} />
                   </div>
-                  <h3 className="text-[11px] font-black tracking-widest uppercase leading-none">
+                  <h3 className="text-[10px] md:text-[11px] font-black tracking-widest uppercase leading-tight min-w-0">
                     {phase.label}
                   </h3>
                 </div>
@@ -141,7 +142,7 @@ export const StrategyPortal: React.FC<StrategyPortalProps> = ({ onNavigate, user
                   </p>
                 )}
 
-                <div className={`flex items-center gap-2 text-[9px] font-bold uppercase tracking-tighter mb-2 
+                <div className={`flex items-center gap-2 text-[9px] font-bold uppercase tracking-tighter mb-2 
                   ${isMainStrategy ? 'text-emerald-200' : 'text-emerald-600'}`}>
                   {isExpanded ? 'Sulje tiedot' : 'Lue lisää'}
                   <motion.div animate={{ rotate: isExpanded ? 180 : 0 }}>
@@ -191,7 +192,7 @@ export const StrategyPortal: React.FC<StrategyPortalProps> = ({ onNavigate, user
                 </AnimatePresence>
 
                 {!isExpanded && (
-                  <div className="mt-4 flex items-center justify-between pt-2">
+                  <div className="mt-4 flex items-center justify-between pt-2 border-t border-black/[0.03]">
                     <span className={`text-[8px] font-bold uppercase tracking-widest ${isMainStrategy ? 'text-emerald-200' : 'text-slate-300'}`}>Päivitetty</span>
                     <ArrowRight size={14} className={isMainStrategy ? 'text-white' : 'text-emerald-500'} />
                   </div>
