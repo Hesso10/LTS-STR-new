@@ -1026,7 +1026,6 @@ export const PlanBuilder: React.FC<PlanBuilderProps> = ({ portalType, activeSect
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-            </div>
               <div className="flex flex-row md:flex-col flex-wrap justify-center gap-3 md:gap-2 md:pr-8">
                 {expenseBreakdown.map((entry, index) => (
                   <div key={entry.name} className="flex items-center gap-2">
@@ -1037,6 +1036,7 @@ export const PlanBuilder: React.FC<PlanBuilderProps> = ({ portalType, activeSect
               </div>
             </div>
           </div>
+        </div>
 
         {/* Budget Calculator */}
         <div className="space-y-4 md:space-y-6">
@@ -1072,13 +1072,13 @@ export const PlanBuilder: React.FC<PlanBuilderProps> = ({ portalType, activeSect
           </div>
         </div>
 
-        {/* Investments Table */}
+        {/* Investments Table with Funding Source */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">INVESTOINNIT</h3>
+            <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">INVESTOINNIT JA RAHOITUS</h3>
             {!isReadOnly && (
               <button 
-                onClick={() => setInvestments([...investments, { id: Math.random().toString(36).substr(2, 9), description: '', amount: 0, year: new Date().getFullYear() }])}
+                onClick={() => setInvestments([...investments, { id: Math.random().toString(36).substr(2, 9), description: '', amount: 0, year: new Date().getFullYear(), sourceOfFunding: '' } as any])}
                 className="text-xs font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 flex items-center gap-2"
               >
                 <Plus size={14} />
@@ -1087,13 +1087,14 @@ export const PlanBuilder: React.FC<PlanBuilderProps> = ({ portalType, activeSect
             )}
           </div>
           <div className="bg-white rounded-[24px] md:rounded-[32px] border border-black/5 shadow-xl overflow-x-auto table-scrollbar">
-            <table className="w-full text-left border-collapse min-w-[600px] md:min-w-full">
+            <table className="w-full text-left border-collapse min-w-[700px] md:min-w-full">
               <thead>
                 <tr className="bg-slate-50 border-b border-black/5">
                   <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('description')}</th>
+                  <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Rahan lähde</th>
                   <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('amountEur')}</th>
                   <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('year')}</th>
-                  {!isReadOnly && <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400"></th>}
+                  {!isReadOnly && <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 w-16"></th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/5">
@@ -1107,6 +1108,16 @@ export const PlanBuilder: React.FC<PlanBuilderProps> = ({ portalType, activeSect
                         disabled={isReadOnly}
                         className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 placeholder:text-slate-200 text-sm md:text-base"
                         placeholder="Esim. Konehankinta..."
+                      />
+                    </td>
+                    <td className="px-4 md:px-8 py-4 md:py-6">
+                      <input 
+                        type="text" 
+                        value={(inv as any).sourceOfFunding || ''}
+                        onChange={(e) => setInvestments(investments.map(item => item.id === inv.id ? { ...item, sourceOfFunding: e.target.value } : item))}
+                        disabled={isReadOnly}
+                        className="w-full bg-transparent border-none focus:ring-0 font-medium p-0 placeholder:text-slate-200 text-sm md:text-base"
+                        placeholder="Esim. Oma raha / Laina"
                       />
                     </td>
                     <td className="px-4 md:px-8 py-4 md:py-6">
@@ -1141,7 +1152,7 @@ export const PlanBuilder: React.FC<PlanBuilderProps> = ({ portalType, activeSect
                 ))}
                 {investments.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 md:px-8 py-12 text-center text-slate-300 font-medium italic">
+                    <td colSpan={5} className="px-4 md:px-8 py-12 text-center text-slate-300 font-medium italic">
                       {t('noInvestmentsListed')}
                     </td>
                   </tr>
@@ -1149,7 +1160,7 @@ export const PlanBuilder: React.FC<PlanBuilderProps> = ({ portalType, activeSect
               </tbody>
               <tfoot>
                 <tr className="bg-slate-900 text-white">
-                  <td colSpan={1} className="px-4 md:px-8 py-4 md:py-6 font-black uppercase tracking-widest text-[10px] md:text-xs">{t('totalInvestments')}</td>
+                  <td colSpan={2} className="px-4 md:px-8 py-4 md:py-6 font-black uppercase tracking-widest text-[10px] md:text-xs">{t('totalInvestments')}</td>
                   <td colSpan={3} className="px-4 md:px-8 py-4 md:py-6 font-black text-lg md:text-xl">
                     {investments.reduce((acc, inv) => acc + inv.amount, 0).toLocaleString()} €
                   </td>
