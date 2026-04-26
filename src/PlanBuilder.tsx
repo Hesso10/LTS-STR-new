@@ -473,104 +473,132 @@ export const PlanBuilder: React.FC<PlanBuilderProps> = ({ portalType, activeSect
     </button>
   );
 
-  const renderPersonnelWorkspace = () => (
-    <div className="space-y-6 md:space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight uppercase">{t('personnel')}</h2>
-          <p className="text-slate-400 font-medium text-sm md:text-base">{t('definePersonnel')}</p>
-        </div>
-        {!isReadOnly && (
-          <div className="flex flex-wrap gap-3 md:gap-4">
-            <button 
-              onClick={() => setPersonnel([...personnel, { id: Math.random().toString(36).substr(2, 9), role: '', salary: 0, count: 1 }])}
-              className="bg-black text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-lg active:scale-95 w-fit"
-            >
-              <Plus size={20} />
-              <span>{t('addPerson')}</span>
-            </button>
-            {renderSaveButton()}
-          </div>
-        )}
-      </div>
+const renderPersonnelWorkspace = () => {
+    // Lasketaan sivukulukerroin (1.23 = 23% palkan sivukulut)
+    const SIDE_COST_FACTOR = 0.23;
+    const baseMonthlySalaries = personnel.reduce((acc, p) => acc + (p.salary * p.count), 0);
+    const calculatedSideCosts = baseMonthlySalaries * SIDE_COST_FACTOR;
+    const totalWithSideCosts = baseMonthlySalaries + calculatedSideCosts;
 
-      <div className="bg-white rounded-[24px] md:rounded-[32px] border border-black/5 shadow-xl overflow-x-auto table-scrollbar">
-        <table className="w-full text-left border-collapse min-w-[600px] md:min-w-full">
-          <thead>
-            <tr className="bg-slate-50 border-b border-black/5">
-              <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('roleTask')}</th>
-              <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('monthlySalaryEur')}</th>
-              <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('count')}</th>
-              <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('totalEurMonth')}</th>
-              {!isReadOnly && <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400"></th>}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-black/5">
-            {personnel.map((p) => (
-              <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                <td className="px-4 md:px-8 py-4 md:py-6">
-                  <input 
-                    type="text" 
-                    value={p.role}
-                    onChange={(e) => setPersonnel(personnel.map(item => item.id === p.id ? { ...item, role: e.target.value } : item))}
-                    disabled={isReadOnly}
-                    className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 placeholder:text-slate-200 text-sm md:text-base"
-                    placeholder="Esim. Toimitusjohtaja..."
-                  />
-                </td>
-                <td className="px-4 md:px-8 py-4 md:py-6">
-                  <input 
-                    type="number" 
-                    value={p.salary}
-                    onChange={(e) => setPersonnel(personnel.map(item => item.id === p.id ? { ...item, salary: Number(e.target.value) } : item))}
-                    disabled={isReadOnly}
-                    className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 text-sm md:text-base"
-                  />
-                </td>
-                <td className="px-4 md:px-8 py-4 md:py-6">
-                  <input 
-                    type="number" 
-                    value={p.count}
-                    onChange={(e) => setPersonnel(personnel.map(item => item.id === p.id ? { ...item, count: Number(e.target.value) } : item))}
-                    disabled={isReadOnly}
-                    className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 text-sm md:text-base"
-                  />
-                </td>
-                <td className="px-4 md:px-8 py-4 md:py-6 font-black text-indigo-600 text-sm md:text-base">
-                  {(p.salary * p.count).toLocaleString()} €
-                </td>
-                {!isReadOnly && (
-                  <td className="px-4 md:px-8 py-4 md:py-6 text-right">
-                    <button 
-                      onClick={() => setPersonnel(personnel.filter(item => item.id !== p.id))}
-                      className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+    return (
+      <div className="space-y-6 md:space-y-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight uppercase">{t('personnel')}</h2>
+            <p className="text-slate-400 font-medium text-sm md:text-base">{t('definePersonnel')}</p>
+          </div>
+          {!isReadOnly && (
+            <div className="flex flex-wrap gap-3 md:gap-4">
+              <button 
+                onClick={() => setPersonnel([...personnel, { id: Math.random().toString(36).substr(2, 9), role: '', salary: 0, count: 1 }])}
+                className="bg-black text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-lg active:scale-95 w-fit"
+              >
+                <Plus size={20} />
+                <span>{t('addPerson')}</span>
+              </button>
+              {renderSaveButton()}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white rounded-[24px] md:rounded-[32px] border border-black/5 shadow-xl overflow-x-auto table-scrollbar">
+          <table className="w-full text-left border-collapse min-w-[600px] md:min-w-full">
+            <thead>
+              <tr className="bg-slate-50 border-b border-black/5">
+                <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('roleTask')}</th>
+                <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('monthlySalaryEur')}</th>
+                <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('count')}</th>
+                <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('totalEurMonth')}</th>
+                {!isReadOnly && <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400"></th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-black/5">
+              {personnel.map((p) => (
+                <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-4 md:px-8 py-4 md:py-6">
+                    <input 
+                      type="text" 
+                      value={p.role}
+                      onChange={(e) => setPersonnel(personnel.map(item => item.id === p.id ? { ...item, role: e.target.value } : item))}
+                      disabled={isReadOnly}
+                      className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 placeholder:text-slate-200 text-sm md:text-base"
+                      placeholder="Esim. Toimitusjohtaja..."
+                    />
                   </td>
-                )}
-              </tr>
-            ))}
-            {personnel.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-4 md:px-8 py-12 text-center text-slate-300 font-medium italic">
-                  {t('noPersonnelYet')}
+                  <td className="px-4 md:px-8 py-4 md:py-6">
+                    <input 
+                      type="number" 
+                      value={p.salary}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setPersonnel(personnel.map(item => item.id === p.id ? { ...item, salary: Number(e.target.value) } : item))}
+                      disabled={isReadOnly}
+                      className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 text-sm md:text-base"
+                    />
+                  </td>
+                  <td className="px-4 md:px-8 py-4 md:py-6">
+                    <input 
+                      type="number" 
+                      value={p.count}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setPersonnel(personnel.map(item => item.id === p.id ? { ...item, count: Number(e.target.value) } : item))}
+                      disabled={isReadOnly}
+                      className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 text-sm md:text-base"
+                    />
+                  </td>
+                  <td className="px-4 md:px-8 py-4 md:py-6 font-black text-indigo-600 text-sm md:text-base">
+                    {(p.salary * p.count).toLocaleString()} €
+                  </td>
+                  {!isReadOnly && (
+                    <td className="px-4 md:px-8 py-4 md:py-6 text-right">
+                      <button 
+                        onClick={() => setPersonnel(personnel.filter(item => item.id !== p.id))}
+                        className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+              {personnel.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 md:px-8 py-12 text-center text-slate-300 font-medium italic">
+                    {t('noPersonnelYet')}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+            <tfoot>
+              <tr className="bg-slate-50 border-t border-black/5">
+                <td colSpan={3} className="px-4 md:px-8 py-3 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                  Palkan sivukulut (TyEL, vakuutukset ym. ~23%)
+                </td>
+                <td colSpan={2} className="px-4 md:px-8 py-3 font-bold text-slate-900 text-sm">
+                  +{calculatedSideCosts.toLocaleString()} €
                 </td>
               </tr>
-            )}
-          </tbody>
-          <tfoot>
-            <tr className="bg-slate-900 text-white">
-              <td colSpan={3} className="px-4 md:px-8 py-4 md:py-6 font-black uppercase tracking-widest text-[10px] md:text-xs">{t('totalSalaryCostsMonth')}</td>
-              <td colSpan={2} className="px-4 md:px-8 py-4 md:py-6 font-black text-lg md:text-xl">
-                {personnel.reduce((acc, p) => acc + (p.salary * p.count), 0).toLocaleString()} €
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+              <tr className="bg-slate-900 text-white">
+                <td colSpan={3} className="px-4 md:px-8 py-4 md:py-6 font-black uppercase tracking-widest text-[10px] md:text-xs">
+                  Henkilöstökulut yhteensä (sis. sivukulut)
+                </td>
+                <td colSpan={2} className="px-4 md:px-8 py-4 md:py-6 font-black text-lg md:text-xl">
+                  {Math.round(totalWithSideCosts).toLocaleString()} € / kk
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        
+        <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3">
+          <Info size={18} className="text-amber-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-800 leading-relaxed">
+            <strong>Huomautus:</strong> Budjetti laskee automaattisesti palkan päälle n. 23 % sivukuluja. 
+            Tämä on Suomessa realistinen arvio TyEL-maksuista, vakuutuksista ja muista työnantajakuluista.
+          </p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderMarketingWorkspace = () => (
     <div className="space-y-12">
