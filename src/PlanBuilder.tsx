@@ -203,11 +203,17 @@ export const PlanBuilder: React.FC<PlanBuilderProps> = ({ portalType, activeSect
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Global calculations for PrintView and CalculationsWorkspace
+  // Global calculations for PrintView and CalculationsWorkspace (incl. 23% side costs)
+  const SIDE_COST_MULTIPLIER = 1.23;
   const totalRevenue = products.reduce((acc, p) => acc + (p.price * p.volume), 0);
-  const totalPersonnelYear = personnel.reduce((acc, p) => acc + (p.salary * p.count * 12), 0);
+  
+  // Calculate personnel with side costs
+  const baseSalariesYear = personnel.reduce((acc, p) => acc + (p.salary * p.count * 12), 0);
+  const totalPersonnelYear = baseSalariesYear * SIDE_COST_MULTIPLIER;
+  
   const totalMarketingYear = marketing.reduce((acc, m) => acc + (m.monthlyCost * 12), 0);
   const totalAdminYear = admin.reduce((acc, a) => acc + (a.monthlyCost * 12), 0);
+  
   const totalExpenses = totalPersonnelYear + totalMarketingYear + totalAdminYear;
   const ebitda = totalRevenue - totalExpenses;
 
