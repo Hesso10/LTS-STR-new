@@ -184,7 +184,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <React.Fragment key={item.id}>
               <button
                 onClick={() => {
-                  setActiveView(item.id);
+                  setActiveView(item.id === 'OSASUUNNITELMAT' ? 'SALES_MARKETING' : item.id);
                   if (isMobile) setSidebarOpen(false);
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group ${
