@@ -2571,7 +2571,7 @@ const renderPersonnelWorkspace = () => {
       case 'STRATEGIA': return renderStrategyWorkspace();
       case 'YRITYS': return renderCompanyWorkspace();
       case 'CONTRIBUTION': return renderProjectWorkspace();
-      case 'OSASUUNNITELMAT': return renderSubPlansOverview();
+      case 'OSASUUNNITELMAT': return renderMarketingWorkspace();
       case 'YMPÄRISTÖ': return renderEnvironmentWorkspace('EXTERNAL_ENV');
       case 'EXTERNAL_ENV': return renderEnvironmentWorkspace('EXTERNAL_ENV');
       case 'INTERNAL_ENV': return renderEnvironmentWorkspace('INTERNAL_ENV');
