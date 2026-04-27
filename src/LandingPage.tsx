@@ -21,9 +21,10 @@ const AuthorCard = () => {
         
         {/* EDIT YOUR BIO HERE IN GITHUB */}
         <p className="text-sm md:text-base text-slate-500 mb-6 leading-relaxed">
-          Kirjoita tähän lyhyt esittely itsestäsi ja siitä, miksi rakensit tämän sovelluksen. 
-          Esimerkiksi: Olen intohimoinen yrittäjyyden kehittäjä ja haluan auttaa muita 
-          onnistumaan strategisessa suunnittelussa tekoälyn avulla.
+          Johannes Hesso on kirjoittanut lukuisia kirjoja liiketoimintasuunitelmista ja yrityksen liiketoiminnan kehittämisestä sekä toiminut asiantuntija Suomessa 20 vuoden ajan. Suunnitelma.com yhdistää hyväksi koetun LTS- ja strategiamallin Google Vertex llm -mallin kykyyn löytää ajankohtaista markkinadataa ja case-esimerkkejä
+          Suomesta ja maailmalta. Interaktiivnen suunnitelma.com mahdollistaa yrityksen liiketoiminnan suunnittelun ja haastamisen tässä ja nyt valjastamalla julkinen data ja fiksusti sparrattu tekoälymalli avuksesi. 
+          E 
+          .
         </p>
         
         <div className="flex items-center justify-center md:justify-start gap-2 text-indigo-600 font-medium">
