@@ -8,9 +8,18 @@ const AuthorCard = () => {
   return (
     <div className="bg-white p-8 rounded-[32px] border border-black/5 shadow-xl flex flex-col md:flex-row gap-8 items-center h-full">
       <div className="shrink-0">
-        {/* Placeholder for Author Image - Build safe */}
-        <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-indigo-600 flex items-center justify-center border-4 border-white shadow-lg">
-          <span className="text-white text-4xl md:text-5xl font-black">H</span>
+        {/* Profile Image updated to Johannes.jpg */}
+        <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white shadow-lg overflow-hidden bg-slate-100 flex items-center justify-center">
+          <img 
+            src="/Johannes.jpg" 
+            alt="Johannes Hesso"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // Fallback to initial "H" if image fails to load
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.parentElement!.innerHTML = '<span class="text-indigo-600 text-4xl md:text-5xl font-black">H</span>';
+            }}
+          />
         </div>
       </div>
       <div className="flex-1 text-center md:text-left">
@@ -19,12 +28,10 @@ const AuthorCard = () => {
         {/* NAME UPDATED TO HESSO */}
         <h3 className="text-2xl font-bold mb-4">Johannes Hesso</h3> 
         
-        {/* EDIT YOUR BIO HERE IN GITHUB */}
+        {/* BIO TEXT REMAINS IDENTICAL */}
         <p className="text-sm md:text-base text-slate-500 mb-6 leading-relaxed">
           Johannes Hesso on kirjoittanut lukuisia kirjoja liiketoimintasuunnitelmista ja yrityksen liiketoiminnan kehittämisestä sekä toiminut asiantuntija Suomessa 20 vuoden ajan. Suunnitelma.com yhdistää hyväksi koetun LTS- ja strategiamallin Google Vertex Ai RAG -mallin kykyyn löytää ajankohtaista markkinadataa ja case-esimerkkejä
           Suomesta ja maailmalta. Interaktiivnen suunnitelma.com mahdollistaa yrityksen liiketoiminnan suunnittelun ja haastamisen tässä ja nyt valjastamalla julkinen data ja fiksusti sparrattu tekoälymalli avuksesi. 
-       
-      
         </p>
         
         <div className="flex items-center justify-center md:justify-start gap-2 text-indigo-600 font-medium">
