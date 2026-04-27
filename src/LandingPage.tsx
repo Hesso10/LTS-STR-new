@@ -17,14 +17,14 @@ const AuthorCard = () => {
         <span className="text-xs font-semibold text-indigo-500 uppercase tracking-wider mb-2 block">TIETOA TEKIJÄSTÄ</span>
         
         {/* NAME UPDATED TO HESSO */}
-        <h3 className="text-2xl font-bold mb-4">Hesso</h3> 
+        <h3 className="text-2xl font-bold mb-4">Johannes Hesso</h3> 
         
         {/* EDIT YOUR BIO HERE IN GITHUB */}
         <p className="text-sm md:text-base text-slate-500 mb-6 leading-relaxed">
-          Johannes Hesso on kirjoittanut lukuisia kirjoja liiketoimintasuunitelmista ja yrityksen liiketoiminnan kehittämisestä sekä toiminut asiantuntija Suomessa 20 vuoden ajan. Suunnitelma.com yhdistää hyväksi koetun LTS- ja strategiamallin Google Vertex llm -mallin kykyyn löytää ajankohtaista markkinadataa ja case-esimerkkejä
+          Johannes Hesso on kirjoittanut lukuisia kirjoja liiketoimintasuunnitelmista ja yrityksen liiketoiminnan kehittämisestä sekä toiminut asiantuntija Suomessa 20 vuoden ajan. Suunnitelma.com yhdistää hyväksi koetun LTS- ja strategiamallin Google Vertex Ai RAG -mallin kykyyn löytää ajankohtaista markkinadataa ja case-esimerkkejä
           Suomesta ja maailmalta. Interaktiivnen suunnitelma.com mahdollistaa yrityksen liiketoiminnan suunnittelun ja haastamisen tässä ja nyt valjastamalla julkinen data ja fiksusti sparrattu tekoälymalli avuksesi. 
-          E 
-          .
+       
+      
         </p>
         
         <div className="flex items-center justify-center md:justify-start gap-2 text-indigo-600 font-medium">
