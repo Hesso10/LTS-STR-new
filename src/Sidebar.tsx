@@ -162,14 +162,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden bg-white/50 rounded-xl mt-1 px-2"
                   >
-                    <div className="py-2 space-y-2 max-h-40 overflow-y-auto">
+                    <div className="py-2 space-y-1 max-h-40 overflow-y-auto">
                       {invites.length === 0 ? (
                         <p className="text-[10px] text-slate-400 italic p-2 text-center">Ei lähetettyjä kutsuja</p>
                       ) : (
                         invites.map((inv) => (
                           <div key={inv.id} className="p-2 border-b border-black/5 last:border-0">
                             <p className="text-[10px] font-bold truncate text-slate-700">{inv.email}</p>
-                            <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest">{inv.status === 'pending' ? 'Odottaa' : 'Hyväksytty'}</p>
                           </div>
                         ))
                       )}
