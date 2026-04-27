@@ -3,21 +3,27 @@ import { motion } from 'motion/react';
 import { PortalType } from './types';
 import { Layout, Shield, ArrowRight, Play, HelpCircle, ChevronDown, UserCircle } from 'lucide-react';
 
+// --- ADDED IMPORT TO MATCH YOUR ROOT FILE ---
+import JohannesPic from '../Johannes.jpg';
+
 // --- SUB-COMPONENT: Author/About Me Section ---
 const AuthorCard = () => {
   return (
     <div className="bg-white p-8 rounded-[32px] border border-black/5 shadow-xl flex flex-col md:flex-row gap-8 items-center h-full">
       <div className="shrink-0">
-        {/* Profile Image updated to Johannes.jpg */}
+        {/* Profile Image Container */}
         <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white shadow-lg overflow-hidden bg-slate-100 flex items-center justify-center">
           <img 
-            src="/Johannes.jpg" 
+            src={JohannesPic} 
             alt="Johannes Hesso"
             className="w-full h-full object-cover"
             onError={(e) => {
-              // Fallback to initial "H" if image fails to load
+              // Safety fallback: if image fails, show the letter H as before
               e.currentTarget.style.display = 'none';
-              e.currentTarget.parentElement!.innerHTML = '<span class="text-indigo-600 text-4xl md:text-5xl font-black">H</span>';
+              const parent = e.currentTarget.parentElement;
+              if (parent) {
+                parent.innerHTML = '<span class="text-indigo-600 text-4xl md:text-5xl font-black">H</span>';
+              }
             }}
           />
         </div>
@@ -28,7 +34,7 @@ const AuthorCard = () => {
         {/* NAME UPDATED TO HESSO */}
         <h3 className="text-2xl font-bold mb-4">Johannes Hesso</h3> 
         
-        {/* BIO TEXT REMAINS IDENTICAL */}
+        {/* BIO TEXT - IDENTICAL TO SUCCESSFUL BUILD */}
         <p className="text-sm md:text-base text-slate-500 mb-6 leading-relaxed">
           Johannes Hesso on kirjoittanut lukuisia kirjoja liiketoimintasuunnitelmista ja yrityksen liiketoiminnan kehittämisestä sekä toiminut asiantuntija Suomessa 20 vuoden ajan. Suunnitelma.com yhdistää hyväksi koetun LTS- ja strategiamallin Google Vertex Ai RAG -mallin kykyyn löytää ajankohtaista markkinadataa ja case-esimerkkejä
           Suomesta ja maailmalta. Interaktiivnen suunnitelma.com mahdollistaa yrityksen liiketoiminnan suunnittelun ja haastamisen tässä ja nyt valjastamalla julkinen data ja fiksusti sparrattu tekoälymalli avuksesi. 
@@ -43,7 +49,7 @@ const AuthorCard = () => {
   );
 };
 
-// --- SUB-COMPONENT: Q&A Section ---
+// --- SUB-COMPONENT: Q&A Section (Identical) ---
 const FAQItem = ({ question, answer }: { question: string, answer: string }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   return (
@@ -161,9 +167,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectPortal, onDemo
 
         {/* --- INFORMATION & Q&A SECTION --- */}
         <section className="w-full max-w-5xl flex flex-col gap-16 md:gap-24 mb-24 px-4">
-          
           <AuthorCard />
-
           <div className="grid grid-cols-1 md:grid-cols-[1fr,2fr] gap-12 items-start">
             <div className="bg-white/50 p-8 rounded-[32px] border border-white flex md:flex-col items-center md:items-start gap-6 text-center md:text-left h-full">
               <div className="w-16 h-16 shrink-0 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center border-4 border-white shadow-lg">
@@ -190,7 +194,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectPortal, onDemo
             </div>
           </div>
         </section>
-
       </main>
     </div>
   );
