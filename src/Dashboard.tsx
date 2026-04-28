@@ -114,8 +114,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ portalType, onNavigate, us
             <p className="text-slate-500 font-medium leading-relaxed italic text-xs md:text-base">
               {isSTR 
                 ? `Tervetuloa, ${user?.displayName || 'Käyttäjä'}. Strategia on reagointiresepti, joka alkaa analyysillä. Järjestelmä siirtää ympäristön löydökset automaattisesti diagnoosin pohjaksi.`
-                : "Tutustu alla olevien esimerkkien avulla liiketoimintasuunnitelman tekoon. Voit avata LTS:n pääkohdat alla olevista korteista ja voit testata malliprompteilla Aichatin kykyä sparrata liiketoimintasuunnitelman teossa. 
-              Vasemman puoleisesta valikosta löydät kaikki tämän portaalin täytettävät osa-alueet. "}
+                : "Tutustu alla olevien esimerkkien avulla liiketoimintasuunnitelman tekoon. Voit avata LTS:n pääkohdat alla olevista korteista ja voit testata malliprompteilla Aichatin kykyä sparrata liiketoimintasuunnitelman teossa. Vasemman puoleisesta valikosta löydät kaikki tämän portaalin täytettävät osa-alueet. "}
             </p>
           </div>
         </div>
