@@ -56,7 +56,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ portalType, onNavigate, us
           id: 'STRATEGIA', 
           label: '3. STRATEGIA', 
           desc: 'Luo aikaan sidottu ja saavutettavissa oleva tavoite eli Visio.',
-          longDesc: 'Luo Visio ja määritä arvot. Diagnoosi-kohta syntyy automaattisesti toimintaympäristöanalyysin löydöksistä. "Miten"-kohta tarkoittaa kyvykkyyksiä. On kriittistä, että valitsemillasi kohdilla todella reagoidaan diagnoosissa esiin nousseisiin haasteisiin. Nämä kyvykkyydet erilaistavat sinut kilpailijoista.',
+          longDesc: 'Luo visio ja määritä arvot. Diagnoosi-kohta syntyy automaattisesti toimintaympäristöanalyysin löydöksistä. "Miten"-kohta tarkoittaa kyvykkyyksiä. On kriittistä, että valitsemillasi kohdilla todella reagoidaan diagnoosissa esiin nousseisiin haasteisiin. Nämä kyvykkyydet erilaistavat sinut kilpailijoista.',
           aiExamples: [
             'A.) Miten kyvykkyydet ja diagnoosin havainnot liittyvät toisiinsa R.Rumeltin logiikalla havainnollistettuna.',
             'B.) Anna esimerkki miten-kohdasta eli kyvykkyydestä perinteisessä kivijalkalääkäriyrityksessä, jossa haasteena on digitalisoituva asiointi.'
@@ -66,7 +66,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ portalType, onNavigate, us
         { 
           id: 'OSASUUNNITELMAT', 
           label: '4. OSASUUNNITELMAT', 
-          desc: 'Toteuta Miten-kohta Markkinoinnin & myynnin, hallinnon, laskelmien sekä henkilöstön osalta.',
+          desc: 'Toteuta Miten-kohta markkinoinnin & myynnin, hallinnon, laskelmien sekä henkilöstön osalta.',
           longDesc: 'Toteuta Miten-kohta Markkinoinnin & myynnin, hallinnon, laskelmien sekä henkilöstön osalta. Älä listaa vain "jotain -kohtia", vaan tee laatimaasi strategiaa loogisesti toteuttavat selkeät osasuunnitelmat.',
           aiExamples: [
             'A.) Mikä on yhden 2000 €/kk palkansaajan todellinen kulu yritykselle?',
@@ -114,7 +114,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ portalType, onNavigate, us
             <p className="text-slate-500 font-medium leading-relaxed italic text-xs md:text-base">
               {isSTR 
                 ? `Tervetuloa, ${user?.displayName || 'Käyttäjä'}. Strategia on reagointiresepti, joka alkaa analyysillä. Järjestelmä siirtää ympäristön löydökset automaattisesti diagnoosin pohjaksi.`
-                : "Tutustu alla olevien esimerkkien avulla liiketoimintasuunnitelman tekoon niin, että siitä tulee oikeasti hyvä."}
+                : "Tutustu alla olevien esimerkkien avulla liiketoimintasuunnitelman tekoon. Voit avata LTS:n pääkohdat alla olevista korteista ja voit testata malliprompteilla Aichatin kykyä sparrata liiketoimintasuunitelman teossa. Vaemman puoleisesta valikosta löydät kaikki tämän portaalin täytettävät osa-alueet. "}
             </p>
           </div>
         </div>
