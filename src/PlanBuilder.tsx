@@ -55,7 +55,6 @@ import {
 import { auth, db, handleFirestoreError, OperationType } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useLanguage } from './LanguageContext';
-import { AIEditionDropdown } from './AIEditionDropdown';
 
 interface BasicsData {
   companyForm: string;
@@ -1493,7 +1492,7 @@ const renderPersonnelWorkspace = () => {
             
             <div className="space-y-3 md:space-y-4">
               {(strategy.howItems || []).map((item, index) => (
-  <div key={item.id} className="flex gap-2 md:gap-3 group relative"> {/* LISÄTTY 'relative' */}
+                <div key={item.id} className="flex gap-2 md:gap-3 group">
                   <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-emerald-100 text-emerald-700 font-black flex items-center justify-center shrink-0 mt-2 text-xs md:text-base">
                     {index + 1}
                   </div>
@@ -1509,17 +1508,6 @@ const renderPersonnelWorkspace = () => {
                     disabled={isReadOnly}
                     rows={2}
                   ></textarea>
-                  {!isReadOnly && (
-      <AIEditionDropdown 
-        fieldId={`miten_${index + 1}`} 
-        portalType="STRATEGY" 
-        onApply={(val) => {
-          const newItems = [...(strategy.howItems || [])];
-          newItems[index].text = val;
-          setStrategy({ ...strategy, howItems: newItems });
-        }} 
-      />
-    )}
                   {!isReadOnly && (
                     <button 
                       onClick={() => {
