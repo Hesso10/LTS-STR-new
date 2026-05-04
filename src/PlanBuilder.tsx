@@ -1493,7 +1493,7 @@ const renderPersonnelWorkspace = () => {
             
             <div className="space-y-3 md:space-y-4">
               {(strategy.howItems || []).map((item, index) => (
-                <div key={item.id} className="flex gap-2 md:gap-3 group">
+  <div key={item.id} className="flex gap-2 md:gap-3 group relative"> {/* LISÄTTY 'relative' */}
                   <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-emerald-100 text-emerald-700 font-black flex items-center justify-center shrink-0 mt-2 text-xs md:text-base">
                     {index + 1}
                   </div>
