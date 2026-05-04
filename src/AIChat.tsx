@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Bot, Send, Loader2, ShieldCheck, X, Lightbulb, ShieldAlert } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { auth, db } from './firebase'; 
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore'; // Lisätty setDoc
 
 interface AIChatProps {
   onClose?: () => void;
@@ -44,7 +44,6 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
         let redTeamPrompt = "";
 
         if (portalType === 'LTS') {
-          // --- TUUNATTU LTS: NYT NÄKEE KAIKKI KENTÄT ---
           const ltsContext = `
           LIIKETOIMINTASUUNNITELMAN DATA:
           - Liikeidea (Mitä/Miten/Kenelle): ${data.basics?.businessIdeaWhat || ''} / ${data.basics?.businessIdeaHow || ''} / ${data.basics?.businessIdeaForWhom || ''}
@@ -59,17 +58,9 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
           - Toteutussuunnitelma: ${data.implementationPhases?.map((ph: any) => ph.task).join(" -> ") || 'Ei määritelty'}
           `;
 
-          redTeamPrompt = `Olet tiukka mutta rakentava rahoitusasiantuntija ja enkelisijoittaja. Tehtäväsi on arvioida tämän liiketoimintasuunnitelman rahoituskelpoisuutta ja uskottavuutta.
-          
-          Analysoi suunnitelmaa seuraavista kulmista:
-          1. Myynnin realismi: Onko tuotteiden hinnoittelu ja arvioitu volyymi linjassa markkinakuvauksen ja markkinointitoimenpiteiden kanssa?
-          2. Kulurakenteen kestävyys: Riittääkö henkilöstö tavoitteen saavuttamiseen, ja ovatko markkinointi- ja hallintokulut tasapainossa tavoitteen kanssa?
-          3. Sijoittajan riski: Mitkä ovat suunnitelman suurimmat sokeat pisteet (esim. puuttuvat ostajapersoonat tai epämääräinen liikeidea)?
-          
-          Puhu suoraan mutta ammattimaisesti. Lopeta analyysisi AINA listaukseen: "TOP 3 kriittisintä kehityskohdetta rahoituskelpoisuuden varmistamiseksi".\n\n${ltsContext}`;
+          redTeamPrompt = `Olet tiukka mutta rakentava rahoitusasiantuntija ja enkelisijoittaja. Analysoi tämä suunnitelma. ${ltsContext}`;
 
         } else {
-          // --- STR: STRATEGIA- JA LIIKETOIMINTAMALLI-ANALYYSI ---
           const strContext = `
           STRATEGIA-KEHYS:
           - Visio ja Arvot: ${data.strategy?.visionAndValues || 'Ei määritelty'}
@@ -83,13 +74,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
           - Tulot & Kulut: ${data.businessModel?.revenues || 'Ei määritelty'} / ${data.businessModel?.costs || 'Ei määritelty'}
           `;
 
-          redTeamPrompt = `Olet kokenut strategian ja liiketoimintamallien asiantuntija. Arvioi suunnitelmaa etsimällä "punaista lankaa" ja kokonaisvaltaista eheyttä. 
-          Käytä analyysissäsi väljää Strategyzer/Business Model Canvas -logiikkaa ja tarkastele erityisesti:
-          1. Strategista jatkumoa: Vastaavatko valitut toimenpiteet suoraan tunnistettuun nykytilaan?
-          2. Arvolupauksen istuvuutta: Onko arvolupaus linjassa asiakaskohderyhmän ja yrityksen avainresurssien kanssa?
-          3. Mallin toimivuutta: Ovatko liiketoimintamallin palaset (toiminnot, asiakkaat, tulovirrat) keskenään loogisia ja tukeeko malli valittua strategiaa?
-          
-          Haasta ystävällisesti kohdat, joissa malli on ristiriitainen tai liian yleisellä tasolla. Lopeta analyysisi AINA listaukseen: "TOP 3 tärkeintä askelta strategian ja liiketoimintamallin kirkastamiseksi".\n\n${strContext}`;
+          redTeamPrompt = `Olet kokenut strategian ja liiketoimintamallien asiantuntija. Arvioi suunnitelmaa etsimällä "punaista lankaa". ${strContext}`;
         }
 
         await handleSend(redTeamPrompt); 
@@ -141,8 +126,25 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
 
       if (!response.ok) throw new Error('Yhteysvirhe palvelimeen');
       const data = await response.json();
+      
       if (data.sessionId) setSessionId(data.sessionId);
+
+      // --- AI EDITIONIN TALLENNUS FIRESTOREEN ---
+      if (data.aiEdition && data.aiEdition.editions) {
+        try {
+          const suggestionsRef = doc(db, 'users', currentUser.uid, 'aiSuggestions', portalType);
+          await setDoc(suggestionsRef, {
+            suggestions: data.aiEdition.editions,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+        } catch (e) {
+          console.error("Firestore save error (AI Edition):", e);
+        }
+      }
+
+      // Näytetään puhdistettu teksti (ilman JSONia)
       setMessages(prev => [...prev, { role: 'ai', text: data.text }]);
+      
     } catch (err) {
       setMessages(prev => [...prev, { role: 'ai', text: "Pahoittelut, yhteys katkesi. Yritä hetken kuluttua uudelleen." }]);
     } finally {
@@ -174,7 +176,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
         )}
       </div>
 
-      {/* Red Team Nappi hohde-efektillä */}
+      {/* Red Team Nappi */}
       <div className="px-4 py-2 border-b border-slate-700 flex gap-2 overflow-x-auto bg-slate-800/30">
         <button 
           onClick={handleRedTeamChallenge}
