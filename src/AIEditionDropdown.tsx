@@ -1,26 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, X, Check } from 'lucide-react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db, auth } from './firebase';
 
 interface AIEditionDropdownProps {
   fieldId: string;
-  currentValue: string;
+  portalType: 'LTS' | 'STRATEGY'; // Varmistettu oikeat termit
   onApply: (newValue: string) => void;
-  portalType: 'LTS' | 'STR';
 }
 
 export const AIEditionDropdown: React.FC<AIEditionDropdownProps> = ({ 
   fieldId, 
+  portalType,
   onApply 
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [aiValue, setAiValue] = useState<string | null>(null);
 
-  // DUMMYDATA TESTAUKSEEN
-  const dummyData: Record<string, string> = {
-    "miten_1": "Hyödynnetään automatisoitua asiakashankintaprosessia ja 24/7 AI-pohjaista tukea.",
-    "businessIdeaHow": "Tuotamme palvelun täysin digitaalisena SaaS-alustana, hyödyntäen Gemini-tekoälyä."
-  };
+  useEffect(() => {
+    if (!auth.currentUser) return;
+    
+    // Kuunnellaan oikeaa Firestore-polkua (vastaa AIChatin tallennusta)
+    const unsub = onSnapshot(doc(db, 'users', auth.currentUser.uid, 'aiSuggestions', portalType), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        // Etsitään ehdotus listasta fieldId:n perusteella
+        const found = data.suggestions?.find((s: any) => s.fieldId === fieldId);
+        if (found) {
+          setAiValue(found.suggestedText || found.suggestText);
+        }
+      }
+    });
+    return () => unsub();
+  }, [fieldId, portalType]);
 
-  const suggestion = dummyData[fieldId] || "AI Edition: Optimointiehdotus ilmestyy tähän haaston jälkeen.";
+  // JOS AI-arvoa ei löydy, emme näytä koko nappia (tämä poistaa turhat placeholderit)
+  if (!aiValue) return null;
 
   return (
     <div className="absolute top-2 right-2 z-20">
@@ -46,14 +61,14 @@ export const AIEditionDropdown: React.FC<AIEditionDropdownProps> = ({
           
           <div className="bg-indigo-50/50 p-4 rounded-xl mb-4 border border-indigo-50 text-slate-700">
             <p className="text-sm leading-relaxed italic font-medium">
-              "{suggestion}"
+              "{aiValue}"
             </p>
           </div>
 
           <div className="flex gap-2">
             <button
               onClick={() => {
-                onApply(suggestion);
+                onApply(aiValue);
                 setIsOpen(false);
               }}
               className="flex-1 bg-indigo-600 text-white text-[10px] font-black uppercase py-2.5 rounded-xl hover:bg-indigo-700 transition flex items-center justify-center gap-2"
