@@ -55,6 +55,7 @@ import {
 import { auth, db, handleFirestoreError, OperationType } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useLanguage } from './LanguageContext';
+import { AIEditionDropdown } from './AIEditionDropdown';
 
 interface BasicsData {
   companyForm: string;
@@ -1508,6 +1509,17 @@ const renderPersonnelWorkspace = () => {
                     disabled={isReadOnly}
                     rows={2}
                   ></textarea>
+                  {!isReadOnly && (
+      <AIEditionDropdown 
+        fieldId={`miten_${index + 1}`} 
+        portalType="STRATEGY" 
+        onApply={(val) => {
+          const newItems = [...(strategy.howItems || [])];
+          newItems[index].text = val;
+          setStrategy({ ...strategy, howItems: newItems });
+        }} 
+      />
+    )}
                   {!isReadOnly && (
                     <button 
                       onClick={() => {
