@@ -44,10 +44,9 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
         let redTeamPrompt = "";
 
         if (portalType === 'LTS') {
-          // --- TUUNATTU LTS: NYT NÄKEE KAIKKI KENTÄT ---
           const ltsContext = `
           LIIKETOIMINTASUUNNITELMAN DATA:
-          - Liikeidea (Mitä/Miten/Kenelle): ${data.basics?.businessIdeaWhat || ''} / ${data.basics?.businessIdeaHow || ''} / ${data.basics?.businessIdeaForWhom || ''}
+          - Liikeidea: ${data.basics?.businessIdeaWhat || ''} / ${data.basics?.businessIdeaHow || ''} / ${data.basics?.businessIdeaForWhom || ''}
           - Yrityskuvaus: ${data.basics?.companyDescription || 'Ei määritelty'}
           - Markkinan kuvaus: ${data.genericNotes?.marketSize || 'Ei määritelty'}
           - Ostajapersoonat: ${data.buyerPersonas?.map((p: any) => `${p.name}: ${p.description}`).join("; ") || 'Ei määritelty'}
@@ -59,37 +58,22 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
           - Toteutussuunnitelma: ${data.implementationPhases?.map((ph: any) => ph.task).join(" -> ") || 'Ei määritelty'}
           `;
 
-          redTeamPrompt = `Olet tiukka mutta rakentava rahoitusasiantuntija ja enkelisijoittaja. Tehtäväsi on arvioida tämän liiketoimintasuunnitelman rahoituskelpoisuutta ja uskottavuutta.
-          
-          Analysoi suunnitelmaa seuraavista kulmista:
-          1. Myynnin realismi: Onko tuotteiden hinnoittelu ja arvioitu volyymi linjassa markkinakuvauksen ja markkinointitoimenpiteiden kanssa?
-          2. Kulurakenteen kestävyys: Riittääkö henkilöstö tavoitteen saavuttamiseen, ja ovatko markkinointi- ja hallintokulut tasapainossa tavoitteen kanssa?
-          3. Sijoittajan riski: Mitkä ovat suunnitelman suurimmat sokeat pisteet (esim. puuttuvat ostajapersoonat tai epämääräinen liikeidea)?
-          
-          Puhu suoraan mutta ammattimaisesti. Lopeta analyysisi AINA listaukseen: "TOP 3 kriittisintä kehityskohdetta rahoituskelpoisuuden varmistamiseksi".\n\n${ltsContext}`;
+          redTeamPrompt = `Olet tiukka mutta rakentava rahoitusasiantuntija ja enkelisijoittaja. Tehtäväsi on arvioida tämän liiketoimintasuunnitelman rahoituskelpoisuutta ja uskottavuutta. Analysoi suunnitelmaa seuraavista kulmista: 1. Myynnin realismi, 2. Kulurakenteen kestävyys, 3. Sijoittajan riski. Lopeta analyysisi AINA listaukseen: "TOP 3 kriittisintä kehityskohdetta rahoituskelpoisuuden varmistamiseksi".\n\n${ltsContext}`;
 
         } else {
-          // --- STR: STRATEGIA- JA LIIKETOIMINTAMALLI-ANALYYSI ---
           const strContext = `
           STRATEGIA-KEHYS:
           - Visio ja Arvot: ${data.strategy?.visionAndValues || 'Ei määritelty'}
           - Nykytila/Diagnoosi: ${data.strategy?.diagnosis || 'Ei määritelty'}
           - Valitut toimenpiteet: ${data.strategy?.howItems?.map((h: any) => h.text).join(", ") || 'Ei määritelty'}
-          
-          LIIKETOIMINTAMALLI (Business Model):
+          LIIKETOIMINTAMALLI:
           - Arvolupaus: ${data.businessModel?.valueProposition || 'Ei määritelty'}
           - Avaintoiminnot & Resurssit: ${data.businessModel?.keyActivities || 'Ei määritelty'} / ${data.businessModel?.keyResources || 'Ei määritelty'}
           - Asiakkaat & Kanavat: ${data.businessModel?.customers || 'Ei määritelty'} / ${data.businessModel?.channels || 'Ei määritelty'}
           - Tulot & Kulut: ${data.businessModel?.revenues || 'Ei määritelty'} / ${data.businessModel?.costs || 'Ei määritelty'}
           `;
 
-          redTeamPrompt = `Olet kokenut strategian ja liiketoimintamallien asiantuntija. Arvioi suunnitelmaa etsimällä "punaista lankaa" ja kokonaisvaltaista eheyttä. 
-          Käytä analyysissäsi väljää Strategyzer/Business Model Canvas -logiikkaa ja tarkastele erityisesti:
-          1. Strategista jatkumoa: Vastaavatko valitut toimenpiteet suoraan tunnistettuun nykytilaan?
-          2. Arvolupauksen istuvuutta: Onko arvolupaus linjassa asiakaskohderyhmän ja yrityksen avainresurssien kanssa?
-          3. Mallin toimivuutta: Ovatko liiketoimintamallin palaset (toiminnot, asiakkaat, tulovirrat) keskenään loogisia ja tukeeko malli valittua strategiaa?
-          
-          Haasta ystävällisesti kohdat, joissa malli on ristiriitainen tai liian yleisellä tasolla. Lopeta analyysisi AINA listaukseen: "TOP 3 tärkeintä askelta strategian ja liiketoimintamallin kirkastamiseksi".\n\n${strContext}`;
+          redTeamPrompt = `Olet kokenut strategian ja liiketoimintamallien asiantuntija. Arvioi suunnitelmaa etsimällä "punaista lankaa". Tarkastele strategista jatkumoa, arvolupauksen istuvuutta ja mallin toimivuutta. Lopeta analyysisi AINA listaukseen: "TOP 3 tärkeintä askelta strategian ja liiketoimintamallin kirkastamiseksi".\n\n${strContext}`;
         }
 
         await handleSend(redTeamPrompt); 
@@ -115,6 +99,13 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
       return;
     }
 
+    // --- HISTORIA-LEIKKURI JA MUUNNOS ---
+    // Pidetään muistissa vain 10 viimeisintä viestiä suorituskyvyn takia
+    const historyToSend = messages.slice(-10).map(m => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: m.text }]
+    }));
+
     const userMsg = textToSend;
     if (!overrideText) setInput('');
     
@@ -128,6 +119,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           message: userMsg, 
+          history: historyToSend,
           sessionId,
           uid: currentUser.uid
         }),
@@ -174,7 +166,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onClose, portalType = 'LTS' }) =
         )}
       </div>
 
-      {/* Red Team Nappi hohde-efektillä */}
+      {/* Red Team Nappi */}
       <div className="px-4 py-2 border-b border-slate-700 flex gap-2 overflow-x-auto bg-slate-800/30">
         <button 
           onClick={handleRedTeamChallenge}
