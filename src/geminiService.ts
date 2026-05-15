@@ -1,9 +1,17 @@
 import { PortalType } from "./types";
 
+/**
+ * Hakee vastauksen Gemini AI:lta.
+ * @param prompt Käyttäjän uusin viesti
+ * @param portalType Portaalin tyyppi (LTS/STRATEGY)
+ * @param sections Valitut osiot (jos käytössä)
+ * @param history Keskusteluhistoria taulukkona
+ */
 export const getGeminiResponse = async (
   prompt: string, 
   portalType: PortalType, 
-  sections: string[]
+  sections: string[],
+  history: any[] = []
 ) => {
   try {
     const response = await fetch('/api/chat', {
@@ -12,14 +20,15 @@ export const getGeminiResponse = async (
       body: JSON.stringify({
         message: prompt,
         portalType,
-        sections
+        sections,
+        history 
       }),
     });
 
     if (!response.ok) throw new Error("Backend connection failed");
 
     const data = await response.json();
-    return data.text; // This will be the "Blended Summary" from your buckets
+    return data.text;
   } catch (error) {
     console.error('Frontend Error:', error);
     throw error;
