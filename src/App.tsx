@@ -137,7 +137,7 @@ export default function App() {
         to: email,
         message: {
           subject: `Kutsu järjestelmään - ${role}`,
-          html: `<p>Hei ${name}! Sinut on kutsuttu järjestelmään. Kirjaudu tästä: <a href="https://suunnitelma.com">suunnitelma.com</a></p>`
+          html: `<p>Hei ${name}! Sinut on kutsuttu järjestelmään. Klikkaa oheista linkkiä ja valitse LTS- tai STRATEGIA -vaihtoehto sen mukaan, kumpaan sinut on kutsuttu. Paina "Luo tunnus/Kirjaudu sisään" ja sen jälkeen vaalean harmaata "Sait kutsun! Luo tunnus"-nappia. Noudata ohjeita ja pääset järjestelmään. Kun olet sisällä portaalissa, niin kohdassa YLEISNÄKYMÄ voit käydä mallipromptien avulla portaalin kohdat läpi. Täyttämäsi kentät tallentuvat automaattisesti järjestelmään. Kun tuotoksesi on valmis, voit painaa Aichatin "Haasta suunnitelma" -nappia. Saat hyvin sparratun LLM-mallin analyysin tuotoksestasi.  Kirjaudu tästä: <a href="https://suunnitelma.com">suunnitelma.com</a></p>`
         }
       });
       alert("Kutsu lähetetty!");
