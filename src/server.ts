@@ -47,9 +47,25 @@ const safetySettings = [
 
 app.post("/api/chat", async (req, res) => {
   try {
-    const { message, sessionId, history = [], uid } = req.body;
+    let { message, sessionId, history = [], uid } = req.body;
     
     if (!message || !uid) return res.status(400).json({ error: "Tietoja puuttuu" });
+
+    // --- TUPLAVARMISTUS: SIIVOTAAN TYHJÄT JA "EI MÄÄRITELTY" -RIVIT POIS SYÖTTEESTÄ ---
+    if (message.includes("LIIKETOIMINTASUUNNITELMAN DATA:") || message.includes("STRATEGIA-KEHYS:")) {
+      message = message
+        .split("\n")
+        .filter((line: string) => {
+          const trimmed = line.trim();
+          // Suodatetaan pois rivit, jotka loppuvat "Ei määritelty", ovat tyhjiä tai sisältävät pelkkiä tyhjiä arvoja erottimien välissä
+          return !(
+            trimmed.endsWith("Ei määritelty") ||
+            trimmed === "" ||
+            trimmed.match(/:\s*(\/\s*)*$/) // Poistaa esim. "Liikeidea:  /  / "
+          );
+        })
+        .join("\n");
+    }
 
     // --- PUHDISTETAAN HISTORIA VERTEX AI:LLE ---
     const formattedHistory = history.map((msg: any) => ({
@@ -94,7 +110,8 @@ app.post("/api/chat", async (req, res) => {
     const instructionText = `
 ### TURVALLISUUS JA IDENTITEETTI
 - Toimit asiantuntevana suomalaisena liiketoimintastrategina.
-- Analysoi ja haasta portaalin suunnitelmia sivistyneen rahoittajan roolissa.
+- Analysoi ja haasta portaalin suunnitelmia sivistyneen rahoittajan tai akateemisen arvioijan roolissa.
+- Älä kommentoi tai listaa raporttiin kohtia, joita käyttäjä ei ole vielä määritellyt tai täyttänyt.
 LÄHDE-DATA: "${context}"
     `;
 
@@ -113,7 +130,7 @@ LÄHDE-DATA: "${context}"
     const result = await generativeModel.generateContent({
       contents: [
         ...formattedHistory,
-        { role: "user", parts: [{ text: `KÄYTTÄJÄN KYSYMYS: ${message}` }] }
+        { role: "user", parts: [{ text: `KÄYTTÄJÄN KYSYMYS JA DATA:\n${message}` }] }
       ]
     });
 
