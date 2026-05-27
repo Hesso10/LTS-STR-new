@@ -125,13 +125,14 @@ Kun haastat suunnitelmaa (syötteessä "LIIKETOIMINTASUUNNITELMAN DATA:" tai "ST
 
 1. **Visio ja Arvot suhteessa Diagnoosiin:** Tarkista, ohjaavatko määritellyt Visio ja Arvot todella siihen, miten Diagnoosin (toimintaympäristön) ilmiöihin vastataan, vai ovatko ne irrallisia korulauseita.
 2. **Diagnoosin ilmiöt suhteessa Miten-kohdan kyvykkyyksiin:** Osoita paikat, joissa ehdotetut kyvykkyydet ja resurssit eivät kohtaa Diagnoosin luomia todellisia haasteita tai mahdollisuuksia.
-3. **Miten-kohta suhteessa Toteutukseen (LTS: osasuunnitelmat / STR: liiketoimintamalli):** - **LTS (Liiketoimintasuunnitelma):** Haasta sitä, onko "Miten"-kohdan kyvykkyyksille varattu aidot resurssit ja teot osasuunnitelmissa (Markkinointi, Talous, Hallinto, Henkilöstö).
+3. **Miten-kohta suhteessa Toteutukseen (LTS: osasuunnitelmat / STR: liiketoimintamalli):**
+   - **LTS (Liiketoimintasuunnitelma):** Haasta sitä, onko "Miten"-kohdan kyvykkyyksille varattu aidot resurssit ja teot osasuunnitelmissa (Markkinointi, Talous, Hallinto, Henkilöstö).
    - **STR (Strategia):** Haasta sitä, tukeeko ja mahdollistaako valittu **Liiketoimintamalli** (asiakkaat, kanavat, tulot, kulut) "Miten"-kohdan strategisten kyvykkyyksien täyden hyödyntämisen ja suojaako se niitä.
 
 ### VASTAUKSEN RAKENNE (HAASTA SUUNNITELMA)
 Tulosta analyysi täsmälleen tässä muodossa, ilman turhia johdantolöpötyksiä:
 
-- **Huomioita strategisesta jatkumosta (Visio -> Diagnoosi -> Miten):** Nosta esiin 1-2 konkreettista huomiota tai loogista sokeaa pistettä siitä, miten yrityksen suunta (Visio/Arvot) ja toimintaympäristön ilmiöt (Diagnoosi) kohtaavat "Miten"-kohdan kyvykkyyksissä.
+- **Huomioita strategisesta jatkumosta (Visio -> Diagnoosi -> Miten):** Nosta esiin 1-2 konkreettista huomiota tai loogista sokeaa pistettä siitä, miten yrityksen suunta (Visio/Arvot) and toimintaympäristön ilmiöt (Diagnoosi) kohtaavat "Miten"-kohdan kyvykkyyksissä.
 - **Huomioita toteutuksesta ja rakenteesta (Miten -> Loppuosat):** [Jos kyseessä on LTS] Nosta esiin, miten loogisesti kyvykkyydet jalkautuvat osasuunnitelmiin (Markkinointi, Talous, Hallinto, Henkilöstö).
   [Jos kyseessä on STR] Nosta esiin, miten loogisesti kyvykkyydet integroituvat valittuun Liiketoimintamalliin ja sen rakenteisiin (asiakkaat, kanavat, tulot, kulut).
 - **TOP 3 Kysymystä kokonaisuuden kirkastamiseksi:** Esitä 3 suoraa, oivaltavaa ja herättelevää kysymystä, jotka pakottavat käyttäjän perustelemaan ja sitomaan koko ketjun (Visiosta ja Diagnoosista aina Liiketoimintamalliin/Osasuunnitelmiin saakka) ehjäksi kokonaisuudeksi.
@@ -146,7 +147,6 @@ LÄHDE-DATA PDF-TIETOKANNASTA: "${context}"
       safetySettings,
       systemInstruction: {
         role: "system",
-        entered: "system",
         parts: [{ text: instructionText }]
       }
     });
