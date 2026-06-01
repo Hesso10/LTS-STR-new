@@ -187,15 +187,26 @@ LÄHDE-DATA PDF-TIETOKANNASTA: "${context}"
   }
 });
 
+// --- KORJATTU LOPPUOSA STAATTISILLE TIEDOSTOILLE JA PALVELIMEN KÄYNNISTYKSELLE ---
+
 const distPath = path.join(process.cwd(), "dist");
-if (fs.existsSync(distPath)) { app.use(express.static(distPath)); }
+if (fs.existsSync(distPath)) { 
+  app.use(express.static(distPath)); 
+}
+
 app.get("*", (req, res) => {
   if (!req.path.startsWith('/api')) {
     const indexPath = path.join(distPath, "index.html");
-    if (fs.existsSync(indexPath)) res.sendFile(indexPath);
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).send("Index.html not found in dist");
+    }
   }
 });
 
-app.listen(process.env.PORT || 80, () => {
-  console.log(`Server running on port ${process.env.PORT || 80}`);
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
 });
+   
