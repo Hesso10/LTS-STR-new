@@ -118,15 +118,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectPortal, onDemo
             </p>
             <ul className="space-y-2 md:space-y-3 mb-8 md:mb-10 text-xs md:text-sm font-medium text-slate-600">
               <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" /> Interaktiivinen liiketoimintasuunnitelman rakentaja</li>
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" /> Toimintaympäristön analyysi</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" /> Toimintaympäriorientointi / analyysi</li>
               <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" /> Strategia ja osasuunnitelmat</li>
               <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" /> LTS:n tallennus ja analyysi</li>
               <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" /> LLM-malli sparrauskumppanina</li>
             </ul>
             <div className="space-y-3 mt-auto">
+              {/* PAY NOW BUTTON TEMPORARILY HIDDEN
               <button onClick={() => onSelectPortal(PortalType.LTS)} className="w-full bg-indigo-600 text-white py-3 md:py-4 rounded-2xl font-bold text-sm md:text-base flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200">
                 Osta käyttöoikeus <ArrowRight size={18} />
               </button>
+              */}
               <button onClick={() => onDemo(PortalType.LTS)} className="w-full bg-slate-50 text-slate-600 py-3 md:py-4 rounded-2xl font-bold text-sm md:text-base flex items-center justify-center gap-2 hover:bg-slate-100 transition-all">
                 <Play size={16} /> Kokeile demoa
               </button>
@@ -152,9 +154,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectPortal, onDemo
               <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> LLM-malli sparrauskumppanina</li>
             </ul>
             <div className="space-y-3 mt-auto">
+              {/* PAY NOW BUTTON TEMPORARILY HIDDEN
               <button onClick={() => onSelectPortal(PortalType.STRATEGY)} className="w-full bg-emerald-600 text-white py-3 md:py-4 rounded-2xl font-bold text-sm md:text-base flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200">
                 Osta käyttöoikeus <ArrowRight size={18} />
               </button>
+              */}
               <button onClick={() => onDemo(PortalType.STRATEGY)} className="w-full bg-slate-50 text-slate-600 py-3 md:py-4 rounded-2xl font-bold text-sm md:text-base flex items-center justify-center gap-2 hover:bg-slate-100 transition-all">
                 <Play size={16} /> Kokeile demoa
               </button>
