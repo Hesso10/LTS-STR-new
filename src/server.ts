@@ -243,24 +243,25 @@ app.post("/api/analyze", async (req, res) => {
         stepInstruction = "Arvioi projektin vaiheita, aikataulutusta ja toteutussuunnitelmaa. Anna palautetta siitä, ovatko askeleet riittävän konkreettisia ja etenemistahti realistinen.";
         break;
       default:
-        stepInstruction = "Arvioi luonnosta kriittisesti ja anna konkreettisia parannusehdotuksia pallerolistaa hyödyntäen.";
+        stepInstruction = "Arvioi luonnosta kriittisesti ja anna konkreettisia parannesehdotuksia pallerolistaa hyödyntäen.";
         break;
     }
 
     // --- UUSI SUUNNATTU SYSTEM INSTRUCTION VAIN LUONNOSANALYYSILLE ---
     const systemInstructionText = `
-Toimit asiantuntevana suomalaisena liiketoimintastrategina ja sparraajana.
-Tehtäväsi on antaa napakkaa, rohkaisevaa ja erittäin käytännönläheistä palautetta käyttäjän syöttämästä luonnoksesta.
+Toimit asiantuntevana, kannustavana ja sparraavana suomalaisena liiketoimintastrategina. 
+Tehtäväsi on antaa napakkaa, asiantuntevaa ja erittäin käytännönläheistä palautetta käyttäjän syöttämästä luonnoksesta.
 
-Noudata täsmällisesti tätä osiokohtaista täsmäohjetta:
+Noudata täsmällisesti tätä osiokohtaista täsmäohjetta palautteen sisällössä:
 "${stepInstruction}"
 
-### TIUKAT SÄÄNNÖT VASTAUKSELLE:
-1. Mene SUORAAN asiaan. Älä kirjoita mitään esittelyä, johdantoa tai aloituslausetta.
-2. Älä koskaan toista saamaasi täsmäohjetta tai sen sanoja vastauksessasi. Aloita vastaus suoraan ensimmäisestä bullet-pointista.
-3. Älä selitä auki liiketoiminnan käsitteitä tai oppikirjamääritelmiä. 
-4. Anna palaute tiiviisti ja helposti sulatettavassa muodossa, käyttäen Markdownin bullet-pointteja (pallerolistoja).
-5. Vastaa aina suomen kielellä napakan rohkaisevasti.
+### TIUKAT SÄÄNNÖT VASTAUKSEN SÄVYLLE JA RAKENTEELLE:
+1. Säilytä sparraava, kohtelias ja asiantunteva sävy. Älä käytä töksäyttäviä käskymuotoja (kuten "Täsmennä!" tai "Perustele!"), vaan esitä asiat herättelevinä havaintoina, ehdotuksina ja pohdintoina (esim. "Kannattaa pohtia...", "Luonnosta voisi täydentää miettimällä...").
+2. Älä kirjoita pitkiä johdantolöpötyksiä tai tervehdyksiä. Voit aloittaa yhdellä lyhyellä, kohteliaalla ja eteenpäinvievällä lauseella (esim. "Tässä on muutama strateginen huomio ja jatkokysymys luonnoksesi pohjalta:").
+3. Älä koskaan toista saamaasi sisäistä täsmäohjetta tai sen tarkkoja lauseita vastauksessasi.
+4. Älä selitä auki liiketoiminnan käsitteitä tai oppikirjamääritelmiä. 
+5. Anna varsinainen palaute tiiviisti ja helposti sulatettavassa muodossa, käyttäen Markdownin bullet-pointteja (pallerolistoja).
+6. Vastaa aina suomen kielellä.
     `;
 
     // --- TILATON (STATELESS) GEMINI-KUTSU ---
@@ -310,5 +311,3 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-    
