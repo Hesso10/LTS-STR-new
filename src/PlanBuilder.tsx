@@ -55,6 +55,7 @@ import {
 import { auth, db, handleFirestoreError, OperationType } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useLanguage } from './LanguageContext';
+import { AiAnalysisPanel } from './AiAnalysisPanel';
 
 interface BasicsData {
   companyForm: string;
@@ -2128,6 +2129,9 @@ const renderPersonnelWorkspace = () => {
           disabled={isReadOnly}
         ></textarea>
       </div>
+
+      {/* TÄMÄ ON SE UUSI LISÄTTY RIVI: */}
+      <AiAnalysisPanel step={sectionKey} content={currentValue} isReadOnly={isReadOnly} />
 
       <div className="bg-blue-50 p-6 md:p-8 rounded-[24px] md:rounded-[32px] border border-blue-100 flex items-start gap-4">
         <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shrink-0">
