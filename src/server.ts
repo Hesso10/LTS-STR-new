@@ -123,7 +123,7 @@ app.post("/api/chat", async (req, res) => {
 Käyttäjän syöte jäsentyy portaalista riippuen seuraavien pääotsikoiden alle:
 - **PERUSTEET (Vain LTS-portaali):** Sisältää kentät Yritysmuoto, Taustani ja Liikeidea.
 - **TOIMINTAYMPÄRISTÖ (Molemmat portaalit):** Sisältää kentät "Ulkoinen toimintaympäristö" (markkinat, ilmiöt, uhat, mahdollisuudet) ja "Sisäinen toimintaympäristö" (nykytila, omat resurssit, rajoitteet). Nämä kaksi muodostavat strategisen diagnoosin perustan. Älä väitä analyysin puuttuvan, jos näissä on tekstiä.
-- **STRATEGIA (Molemmat portaalit):** Tämä pääotsikko kätkee sisäänsä kentät **Visio**, **Arvot** (ja Arvolupaus) sekä **Miten-kohdan** (kyvykkyydet, resurssit ja avaintoiminnot, joilla toimintaympäristöön vastataan). Tunnista nämä kolme elementtiä STRATEGIA-otsikon alta.
+- **STRATEGIA (Molemmat portaalit):** Tämä pääotsikko kätkee sisäänsä kentät **Visio**, **Arvot** (and Arvolupaus) sekä **Miten-kohdan** (kyvykkyydet, resurssit ja avaintoiminnot, joilla toimintaympäristöön vastataan). Tunnista nämä kolme elementtiä STRATEGIA-otsikon alta.
 - **OSASUUNNITELMAT (Vain LTS-portaali):** Sisältää operatiiviset osat: Markkinointi & myynti, Henkilöstö, Hallinto ja Laskelmat.
 - **LIIKETOIMINTAMALLI (Vain STR-portaali):** Sisältää strategiset rakenteet: Asiakkaat, Kanavat, Tulot ja Kulut.
 
@@ -187,7 +187,105 @@ LÄHDE-DATA PDF-TIETOKANNASTA: "${context}"
   }
 });
 
-// --- KORJATTU LOPPUOSA STAATTISILLE TIEDOSTOILLE JA PALVELIMEN KÄYNNISTYKSELLE ---
+// --- UUSI REITTI: ANALYSOI LUONNOS (STATELESS PIKAPALAUTE) ---
+app.post("/api/analyze", async (req, res) => {
+  try {
+    const { step, content } = req.body;
+    
+    if (!step || !content) {
+      return res.status(400).json({ error: "Vaihe (step) tai sisältö (content) puuttuu." });
+    }
+
+    // --- DYNAAMINEN OHJEISTUS STEP-PARAMETRIN PERUSTEELLA ---
+    let stepInstruction = "";
+
+    switch (step) {
+      case "PERUSTEET":
+      case "businessIdea":
+      case "BUSINESS_IDEA":
+        stepInstruction = "Arvioi liikeidean kirkkautta ja sen osien (Mitä, Miten, Kenelle) loogista yhtenäisyyttä. Anna rakentavaa palautetta siitä, onko kohderyhmä riittävän tarkka.";
+        break;
+      case "COMPANY_FORM":
+        stepInstruction = "Arvioi valittua yritysmuotoa. Huomioi, antaako käyttäjä hyvät perustelut valinnalleen ja sopiiko se suunniteltuun liiketoimintaan.";
+        break;
+      case "BACKGROUND":
+        stepInstruction = "Arvioi käyttäjän taustaa ja osaamista suhteessa liikeideaan. Kerro, mitkä vahvuudet korostuvat ja mitä osaamisalueita kannattaisi mahdollisesti vahvistaa tai ulkoistaa.";
+        break;
+      case "STRATEGIA":
+        stepInstruction = "Arvioi vision, diagnoosin ja toimenpiteiden (Miten) välistä loogista ketjua. Varmista, että toimenpiteet vastaavat suoraan diagnoosissa esiin nostettuihin haasteisiin.";
+        break;
+      case "BUSINESS_MODEL":
+        stepInstruction = "Arvioi liiketoimintamallin (Business Model Canvas) kokonaisuutta. Tarkastele erityisesti arvolupauksen ja asiakassegmenttien välistä suhdetta.";
+        break;
+      case "EXTERNAL_ENV":
+      case "YMPÄRISTÖ":
+        stepInstruction = "Arvioi ulkoisen toimintaympäristön analyysia (mahdollisuudet ja uhat). Auta tunnistamaan, ovatko ilmiöt konkreettisia ja markkinalähtöisiä.";
+        break;
+      case "INTERNAL_ENV":
+        stepInstruction = "Arvioi sisäisen toimintaympäristön analyysia (vahvuudet ja heikkoudet). Arvioi, ovatko ne realistisia ja auttavatko ne yritystä erottumaan.";
+        break;
+      case "PERSONNEL":
+        stepInstruction = "Arvioi henkilöstösuunnitelmaa ja roolituksia. Tarkastele, onko resursointi tasapainossa kaavailtujen kasvutavoitteiden ja operatiivisen toiminnan kanssa.";
+        break;
+      case "SALES_MARKETING":
+        stepInstruction = "Arvioi markkinointi- ja myyntistrategiaa, valittuja kanavia sekä budjetointia. Anna vinkkejä siitä, ovatko kanavavalinnat loogisia ostajapersooniin nähden.";
+        break;
+      case "HALLINTO":
+        stepInstruction = "Arvioi hallinnon, lupien ja kiinteiden kulujen kokonaisuutta. Huomioi, onko jokin kriittinen yrityksen pyörittämiseen liittyvä kulu tai lupa mahdollisesti unohtunut.";
+        break;
+      case "LASKELMAT":
+        stepInstruction = "Analyseeraa koottuja talouslukuja ja budjetin tasapainoa. Huomauta ystävällisesti, jos käyttökate (EBITDA) näyttää pahasti miinusmerkkiseltä tai jos kulurakenne vaikuttaa epärealistisen matalalta tuottoihin nähden.";
+        break;
+      case "TOTEUTUS":
+      case "CONTRIBUTION":
+        stepInstruction = "Arvioi projektin vaiheita, aikataulutusta ja toteutussuunnitelmaa. Anna palautetta siitä, ovatko askeleet riittävän konkreettisia ja etenemistahti realistinen.";
+        break;
+      default:
+        stepInstruction = "Anna rakentavaa, asiantuntevaa ja eteenpäinvievää palautetta tästä suunnitelman osiosta.";
+        break;
+    }
+
+    // --- SYSTEM INSTRUCTION PIKAPALAUTTEELLE ---
+    const systemInstructionText = `
+Toimit asiantuntevana suomalaisena liiketoimintastrategina ja sparraajana.
+Tehtäväsi on antaa napakkaa, rohkaisevaa ja erittäin käytännönläheistä palautetta käyttäjän syöttämästä luonnoksesta.
+
+Noudata täsmällisesti tätä osiokohtaista täsmäohjetta:
+"${stepInstruction}"
+
+### SÄÄNNÖT:
+- Älä koskaan selitä auki liiketoiminnan käsitteitä tai oppikirjamääritelmiä. Mene suoraan asiaan.
+- Anna palaute tiiviisti ja helposti sulatettavassa muodossa, käyttäen Markdownin bullet-pointteja (pallerolistoja).
+- Pidä sävy napakan rohkaisevana ja herättelevänä. Osoita 1-2 selkeää kehityskohdetta tai kysymystä, joilla luonnosta voi parantaa.
+- Vastaa aina suomen kielellä.
+    `;
+
+    // --- TILATON (STATELESS) GEMINI-KUTSU ---
+    const generativeModel = vertexAI.getGenerativeModel({ 
+      model: MODEL_NAME, 
+      generationConfig: { temperature: 0.2, topP: 0.8 },
+      safetySettings,
+      systemInstruction: {
+        role: "system",
+        parts: [{ text: systemInstructionText }]
+      }
+    });
+
+    const result = await generativeModel.generateContent({
+      contents: [{ role: "user", parts: [{ text: `KÄYTTÄJÄN LUONNOS VAIHEESTA [${step}]:\n${content}` }] }]
+    });
+
+    const responseText = result.response.candidates?.[0].content.parts?.[0].text || "Palautteen generointi epäonnistui.";
+
+    res.json({ analysis: responseText });
+
+  } catch (err) {
+    console.error("Analyze API Error:", err);
+    res.status(500).json({ error: "Sisäinen palvelinvirhe analysoinnissa." });
+  }
+});
+
+// --- STAATTISTEN TIEDOSTOJEN JA PALVELIMEN KÄYNNISTYKSEN LOPPUOSA ---
 
 const distPath = path.join(process.cwd(), "dist");
 if (fs.existsSync(distPath)) { 
@@ -209,4 +307,3 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
-   
