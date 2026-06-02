@@ -123,7 +123,7 @@ app.post("/api/chat", async (req, res) => {
 Käyttäjän syöte jäsentyy portaalista riippuen seuraavien pääotsikoiden alle:
 - **PERUSTEET (Vain LTS-portaali):** Sisältää kentät Yritysmuoto, Taustani ja Liikeidea.
 - **TOIMINTAYMPÄRISTÖ (Molemmat portaalit):** Sisältää kentät "Ulkoinen toimintaympäristö" (markkinat, ilmiöt, uhat, mahdollisuudet) ja "Sisäinen toimintaympäristö" (nykytila, omat resurssit, rajoitteet). Nämä kaksi muodostavat strategisen diagnoosin perustan. Älä väitä analyysin puuttuvan, jos näissä on tekstiä.
-- **STRATEGIA (Molemmat portaalit):** Tämä pääotsikko kätkee sisäänsä kentät **Visio**, **Arvot** (and Arvolupaus) sekä **Miten-kohdan** (kyvykkyydet, resurssit ja avaintoiminnot, joilla toimintaympäristöön vastataan). Tunnista nämä kolme elementtiä STRATEGIA-otsikon alta.
+- **STRATEGIA (Molemmat portaalit):** Tämä pääotsikko kätkee sisäänsä kentät **Visio**, **Arvot** (ja Arvolupaus) sekä **Miten-kohdan** (kyvykkyydet, resurssit ja avaintoiminnot, joilla toimintaympäristöön vastataan). Tunnista nämä kolme elementtiä STRATEGIA-otsikon alta.
 - **OSASUUNNITELMAT (Vain LTS-portaali):** Sisältää operatiiviset osat: Markkinointi & myynti, Henkilöstö, Hallinto ja Laskelmat.
 - **LIIKETOIMINTAMALLI (Vain STR-portaali):** Sisältää strategiset rakenteet: Asiakkaat, Kanavat, Tulot ja Kulut.
 
@@ -196,17 +196,19 @@ app.post("/api/analyze", async (req, res) => {
       return res.status(400).json({ error: "Vaihe (step) tai sisältö (content) puuttuu." });
     }
 
-    // --- DYNAAMINEN OHJEISTUS STEP-PARAMETRIN PERUSTEELLA ---
+    // PAKOTETAAN STEP ISOIKSI KIRJAIMIKSI VERTAILUA VARTEN
+    const normalizedStep = step.toUpperCase();
     let stepInstruction = "";
 
-    switch (step) {
+    switch (normalizedStep) {
       case "PERUSTEET":
-      case "businessIdea":
+      case "BUSINESSIDEA":
       case "BUSINESS_IDEA":
         stepInstruction = "Arvioi liikeidean kirkkautta ja sen osien (Mitä, Miten, Kenelle) loogista yhtenäisyyttä. Anna rakentavaa palautetta siitä, onko kohderyhmä riittävän tarkka.";
         break;
       case "COMPANY_FORM":
-        stepInstruction = "Arvioi valittua yritysmuotoa. Huomioi, antaako käyttäjä hyvät perustelut valinnalleen ja sopiiko se suunniteltuun liiketoimintaan.";
+      case "COMPANYFORM":
+        stepInstruction = "Arvioi valittua yritysmuotoa. Huomioi, antaako käyttäjä hyvät perustelut valinnalleen ja sopiiko se suunniteltuun liiketoimintaan. Haasta pohtimaan vastuita ja rahoitusta.";
         break;
       case "BACKGROUND":
         stepInstruction = "Arvioi käyttäjän taustaa ja osaamista suhteessa liikeideaan. Kerro, mitkä vahvuudet korostuvat ja mitä osaamisalueita kannattaisi mahdollisesti vahvistaa tai ulkoistaa.";
@@ -217,6 +219,7 @@ app.post("/api/analyze", async (req, res) => {
       case "BUSINESS_MODEL":
         stepInstruction = "Arvioi liiketoimintamallin (Business Model Canvas) kokonaisuutta. Tarkastele erityisesti arvolupauksen ja asiakassegmenttien välistä suhdetta.";
         break;
+      case "EXTERNAL_ENV":
       case "EXTERNAL_ENV":
       case "YMPÄRISTÖ":
         stepInstruction = "Arvioi ulkoisen toimintaympäristön analyysia (mahdollisuudet ja uhat). Auta tunnistamaan, ovatko ilmiöt konkreettisia ja markkinalähtöisiä.";
@@ -254,7 +257,8 @@ Noudata täsmällisesti tätä osiokohtaista täsmäohjetta:
 "${stepInstruction}"
 
 ### SÄÄNNÖT:
-- Älä koskaan selitä auki liiketoiminnan käsitteitä tai oppikirjamääritelmiä. Mene suoraan asiaan.
+- Mene suoraan asiaan. Älä toista yllä olevaa täsmäohjetta tai sen lauseita vastauksessasi.
+- Älä koskaan selitä auki liiketoiminnan käsitteitä tai oppikirjamääritelmiä. 
 - Anna palaute tiiviisti ja helposti sulatettavassa muodossa, käyttäen Markdownin bullet-pointteja (pallerolistoja).
 - Pidä sävy napakan rohkaisevana ja herättelevänä. Osoita 1-2 selkeää kehityskohdetta tai kysymystä, joilla luonnosta voi parantaa.
 - Vastaa aina suomen kielellä.
