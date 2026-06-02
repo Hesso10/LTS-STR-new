@@ -112,7 +112,7 @@ app.post("/api/chat", async (req, res) => {
       context = searchResponse.answer?.answerText || "";
     } catch (e) { console.error("Search error", e); }
 
-    // --- 3. OHJEISTUS ---
+    // --- 3. OHJEISTUS (ALKUPERÄINEN SYSTEM INSTRUCTION CHATTIIN) ---
     const instructionText = `
 ### TURVALLISUUS JA IDENTITEETTI
 - Toimit asiantuntevana suomalaisena liiketoimintastrategina.
@@ -123,7 +123,7 @@ app.post("/api/chat", async (req, res) => {
 Käyttäjän syöte jäsentyy portaalista riippuen seuraavien pääotsikoiden alle:
 - **PERUSTEET (Vain LTS-portaali):** Sisältää kentät Yritysmuoto, Taustani ja Liikeidea.
 - **TOIMINTAYMPÄRISTÖ (Molemmat portaalit):** Sisältää kentät "Ulkoinen toimintaympäristö" (markkinat, ilmiöt, uhat, mahdollisuudet) ja "Sisäinen toimintaympäristö" (nykytila, omat resurssit, rajoitteet). Nämä kaksi muodostavat strategisen diagnoosin perustan. Älä väitä analyysin puuttuvan, jos näissä on tekstiä.
-- **STRATEGIA (Molemmat portaalit):** Tämä pääotsikko kätkee sisäänsä kentät **Visio**, **Arvot** (ja Arvolupaus) sekä **Miten-kohdan** (kyvykkyydet, resurssit ja avaintoiminnot, joilla toimintaympäristöön vastataan). Tunnista nämä kolme elementtiä STRATEGIA-otsikon alta.
+- **STRATEGIA (Molemmat portaalit):** This main header hides fields **Vision**, **Values** (and Value Proposition) and **How section** (capabilities, resources and key activities). Identify these three elements under the STRATEGIA header.
 - **OSASUUNNITELMAT (Vain LTS-portaali):** Sisältää operatiiviset osat: Markkinointi & myynti, Henkilöstö, Hallinto ja Laskelmat.
 - **LIIKETOIMINTAMALLI (Vain STR-portaali):** Sisältää strategiset rakenteet: Asiakkaat, Kanavat, Tulot ja Kulut.
 
@@ -141,7 +141,7 @@ Kun käyttäjä pyytää haastamaan tai arvioimaan suunnitelmaa (painamalla "Haa
 ### VASTAUKSEN RAKENNE (HAASTA SUUNNITELMA)
 Tulosta analyysi täsmälleen tässä muodossa, ilman turhia johdantolöpötyksiä:
 
-- **Huomioita strategisesta jatkumosta (Visio -> Toimintaympäristö -> Miten):** Nosta esiin 1-2 konkreettista huomiota tai loogista sokeaa pistettä siitä, miten yrityksen suunta (Visio/Arvot) ja toimintaympäristön analyysi (Ulkoinen/Sisäinen) kohtaavat tai jättävät kohtaamatta STRATEGIA-otsikon "Miten"-kohdan kyvykkyyksissä.
+- **Huomioita strategisesta jatkumosta (Visio -> Toimintaympäristö -> Miten):** Nosta esiin 1-2 konkreettista huomiota tai loogista sokeaa pistettä siitä, miten yrityksen suunta (Visio/Arvot) and toimintaympäristön analyysi (Ulkoinen/Sisäinen) kohtaavat tai jättävät kohtaamatta STRATEGIA-otsikon "Miten"-kohdan kyvykkyyksissä.
 - **Huomioita toteutuksesta ja rakenteesta (Miten -> Loppuosat):** [Jos kyseessä on LTS] Nosta esiin, miten loogisesti kyvykkyydet jalkautuvat OSASUUNNITELMIIN (Markkinointi & myynti, Henkilöstö, Hallinto, Laskelmat).
   [Jos kyseessä on STR] Nosta esiin, miten loogisesti kyvykkyydet integroituvat valittuun LIIKETOIMINTAMALLIIN ja sen rakenteisiin (asiakkaat, kanavat, tulot, kulut).
 - **TOP 3 Kysymystä kokonaisuuden kirkastamiseksi:** Esitä 3 suoraa, oivaltavaa ja herättelevää kysymystä, jotka pakottavat käyttäjän perustelemaan ja sitomaan koko ketjun ehjäksi kokonaisuudeksi.
@@ -187,7 +187,7 @@ LÄHDE-DATA PDF-TIETOKANNASTA: "${context}"
   }
 });
 
-// --- UUSI REITTI: ANALYSOI LUONNOS (STATELESS PIKAPALAUTE) ---
+// --- UUSI REITTI: ANALYSOI LUONNOS (STATELESS PIKAPALAUTE NAPPEIHIN) ---
 app.post("/api/analyze", async (req, res) => {
   try {
     const { step, content } = req.body;
@@ -220,7 +220,6 @@ app.post("/api/analyze", async (req, res) => {
         stepInstruction = "Arvioi liiketoimintamallin (Business Model Canvas) kokonaisuutta. Tarkastele erityisesti arvolupauksen ja asiakassegmenttien välistä suhdetta.";
         break;
       case "EXTERNAL_ENV":
-      case "EXTERNAL_ENV":
       case "YMPÄRISTÖ":
         stepInstruction = "Arvioi ulkoisen toimintaympäristön analyysia (mahdollisuudet ja uhat). Auta tunnistamaan, ovatko ilmiöt konkreettisia ja markkinalähtöisiä.";
         break;
@@ -237,18 +236,18 @@ app.post("/api/analyze", async (req, res) => {
         stepInstruction = "Arvioi hallinnon, lupien ja kiinteiden kulujen kokonaisuutta. Huomioi, onko jokin kriittinen yrityksen pyörittämiseen liittyvä kulu tai lupa mahdollisesti unohtunut.";
         break;
       case "LASKELMAT":
-        stepInstruction = "Analyseeraa koottuja talouslukuja ja budjetin tasapainoa. Huomauta ystävällisesti, jos käyttökate (EBITDA) näyttää pahasti miinusmerkkiseltä tai jos kulurakenne vaikuttaa epärealistisen matalalta tuottoihin nähden.";
+        stepInstruction = "Analyseeraa koottuja talouslukuja ja budjetin tasapainoa. Huomauta ystävällisesti, jos käyttökate (EBITDA) näyttää pahasti miinusmerkkielten tai jos kulurakenne vaikuttaa epärealistisen matalalta tuottoihin nähden.";
         break;
       case "TOTEUTUS":
       case "CONTRIBUTION":
         stepInstruction = "Arvioi projektin vaiheita, aikataulutusta ja toteutussuunnitelmaa. Anna palautetta siitä, ovatko askeleet riittävän konkreettisia ja etenemistahti realistinen.";
         break;
       default:
-        stepInstruction = "Anna rakentavaa, asiantuntevaa ja eteenpäinvievää palautetta tästä suunnitelman osiosta.";
+        stepInstruction = "Arvioi luonnosta kriittisesti ja anna konkreettisia parannusehdotuksia pallerolistaa hyödyntäen.";
         break;
     }
 
-    // --- SYSTEM INSTRUCTION PIKAPALAUTTEELLE ---
+    // --- UUSI SUUNNATTU SYSTEM INSTRUCTION VAIN LUONNOSANALYYSILLE ---
     const systemInstructionText = `
 Toimit asiantuntevana suomalaisena liiketoimintastrategina ja sparraajana.
 Tehtäväsi on antaa napakkaa, rohkaisevaa ja erittäin käytännönläheistä palautetta käyttäjän syöttämästä luonnoksesta.
@@ -256,12 +255,12 @@ Tehtäväsi on antaa napakkaa, rohkaisevaa ja erittäin käytännönläheistä p
 Noudata täsmällisesti tätä osiokohtaista täsmäohjetta:
 "${stepInstruction}"
 
-### SÄÄNNÖT:
-- Mene suoraan asiaan. Älä toista yllä olevaa täsmäohjetta tai sen lauseita vastauksessasi.
-- Älä koskaan selitä auki liiketoiminnan käsitteitä tai oppikirjamääritelmiä. 
-- Anna palaute tiiviisti ja helposti sulatettavassa muodossa, käyttäen Markdownin bullet-pointteja (pallerolistoja).
-- Pidä sävy napakan rohkaisevana ja herättelevänä. Osoita 1-2 selkeää kehityskohdetta tai kysymystä, joilla luonnosta voi parantaa.
-- Vastaa aina suomen kielellä.
+### TIUKAT SÄÄNNÖT VASTAUKSELLE:
+1. Mene SUORAAN asiaan. Älä kirjoita mitään esittelyä, johdantoa tai aloituslausetta.
+2. Älä koskaan toista saamaasi täsmäohjetta tai sen sanoja vastauksessasi. Aloita vastaus suoraan ensimmäisestä bullet-pointista.
+3. Älä selitä auki liiketoiminnan käsitteitä tai oppikirjamääritelmiä. 
+4. Anna palaute tiiviisti ja helposti sulatettavassa muodossa, käyttäen Markdownin bullet-pointteja (pallerolistoja).
+5. Vastaa aina suomen kielellä napakan rohkaisevasti.
     `;
 
     // --- TILATON (STATELESS) GEMINI-KUTSU ---
@@ -311,3 +310,5 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+    
