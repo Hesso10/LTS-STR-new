@@ -1594,6 +1594,17 @@ const renderPersonnelWorkspace = () => {
         </div>
       </div>
 
+      {/* TÄMÄ ON SE UUSI LISÄTTY PANEELI LIIKEIDEALLE: */}
+      <AiAnalysisPanel 
+        step="BUSINESS_IDEA" 
+        content={{ 
+          mita: basics.businessIdeaWhat, 
+          miten: basics.businessIdeaHow, 
+          kenelle: basics.businessIdeaForWhom 
+        }} 
+        isReadOnly={isReadOnly} 
+      />
+
       <div className="bg-blue-50 p-6 md:p-8 rounded-[24px] md:rounded-[32px] border border-blue-100 flex items-start gap-4">
         <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shrink-0">
           <Info className="w-4 h-4 md:w-5 md:h-5" />
