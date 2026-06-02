@@ -1619,7 +1619,7 @@ const renderPersonnelWorkspace = () => {
     </div>
   );
 
-  const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
+const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
     const isExternal = type === 'EXTERNAL_ENV';
     const title = isExternal ? t('externalEnv') : t('internalEnv');
     const description = t('defineEnvironment');
@@ -1749,6 +1749,10 @@ const renderPersonnelWorkspace = () => {
             </div>
           </div>
         </div>
+
+        {/* TÄMÄ ON SE REITTIPANEELI, JOKA LÄHETTÄÄ DATAN BACKENDILLE */}
+        <AiAnalysisPanel step={type} content={data} isReadOnly={isReadOnly} />
+
       </div>
     );
   };
