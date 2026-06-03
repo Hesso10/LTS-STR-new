@@ -1021,16 +1021,6 @@ const renderPersonnelWorkspace = () => {
           </tfoot>
         </table>
       </div>
-
-      {/* LISÄTTY AI-PANEELI HALLINTOKULUILLE (KORJATTU TEKSTIMUOTOISEKSI) */}
-      <AiAnalysisPanel 
-        step="HALLINTO" 
-        content={`Vuosittaiset hallintokulut yhteensä: ${(admin || []).reduce((acc, a) => acc + ((a.monthlyCost || 0) * 12), 0).toLocaleString()} €\n\nEritellyt kuluerät:\n${(admin || []).map(a => 
-          `- Kulu-erä: ${a.item || 'Nimetön'} | Kustannus: ${a.monthlyCost || 0} €/kk`
-        ).join('\n')}`} 
-        isReadOnly={isReadOnly} 
-      />
-
     </div>
   );
 
@@ -1248,26 +1238,9 @@ const renderPersonnelWorkspace = () => {
           </div>
         </div>
       </div>
+    );
+  };
 
-      {/* LISÄTTY AI-PANEELI TALOUSLASKELMILLE (KORJATTU MUUTTUJALOGIIKKA) */}
-      <AiAnalysisPanel 
-        step="LASKELMAT" 
-        content={{
-          liikevaihto: `${totalRevenue.toLocaleString()} €`,
-          henkilostokulutVuosi: `${totalPersonnelYear.toLocaleString()} €`,
-          markkinointikulutVuosi: `${totalMarketingYear.toLocaleString()} €`,
-          hallintokulutVuosi: `${totalAdminYear.toLocaleString()} €`,
-          kayttokateEbitda: `${ebitda.toLocaleString()} €`,
-          investoinnit: investments.map(inv => 
-            `- ${inv.description}: ${inv.amount} € (Vuosi: ${inv.year}, Lähde: ${(inv as any).sourceOfFunding || 'Ei määritelty'})`
-          ).join('\n')
-        }} 
-        isReadOnly={isReadOnly} 
-      />
-
-    </div>
-  );
-};
   const renderBusinessModelWorkspace = () => (
     <div className="space-y-6 md:space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -2601,22 +2574,8 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
           </tbody>
         </table>
       </div>
-
-      {/* LISÄTTY AI-PANEELI LTS-PORTAALIN TOTEUTUKSELLE (TOTEUTUS) */}
-      <AiAnalysisPanel 
-        step="TOTEUTUS" 
-        content={{
-          // Mappaa kaikki liiketoimintasuunnitelman toteutusvaiheet, aikataulut ja vastuut tekstiksi Geminille
-          toteutusvaiheet: implementationPhases.map((phase, index) => 
-            `${index + 1}. Tehtävä: ${phase.task || 'Nimetön tehtävä'} | Aikataulu: ${phase.schedule || 'Ei aikataulua'} | Vastuuhenkilö: ${phase.responsible || 'Ei määritelty'} | Status: ${phase.status}`
-          ).join('\n')
-        }} 
-        isReadOnly={isReadOnly} 
-      />
-
     </div>
   );
-};
 
   const renderSubPlansOverview = () => (
     <div className="space-y-8">
