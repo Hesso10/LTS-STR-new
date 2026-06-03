@@ -1021,6 +1021,19 @@ const renderPersonnelWorkspace = () => {
           </tfoot>
         </table>
       </div>
+
+      {/* LISÄTTY AI-PANEELI HALLINTOKULUILLE */}
+      <AiAnalysisPanel 
+        step="HALLINTO" 
+        content={{ 
+          adminExpenses: admin.map(a => 
+            `Kulu-erä: ${a.item || t('unnamed')} | Kustannus: ${a.monthlyCost} €/kk (Vuositasolla: ${a.monthlyCost * 12} €)`
+          ).join('\n'),
+          totalAnnualAdminCost: `${admin.reduce((acc, a) => acc + (a.monthlyCost * 12), 0).toLocaleString()} €`
+        }} 
+        isReadOnly={isReadOnly} 
+      />
+
     </div>
   );
 
@@ -1238,9 +1251,26 @@ const renderPersonnelWorkspace = () => {
           </div>
         </div>
       </div>
-    );
-  };
 
+      {/* LISÄTTY AI-PANEELI TALOUSLASKELMILLE (NUMEERINEN KOOSTE) */}
+      <AiAnalysisPanel 
+        step="LASKELMAT" 
+        content={{
+          liikevaihto: `${totalRevenue.toLocaleString()} €`,
+          henkilostökulutVuosi: `${totalPersonnelYear.toLocaleString()} €`,
+          markkinointikulutVuosi: `${totalMarketingYear.toLocaleString()} €`,
+          hallintokulutVuosi: `${totalAdminYear.toLocaleString()} €`,
+          kayttokateEbitda: `${ebitda.toLocaleString()} €`,
+          investoinnit: investments.map(inv => 
+            `- ${inv.description}: ${inv.amount} € (Vuosi: ${inv.year}, Lähde: ${(inv as any).sourceOfFunding || 'Ei määritelty'})`
+          ).join('\n')
+        }} 
+        isReadOnly={isReadOnly} 
+      />
+
+    </div>
+  );
+};
   const renderBusinessModelWorkspace = () => (
     <div className="space-y-6 md:space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
