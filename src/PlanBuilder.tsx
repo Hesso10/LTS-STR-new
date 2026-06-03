@@ -1252,7 +1252,7 @@ const renderPersonnelWorkspace = () => {
         </div>
       </div>
 
-      {/* LISÄTTY AI-PANEELI TALOUSLASKELMILLE (KORJATTU MUUTTUJALOGIIKKA) */}
+      {/* LISÄTTY AI-PANEELI TALOUSLASKELMILLE (KORJATTU JA SUOJATTU) */}
       <AiAnalysisPanel 
         step="LASKELMAT" 
         content={{
@@ -1261,9 +1261,9 @@ const renderPersonnelWorkspace = () => {
           markkinointikulutVuosi: `${totalMarketingYear.toLocaleString()} €`,
           hallintokulutVuosi: `${totalAdminYear.toLocaleString()} €`,
           kayttokateEbitda: `${ebitda.toLocaleString()} €`,
-          investoinnit: investments.map(inv => 
-            `- ${inv.description}: ${inv.amount} € (Vuosi: ${inv.year}, Lähde: ${(inv as any).sourceOfFunding || 'Ei määritelty'})`
-          ).join('\n')
+          investoinnit: (investments || []).length > 0 
+            ? investments.map(inv => `- ${inv.description || 'Investointi'}: ${inv.amount || 0} € (Vuosi: ${inv.year || ''}, Lähde: ${(inv as any).sourceOfFunding || 'Ei määritelty'})`).join('\n')
+            : 'Ei listattuja investointeja'
         }} 
         isReadOnly={isReadOnly} 
       />
