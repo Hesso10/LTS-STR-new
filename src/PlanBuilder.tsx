@@ -935,94 +935,109 @@ const renderPersonnelWorkspace = () => {
     </div>
   );
 
-  const renderAdminWorkspace = () => (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight uppercase">{t('administration')}</h2>
-          <p className="text-slate-400 font-medium text-sm md:text-base">{t('defineAdministration')}</p>
-        </div>
-        {!isReadOnly && (
-          <div className="flex flex-wrap gap-3 md:gap-4">
-            <button 
-              onClick={() => setAdmin([...admin, { id: Math.random().toString(36).substr(2, 9), item: '', monthlyCost: 0 }])}
-              className="bg-black text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-lg active:scale-95 w-fit"
-            >
-              <Plus size={20} />
-              <span>{t('addExpense')}</span>
-            </button>
-            {renderSaveButton()}
+  const renderAdminWorkspace = () => {
+    return (
+      <div className="space-y-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight uppercase">{t('administration')}</h2>
+            <p className="text-slate-400 font-medium text-sm md:text-base">{t('defineAdministration')}</p>
           </div>
-        )}
-      </div>
+          {!isReadOnly && (
+            <div className="flex flex-wrap gap-3 md:gap-4">
+              <button 
+                onClick={() => setAdmin([...admin, { id: Math.random().toString(36).substr(2, 9), item: '', monthlyCost: 0 }])}
+                className="bg-black text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-lg active:scale-95 w-fit"
+              >
+                <Plus size={20} />
+                <span>{t('addExpense')}</span>
+              </button>
+              {renderSaveButton()}
+            </div>
+          )}
+        </div>
 
-      <div className="bg-white rounded-[24px] md:rounded-[32px] border border-black/5 shadow-xl overflow-x-auto table-scrollbar">
-        <table className="w-full text-left border-collapse min-w-[600px] md:min-w-full">
-          <thead>
-            <tr className="bg-slate-50 border-b border-black/5">
-              <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('expenseItem')}</th>
-              <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('monthlyCostEur')}</th>
-              <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('annualCostEur')}</th>
-              {!isReadOnly && <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400"></th>}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-black/5">
-            {admin.map((a) => (
-              <tr key={a.id} className="hover:bg-slate-50/50 transition-colors">
-                <td className="px-4 md:px-8 py-4 md:py-6">
-                  <input 
-                    type="text" 
-                    value={a.item}
-                    onChange={(e) => setAdmin(admin.map(item => item.id === a.id ? { ...item, item: e.target.value } : item))}
-                    disabled={isReadOnly}
-                    className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 placeholder:text-slate-200 text-sm md:text-base"
-                    placeholder="Esim. Toimitilan vuokra..."
-                  />
-                </td>
-                <td className="px-4 md:px-8 py-4 md:py-6">
-                  <input 
-                    type="number" 
-                    value={a.monthlyCost}
-                    onChange={(e) => setAdmin(admin.map(item => item.id === a.id ? { ...item, monthlyCost: Number(e.target.value) } : item))}
-                    disabled={isReadOnly}
-                    className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 text-sm md:text-base"
-                  />
-                </td>
-                <td className="px-4 md:px-8 py-4 md:py-6 font-black text-indigo-600 text-sm md:text-base">
-                  {(a.monthlyCost * 12).toLocaleString()} €
-                </td>
-                {!isReadOnly && (
-                  <td className="px-4 md:px-8 py-4 md:py-6 text-right">
-                    <button 
-                      onClick={() => setAdmin(admin.filter(item => item.id !== a.id))}
-                      className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+        <div className="bg-white rounded-[24px] md:rounded-[32px] border border-black/5 shadow-xl overflow-x-auto table-scrollbar">
+          <table className="w-full text-left border-collapse min-w-[600px] md:min-w-full">
+            <thead>
+              <tr className="bg-slate-50 border-b border-black/5">
+                <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('expenseItem')}</th>
+                <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('monthlyCostEur')}</th>
+                <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('annualCostEur')}</th>
+                {!isReadOnly && <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400"></th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-black/5">
+              {admin.map((a) => (
+                <tr key={a.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-4 md:px-8 py-4 md:py-6">
+                    <input 
+                      type="text" 
+                      value={a.item}
+                      onChange={(e) => setAdmin(admin.map(item => item.id === a.id ? { ...item, item: e.target.value } : item))}
+                      disabled={isReadOnly}
+                      className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 placeholder:text-slate-200 text-sm md:text-base"
+                      placeholder="Esim. Toimitilan vuokra..."
+                    />
                   </td>
-                )}
-              </tr>
-            ))}
-            {admin.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 md:px-8 py-12 text-center text-slate-300 font-medium italic">
-                  {t('noAdminExpensesYet')}
+                  <td className="px-4 md:px-8 py-4 md:py-6">
+                    <input 
+                      type="number" 
+                      value={a.monthlyCost}
+                      onChange={(e) => setAdmin(admin.map(item => item.id === a.id ? { ...item, monthlyCost: Number(e.target.value) } : item))}
+                      disabled={isReadOnly}
+                      className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 text-sm md:text-base"
+                    />
+                  </td>
+                  <td className="px-4 md:px-8 py-4 md:py-6 font-black text-indigo-600 text-sm md:text-base">
+                    {(a.monthlyCost * 12).toLocaleString()} €
+                  </td>
+                  {!isReadOnly && (
+                    <td className="px-4 md:px-8 py-4 md:py-6 text-right">
+                      <button 
+                        onClick={() => setAdmin(admin.filter(item => item.id !== a.id))}
+                        className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+              {admin.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-4 md:px-8 py-12 text-center text-slate-300 font-medium italic">
+                    {t('noAdminExpensesYet')}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+            <tfoot>
+              <tr className="bg-slate-900 text-white">
+                <td colSpan={2} className="px-4 md:px-8 py-4 md:py-6 font-black uppercase tracking-widest text-[10px] md:text-xs">{t('totalAdminCostsYear')}</td>
+                <td colSpan={2} className="px-4 md:px-8 py-4 md:py-6 font-black text-lg md:text-xl">
+                  {admin.reduce((acc, a) => acc + (a.monthlyCost * 12), 0).toLocaleString()} €
                 </td>
               </tr>
-            )}
-          </tbody>
-          <tfoot>
-            <tr className="bg-slate-900 text-white">
-              <td colSpan={2} className="px-4 md:px-8 py-4 md:py-6 font-black uppercase tracking-widest text-[10px] md:text-xs">{t('totalAdminCostsYear')}</td>
-              <td colSpan={2} className="px-4 md:px-8 py-4 md:py-6 font-black text-lg md:text-xl">
-                {admin.reduce((acc, a) => acc + (a.monthlyCost * 12), 0).toLocaleString()} €
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+            </tfoot>
+          </table>
+        </div>
+
+        {/* LISÄTTY AI-PANEELI HALLINTOKULUILLE (VOITTAVALLA OBJEKTILOGIIKALLA) */}
+        <AiAnalysisPanel 
+          step="HALLINTO" 
+          content={{ 
+            adminExpenses: (admin || []).map(a => 
+              `Kulu-erä: ${a.item || 'Nimetön'} | Kustannus: ${a.monthlyCost || 0} €/kk`
+            ).join('\n'),
+            totalAnnualAdminCost: `${(admin || []).reduce((acc, a) => acc + ((a.monthlyCost || 0) * 12), 0).toLocaleString()} €`
+          }} 
+          isReadOnly={isReadOnly} 
+        />
+
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderCalculationsWorkspace = () => {
     return (
