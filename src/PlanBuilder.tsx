@@ -1248,9 +1248,9 @@ const renderPersonnelWorkspace = () => {
                 </tr>
               </tfoot>
             </table>
-          </div>
-        </div>
-      </div>
+          </div> {/* 1. Sulkee table-scrollbarin */}
+        </div> {/* 2. Sulkee space-y-6 containerin */}
+      </div> {/* 3. Sulkee renderCalculationsWorkspacen pää-divin ensimmäisen puolikkaan (visualisoinnit/laskurit) */}
 
       {/* LISÄTTY AI-PANEELI TALOUSLASKELMILLE (KORJATTU JA SUOJATTU) */}
       <AiAnalysisPanel 
