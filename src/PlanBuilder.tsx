@@ -1542,6 +1542,18 @@ const renderPersonnelWorkspace = () => {
             </div>
           </div>
         </div>
+        
+        {/* LISÄTTY AI-PANEELI STRATEGIALLE */}
+        <AiAnalysisPanel 
+          step="STRATEGIA" 
+          content={{ 
+            visionAndValues: strategy.visionAndValues,
+            diagnosis: strategy.diagnosis,
+            how: strategy.howItems?.map(item => item.text).join('\n')
+          }} 
+          isReadOnly={isReadOnly} 
+        />
+
       </div>
     );
   };
