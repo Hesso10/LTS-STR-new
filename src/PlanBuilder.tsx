@@ -1058,200 +1058,160 @@ const renderPersonnelWorkspace = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis 
-                    dataKey="name" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }}
-                  />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }}
-                    tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-                  />
-                  <Tooltip 
-                    cursor={{ fill: '#f8fafc' }}
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
-                  />
-                  <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
+                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}€`} />
+                  <Tooltip formatter={(value) => [`${Number(value).toLocaleString()} €`]} contentStyle={{ background: '#fff', borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                  <Bar dataKey="Tulot" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Menot" fill="#ef4444" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           <div className="bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] border border-black/5 shadow-xl">
-            <h3 className="text-[10px] md:text-sm font-black uppercase tracking-widest text-slate-400 mb-4 md:mb-6">KULURAKENNE</h3>
-            <div className="h-[250px] md:h-[300px] w-full flex flex-col md:flex-row items-center justify-center gap-4">
-              <div className="flex-1 w-full h-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={expenseBreakdown}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {expenseBreakdown.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={['#ef4444', '#f59e0b', '#6366f1'][index % 3]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex flex-row md:flex-col flex-wrap justify-center gap-3 md:gap-2 md:pr-8">
-                {expenseBreakdown.map((entry, index) => (
-                  <div key={entry.name} className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full" style={{ backgroundColor: ['#ef4444', '#f59e0b', '#6366f1'][index % 3] }}></div>
-                    <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">{entry.name}</span>
-                  </div>
-                ))}
-              </div>
+            <h3 className="text-[10px] md:text-sm font-black uppercase tracking-widest text-slate-400 mb-4 md:mb-6">KUSTANNUSRAKENNE</h3>
+            <div className="h-[250px] md:h-[300px] w-full flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`${Number(value).toLocaleString()} €`]} />
+                  <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
 
-        {/* Budget Calculator */}
-        <div className="space-y-4 md:space-y-6">
-          <h3 className="text-[10px] md:text-sm font-black uppercase tracking-widest text-slate-400">VUOSIBUDJETTI (KOOSTE)</h3>
-          <div className="bg-white rounded-[32px] md:rounded-[40px] border border-black/5 shadow-xl overflow-hidden">
-            <div className="p-6 md:p-8 space-y-3 md:space-y-4">
-              <div className="flex justify-between items-center py-3 md:py-4 border-b border-slate-50">
-                <span className="font-bold text-slate-600 uppercase tracking-wider text-[10px] md:text-xs">Liikevaihto (Myyntitavoitteet)</span>
-                <span className="font-black text-emerald-600 text-sm md:text-base">+{totalRevenue.toLocaleString()} €</span>
-              </div>
-              <div className="flex justify-between items-center py-3 md:py-4 border-b border-slate-50">
-                <span className="font-bold text-slate-600 uppercase tracking-wider text-[10px] md:text-xs">{t('personnelCostsYear')}</span>
-                <span className="font-black text-red-500 text-sm md:text-base">-{totalPersonnelYear.toLocaleString()} €</span>
-              </div>
-              <div className="flex justify-between items-center py-3 md:py-4 border-b border-slate-50">
-                <span className="font-bold text-slate-600 uppercase tracking-wider text-[10px] md:text-xs">{t('marketingCostsYear')}</span>
-                <span className="font-black text-red-500 text-sm md:text-base">-{totalMarketingYear.toLocaleString()} €</span>
-              </div>
-              <div className="flex justify-between items-center py-3 md:py-4 border-b border-slate-50">
-                <span className="font-bold text-slate-600 uppercase tracking-wider text-[10px] md:text-xs">{t('adminCostsYear')}</span>
-                <span className="font-black text-red-500 text-sm md:text-base">-{totalAdminYear.toLocaleString()} €</span>
-              </div>
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center pt-6 md:pt-8 gap-2">
-                <span className="font-black text-slate-900 uppercase tracking-widest text-xs md:text-base">Käyttökate (EBITDA)</span>
-                <span className={`text-2xl md:text-3xl font-black ${ebitda >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                  {ebitda.toLocaleString()} €
-                </span>
-              </div>
-            </div>
-            <div className="bg-slate-900 p-6 text-center">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Laskelmat päivittyvät automaattisesti muiden osioiden perusteella</p>
-            </div>
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="bg-slate-900 text-white p-6 md:p-8 rounded-[24px] md:rounded-[32px] shadow-xl">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{t('totalRevenue')}</p>
+            <p className="text-2xl md:text-3xl font-black text-emerald-400">{totalRevenue.toLocaleString()} €</p>
+          </div>
+          <div className="bg-white p-6 md:p-8 rounded-[24px] md:rounded-[32px] border border-black/5 shadow-xl">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{t('totalExpenses')}</p>
+            <p className="text-2xl md:text-3xl font-black text-red-500">{totalExpenses.toLocaleString()} €</p>
+          </div>
+          <div className="bg-white p-6 md:p-8 rounded-[24px] md:rounded-[32px] border border-black/5 shadow-xl">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{t('ebitda')}</p>
+            <p className={`text-2xl md:text-3xl font-black ${ebitda >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{ebitda.toLocaleString()} €</p>
+          </div>
+          <div className="bg-white p-6 md:p-8 rounded-[24px] md:rounded-[32px] border border-black/5 shadow-xl">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{t('margin')}</p>
+            <p className={`text-2xl md:text-3xl font-black ${ebitdaMargin >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{ebitdaMargin.toFixed(1)} %</p>
           </div>
         </div>
 
-        {/* Investments Table with Funding Source */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">INVESTOINNIT JA RAHOITUS</h3>
+        {/* Investments & Funding Table */}
+        <div className="bg-white rounded-[24px] md:rounded-[32px] border border-black/5 shadow-xl overflow-x-auto table-scrollbar">
+          <div className="p-6 md:p-8 border-b border-black/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-black uppercase tracking-tight">{t('investmentsAndFunding')}</h3>
+              <p className="text-xs text-slate-400 font-medium">{t('planInvestmentsDescription')}</p>
+            </div>
             {!isReadOnly && (
               <button 
-                onClick={() => setInvestments([...investments, { id: Math.random().toString(36).substr(2, 9), description: '', amount: 0, year: new Date().getFullYear(), sourceOfFunding: '' } as any])}
-                className="text-xs font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 flex items-center gap-2"
+                onClick={() => setInvestments([...investments, { id: Math.random().toString(36).substr(2, 9), description: '', amount: 0, year: new Date().getFullYear().toString(), sourceOfFunding: '' }])}
+                className="bg-black text-white px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all text-xs w-fit shadow-md active:scale-95"
               >
-                <Plus size={14} />
-                {t('addInvestment')}
+                <Plus size={16} />
+                <span>{t('addInvestment')}</span>
               </button>
             )}
           </div>
-          <div className="bg-white rounded-[24px] md:rounded-[32px] border border-black/5 shadow-xl overflow-x-auto table-scrollbar">
-            <table className="w-full text-left border-collapse min-w-[700px] md:min-w-full">
-              <thead>
-                <tr className="bg-slate-50 border-b border-black/5">
-                  <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('description')}</th>
-                  <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Rahan lähde</th>
-                  <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('amountEur')}</th>
-                  <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('year')}</th>
-                  {!isReadOnly && <th className="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 w-16"></th>}
+          <table className="w-full text-left border-collapse min-w-[700px] md:min-w-full">
+            <thead>
+              <tr className="bg-slate-50 border-b border-black/5">
+                <th className="px-6 md:px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('investmentTarget')}</th>
+                <th className="px-6 md:px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('amountEur')}</th>
+                <th className="px-6 md:px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('year')}</th>
+                <th className="px-6 md:px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">{t('fundingSource')}</th>
+                {!isReadOnly && <th className="px-6 md:px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400"></th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-black/5">
+              {investments.map((inv) => (
+                <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-6 md:px-8 py-4">
+                    <input 
+                      type="text" 
+                      value={inv.description}
+                      onChange={(e) => setInvestments(investments.map(item => item.id === inv.id ? { ...item, description: e.target.value } : item))}
+                      disabled={isReadOnly}
+                      className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 placeholder:text-slate-200 text-sm"
+                      placeholder="Esim. Koneet ja kalusto..."
+                    />
+                  </td>
+                  <td className="px-6 md:px-8 py-4">
+                    <input 
+                      type="number" 
+                      value={inv.amount}
+                      onChange={(e) => setInvestments(investments.map(item => item.id === inv.id ? { ...item, amount: Number(e.target.value) } : item))}
+                      disabled={isReadOnly}
+                      className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 text-sm"
+                    />
+                  </td>
+                  <td className="px-6 md:px-8 py-4">
+                    <input 
+                      type="text" 
+                      value={inv.year}
+                      onChange={(e) => setInvestments(investments.map(item => item.id === inv.id ? { ...item, year: e.target.value } : item))}
+                      disabled={isReadOnly}
+                      className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 text-sm"
+                    />
+                  </td>
+                  <td className="px-6 md:px-8 py-4">
+                    <input 
+                      type="text" 
+                      value={(inv as any).sourceOfFunding || ''}
+                      onChange={(e) => setInvestments(investments.map(item => item.id === inv.id ? { ...item, sourceOfFunding: e.target.value } as any : item))}
+                      disabled={isReadOnly}
+                      className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 placeholder:text-slate-200 text-sm"
+                      placeholder="Esim. Pankkilaina, omarahoitus..."
+                    />
+                  </td>
+                  {!isReadOnly && (
+                    <td className="px-6 md:px-8 py-4 text-right">
+                      <button 
+                        onClick={() => setInvestments(investments.filter(item => item.id !== inv.id))}
+                        className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  )}
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-black/5">
-                {investments.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-4 md:px-8 py-4 md:py-6">
-                      <input 
-                        type="text" 
-                        value={inv.description}
-                        onChange={(e) => setInvestments(investments.map(item => item.id === inv.id ? { ...item, description: e.target.value } : item))}
-                        disabled={isReadOnly}
-                        className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 placeholder:text-slate-200 text-sm md:text-base"
-                        placeholder="Esim. Konehankinta..."
-                      />
-                    </td>
-                    <td className="px-4 md:px-8 py-4 md:py-6">
-                      <input 
-                        type="text" 
-                        value={(inv as any).sourceOfFunding || ''}
-                        onChange={(e) => setInvestments(investments.map(item => item.id === inv.id ? { ...item, sourceOfFunding: e.target.value } : item))}
-                        disabled={isReadOnly}
-                        className="w-full bg-transparent border-none focus:ring-0 font-medium p-0 placeholder:text-slate-200 text-sm md:text-base"
-                        placeholder="Esim. Oma raha / Laina"
-                      />
-                    </td>
-                    <td className="px-4 md:px-8 py-4 md:py-6">
-                      <input 
-                        type="number" 
-                        value={inv.amount}
-                        onChange={(e) => setInvestments(investments.map(item => item.id === inv.id ? { ...item, amount: Number(e.target.value) } : item))}
-                        disabled={isReadOnly}
-                        className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 text-sm md:text-base"
-                      />
-                    </td>
-                    <td className="px-4 md:px-8 py-4 md:py-6">
-                      <input 
-                        type="number" 
-                        value={inv.year}
-                        onChange={(e) => setInvestments(investments.map(item => item.id === inv.id ? { ...item, year: Number(e.target.value) } : item))}
-                        disabled={isReadOnly}
-                        className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 text-sm md:text-base"
-                      />
-                    </td>
-                    {!isReadOnly && (
-                      <td className="px-4 md:px-8 py-4 md:py-6 text-right">
-                        <button 
-                          onClick={() => setInvestments(investments.filter(item => item.id !== inv.id))}
-                          className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-                {investments.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-4 md:px-8 py-12 text-center text-slate-300 font-medium italic">
-                      {t('noInvestmentsListed')}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-              <tfoot>
-                <tr className="bg-slate-900 text-white">
-                  <td colSpan={2} className="px-4 md:px-8 py-4 md:py-6 font-black uppercase tracking-widest text-[10px] md:text-xs">{t('totalInvestments')}</td>
-                  <td colSpan={3} className="px-4 md:px-8 py-4 md:py-6 font-black text-lg md:text-xl">
-                    {investments.reduce((acc, inv) => acc + inv.amount, 0).toLocaleString()} €
+              ))}
+              {investments.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 md:px-8 py-12 text-center text-slate-300 font-medium italic">
+                    {t('noInvestmentsYet')}
                   </td>
                 </tr>
-              </tfoot>
-            </table>
-          </div>
+              )}
+            </tbody>
+          </table>
         </div>
+
+        {/* LISÄTTY AI-PANEELI TALOUSLASKELMILLE (VOITTAVALLA OBJEKTILOGIIKALLA) */}
+        <AiAnalysisPanel 
+          step="LASKELMAT" 
+          content={{
+            liikevaihto: `${totalRevenue.toLocaleString()} €`,
+            henkilostokulutVuosi: `${totalPersonnelYear.toLocaleString()} €`,
+            markkinointikulutVuosi: `${totalMarketingYear.toLocaleString()} €`,
+            hallintokulutVuosi: `${totalAdminYear.toLocaleString()} €`,
+            kayttokateEbitda: `${ebitda.toLocaleString()} €`,
+            investoinnit: (investments || []).map(inv => 
+              `Kohde: ${inv.description || 'Investointi'} | Määrä: ${inv.amount || 0} € | Vuosi: ${inv.year || ''} | Lähde: ${(inv as any).sourceOfFunding || 'Ei määritelty'}`
+            ).join('\n')
+          }} 
+          isReadOnly={isReadOnly} />
+
       </div>
     );
   };
