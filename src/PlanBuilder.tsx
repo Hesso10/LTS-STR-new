@@ -2604,8 +2604,22 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
           </tbody>
         </table>
       </div>
+
+      {/* LISÄTTY AI-PANEELI LTS-PORTAALIN TOTEUTUKSELLE (TOTEUTUS) */}
+      <AiAnalysisPanel 
+        step="TOTEUTUS" 
+        content={{
+          // Mappaa kaikki liiketoimintasuunnitelman toteutusvaiheet, aikataulut ja vastuut tekstiksi Geminille
+          toteutusvaiheet: implementationPhases.map((phase, index) => 
+            `${index + 1}. Tehtävä: ${phase.task || 'Nimetön tehtävä'} | Aikataulu: ${phase.schedule || 'Ei aikataulua'} | Vastuuhenkilö: ${phase.responsible || 'Ei määritelty'} | Status: ${phase.status}`
+          ).join('\n')
+        }} 
+        isReadOnly={isReadOnly} 
+      />
+
     </div>
   );
+};
 
   const renderSubPlansOverview = () => (
     <div className="space-y-8">
