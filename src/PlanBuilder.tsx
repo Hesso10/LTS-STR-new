@@ -895,10 +895,29 @@ const renderPersonnelWorkspace = () => {
                   {products.reduce((acc, p) => acc + (p.price * p.volume), 0).toLocaleString()} €
                 </td>
               </tr>
-            </tfoot>
+           </tfoot>
           </table>
         </div>
       </div>
+
+      {/* LISÄTTY AI-PANEELI MARKKINOINNILLE JA MYYNNILLE */}
+      <AiAnalysisPanel 
+        step="SALES_MARKETING" 
+        content={{ 
+          marketSize: genericNotes.marketSize || '',
+          buyerPersonas: (buyerPersonas || []).map(p => 
+            `Nimi: ${p.name}\nKuvaus: ${p.description}\nHaasteet: ${p.painPoints}\nTavoitteet: ${p.goals}`
+          ).join('\n---\n'),
+          marketingExpenses: marketing.map(m => 
+            `${m.activity}: ${m.monthlyCost} €/kk (Vuosi: ${m.monthlyCost * 12} €)`
+          ).join('\n'),
+          salesTargets: products.map(p => 
+            `${p.name}: Hinta ${p.price} €, Määrä ${p.volume} kpl/v (Liikevaihto: ${p.price * p.volume} €)`
+          ).join('\n')
+        }} 
+        isReadOnly={isReadOnly} 
+      />
+
     </div>
   );
 
