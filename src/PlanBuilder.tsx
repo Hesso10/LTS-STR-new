@@ -1566,10 +1566,11 @@ const renderPersonnelWorkspace = () => {
         <AiAnalysisPanel 
           step="STRATEGIA" 
           content={{ 
-            visionAndValues: strategy.visionAndValues,
-            diagnosis: strategy.diagnosis,
-            how: strategy.howItems?.map(item => item.text).join('\n')
-          }} 
+          visionAndValues: strategy.visionAndValues,
+          // Yhdistetään sisäinen ja ulkoinen analyysi diagnoosiksi tekoälyä varten
+          diagnosis: `Sisäinen toimintaympäristö (Vahvuudet ja heikkoudet):\n${strategy.internalAnalysis || ''}\n\nUlkoinen toimintaympäristö (Mahdollisuudet ja uhat):\n${strategy.externalAnalysis || ''}`,
+          how: strategy.howItems?.map(item => item.text).join('\n')
+        }}
           isReadOnly={isReadOnly} 
         />
 
