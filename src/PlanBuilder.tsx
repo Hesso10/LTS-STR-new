@@ -1576,15 +1576,21 @@ const renderPersonnelWorkspace = () => {
           </div>
         </div>
         
-        {/* LISÄTTY AI-PANEELI STRATEGIALLE */}
+        {/* LISÄTTY AI-PANEELI STRATEGIALLE (KORJATTU TOIMINTAYMPÄRISTÖN LOGIIKKA) */}
         <AiAnalysisPanel 
           step="STRATEGIA" 
           content={{ 
-          visionAndValues: strategy.visionAndValues,
-          // Yhdistetään sisäinen ja ulkoinen analyysi diagnoosiksi tekoälyä varten
-          diagnosis: `Sisäinen toimintaympäristö (Vahvuudet ja heikkoudet):\n${strategy.internalAnalysis || ''}\n\nUlkoinen toimintaympäristö (Mahdollisuudet ja uhat):\n${strategy.externalAnalysis || ''}`,
-          how: strategy.howItems?.map(item => item.text).join('\n')
-        }}
+            visionAndValues: strategy.visionAndValues,
+            // Haetaan ilmiöt suoraan oikeista taulukoista (internalEnv ja externalEnv) ja erotellaan tyypin mukaan
+            diagnosis: `SISÄINEN TOIMINTAYMPÄRISTÖ:\n` +
+              `Vahvuudet:\n` + internalEnv.filter(i => i.type === 'positive').map(i => `- ${i.text}`).join('\n') + `\n` +
+              `Heikkoudet:\n` + internalEnv.filter(i => i.type === 'negative').map(i => `- ${i.text}`).join('\n') + `\n\n` +
+              `ULKOINEN TOIMINTAYMPÄRISTÖ:\n` +
+              `Mahdollisuudet:\n` + externalEnv.filter(i => i.type === 'positive').map(i => `- ${i.text}`).join('\n') + `\n` +
+              `Uhat:\n` + externalEnv.filter(i => i.type === 'negative').map(i => `- ${i.text}`).join('\n') + `\n\n` +
+              `Käyttäjän oma diagnoosiyhteenveto:\n${strategy.diagnosis || ''}`,
+            how: strategy.howItems?.map(item => item.text).join('\n')
+          }} 
           isReadOnly={isReadOnly} 
         />
 
