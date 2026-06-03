@@ -1022,14 +1022,14 @@ const renderPersonnelWorkspace = () => {
         </table>
       </div>
 
-      {/* LISÄTTY AI-PANEELI HALLINTOKULUILLE */}
+      {/* LISÄTTY AI-PANEELI HALLINTOKULUILLE (KORJATTU TURVALLISEKSI) */}
       <AiAnalysisPanel 
         step="HALLINTO" 
         content={{ 
-          adminExpenses: admin.map(a => 
-            `Kulu-erä: ${a.item || t('unnamed')} | Kustannus: ${a.monthlyCost} €/kk (Vuositasolla: ${a.monthlyCost * 12} €)`
+          adminExpenses: (admin || []).map(a => 
+            `Kulu-erä: ${a.item || 'Nimetön'} | Kustannus: ${a.monthlyCost || 0} €/kk`
           ).join('\n'),
-          totalAnnualAdminCost: `${admin.reduce((acc, a) => acc + (a.monthlyCost * 12), 0).toLocaleString()} €`
+          totalAnnualAdminCost: `${(admin || []).reduce((acc, a) => acc + ((a.monthlyCost || 0) * 12), 0).toLocaleString()} €`
         }} 
         isReadOnly={isReadOnly} 
       />
