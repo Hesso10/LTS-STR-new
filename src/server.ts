@@ -128,7 +128,7 @@ Käyttäjän syöte jäsentyy portaalista riippuen seuraavien pääotsikoiden al
 - **LIIKETOIMINTAMALLI (Vain STR-portaali):** Sisältää strategiset rakenteet: Asiakkaat, Kanavat, Tulot ja Kulut.
 
 ### HAASTA SUUNNITELMA -TOIMINTAOHJE (KOKO STRATEGINEN JATKUMO)
-Kun käyttäjä pyytää haastamaan tai arvioimaan suunnitelmaa (painamalla "Haasta suunnitelma" -nappia, jolloin syötteessä on "LIIKETOIMINTASUUNNITELMAN DATA:" tai "STRATEGIA-KEHYS:"), sinun on arvioitava koko ketjun loogista jatkuvuutta alusta loppuun:
+Kun käyttäjä pyytää haastamaan tai arvioimaan suunnitelmaa (painamalla "Haasta suunnitelma" -nappia, jolloid syötteessä on "LIIKETOIMINTASUUNNITELMAN DATA:" tai "STRATEGIA-KEHYS:"), sinun on arvioitava koko ketjun loogista jatkuvuutta alusta loppuun:
 - Tyylisi tässä toiminnossa on asiallinen, rakentava ja herättelevä. Älä ole epäkohtelias, mutta älä myöskään myötäile tai kehu suunnitelmaa itsestäänselvyyksillä tai toista syötteen tekstiä suoraan takaisin.
 - Älä koskaan selitä auki liiketoiminnan käsitteitä tai määritelmiä (esim. älä selitä mitä "arvolupaus" tarkoittaa). Mene suoraan asiaan.
 
@@ -236,7 +236,7 @@ app.post("/api/analyze", async (req, res) => {
         stepInstruction = "Arvioi hallinnon, lupien ja kiinteiden kulujen kokonaisuutta. Huomioi, onko jokin kriittinen yrityksen pyörittämiseen liittyvä kulu tai lupa mahdollisesti unohtunut.";
         break;
       case "LASKELMAT":
-        stepInstruction = "Analyseeraa koottuja talouslukuja ja budjetin tasapainoa. Huomauta ystävällisesti, jos käyttökate (EBITDA) näyttää pahasti miinusmerkkiseltä tai jos kulurakenne vaikuttaa epärealistisen matalalta tuottoihin nähden.";
+        stepInstruction = "Analyseeraa koottuja talouslukuja ja budjetin tasapainoa. Huomauta ystävällisesti, jos käyttökate (EBITDA) näyttää pahasti miinusmerkkielten tai jos kulurakenne vaikuttaa epärealistisen matalalta tuottoihin nähden.";
         break;
       case "TOTEUTUS":
       case "CONTRIBUTION":
@@ -247,7 +247,7 @@ app.post("/api/analyze", async (req, res) => {
         break;
     }
 
-    // --- TIUKAT SÄÄNNÖT VASTAUKSEN SÄVYLLE JA RAKENTEELLE: ---
+    // --- UUSI SUUNNATTU SYSTEM INSTRUCTION VAIN LUONNOSANALYYSILLE ---
     const systemInstructionText = `
 Toimit asiantuntevana, kannustavana ja sparraavana suomalaisena liiketoimintastrategina. 
 Tehtäväsi on antaa napakkaa, asiantuntevaa ja erittäin käytännönläheistä palautetta käyttäjän syöttämästä luonnoksesta.
@@ -264,16 +264,6 @@ Noudata täsmällisesti tätä osiokohtaista täsmäohjetta palautteen sisällö
 6. Vastaa aina suomen kielellä.
     `;
 
-    // --- MUOTOILLAAN SYÖTE: JOS CONTENT ON OBJEKTI, MUUTETAAN SE LUETTAVAKSI TEKSTIKSI ---
-    let formattedContent = "";
-    if (typeof content === "object" && content !== null) {
-      formattedContent = Object.entries(content)
-        .map(([key, val]) => `${key.toUpperCase()}:\n${val}`)
-        .join("\n\n");
-    } else {
-      formattedContent = String(content);
-    }
-
     // --- TILATON (STATELESS) GEMINI-KUTSU ---
     const generativeModel = vertexAI.getGenerativeModel({ 
       model: MODEL_NAME, 
@@ -286,7 +276,7 @@ Noudata täsmällisesti tätä osiokohtaista täsmäohjetta palautteen sisällö
     });
 
     const result = await generativeModel.generateContent({
-      contents: [{ role: "user", parts: [{ text: `KÄYTTÄJÄN LUONNOS VAIHEESTA [${step}]:\n\n${formattedContent}` }] }]
+      contents: [{ role: "user", parts: [{ text: `KÄYTTÄJÄN LUONNOS VAIHEESTA [${step}]:\n${content}` }] }]
     });
 
     const responseText = result.response.candidates?.[0].content.parts?.[0].text || "Palautteen generointi epäonnistui.";
