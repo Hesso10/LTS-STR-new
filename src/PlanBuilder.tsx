@@ -1252,12 +1252,12 @@ const renderPersonnelWorkspace = () => {
         </div>
       </div>
 
-      {/* LISÄTTY AI-PANEELI TALOUSLASKELMILLE (NUMEERINEN KOOSTE) */}
+      {/* LISÄTTY AI-PANEELI TALOUSLASKELMILLE (KORJATTU MUUTTUJALOGIIKKA) */}
       <AiAnalysisPanel 
         step="LASKELMAT" 
         content={{
           liikevaihto: `${totalRevenue.toLocaleString()} €`,
-          henkilostökulutVuosi: `${totalPersonnelYear.toLocaleString()} €`,
+          henkilostokulutVuosi: `${totalPersonnelYear.toLocaleString()} €`,
           markkinointikulutVuosi: `${totalMarketingYear.toLocaleString()} €`,
           hallintokulutVuosi: `${totalAdminYear.toLocaleString()} €`,
           kayttokateEbitda: `${ebitda.toLocaleString()} €`,
