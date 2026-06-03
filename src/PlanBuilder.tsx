@@ -603,6 +603,20 @@ const renderPersonnelWorkspace = () => {
             Tämä on Suomessa realistinen arvio TyEL-maksuista, vakuutuksista ja muista työnantajakuluista.
           </p>
         </div>
+
+        {/* LISÄTTY AI-PANEELI HENKILÖSTÖLLE */}
+        <AiAnalysisPanel 
+          step="PERSONNEL" 
+          content={{ 
+            personnelList: personnel.map(p => 
+              `Rooli: ${p.role} | Palkka: ${p.salary} €/kk | Lukumäärä: ${p.count} kpl (Yhteensä: ${p.salary * p.count} €/kk)`
+            ).join('\n'),
+            calculatedSideCosts: `${baseMonthlySalaries * 0.23} €/kk`,
+            totalWithSideCosts: `${baseMonthlySalaries * 1.23} €/kk (Vuositasolla: ${baseMonthlySalaries * 1.23 * 12} €/v)`
+          }} 
+          isReadOnly={isReadOnly} 
+        />
+
       </div>
     );
   };
