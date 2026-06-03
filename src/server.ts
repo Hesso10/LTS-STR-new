@@ -122,7 +122,7 @@ app.post("/api/chat", async (req, res) => {
 ### DATA-KENTTIEN TUNNISTAMINEN SYÖTTEESTÄ
 Käyttäjän syöte jäsentyy portaalista riippuen seuraavien pääotsikoiden alle:
 - **PERUSTEET (Vain LTS-portaali):** Sisältää kentät Yritysmuoto, Taustani ja Liikeidea.
-- **TOIMINTAYMPÄRISTÖ (Molemmat portaalit):** Sisältää kentät "Ulkoinen toimintaympäristö" (markkinat, ilmiöt, uhat, mahdollisuudet) ja "Sisäinen toimintaympäristö" (nykytila, omat resurssit, rajoitteet). Nämä kaksi muodostavat strategisen diagnoosin perustan. Älä väitä analyysin puuttuvan, jos näissä on tekstiä.
+- **TOIMINTAYMPÄRISTÖ (Molemmat portaalit):** Sisältää kentät "Ulkoinen toimintaympäristö" (markkinat, ilmiöt, uhat, mahdollisuudet) and "Sisäinen toimintaympäristö" (nykytila, omat resurssit, rajoitteet). Nämä kaksi muodostavat strategisen diagnoosin perustan. Älä väitä analyysin puuttuvan, jos näissä on tekstiä.
 - **STRATEGIA (Molemmat portaalit):** This main header hides fields **Vision**, **Values** (and Value Proposition) and **How section** (capabilities, resources and key activities). Identify these three elements under the STRATEGIA header.
 - **OSASUUNNITELMAT (Vain LTS-portaali):** Sisältää operatiiviset osat: Markkinointi & myynti, Henkilöstö, Hallinto ja Laskelmat.
 - **LIIKETOIMINTAMALLI (Vain STR-portaali):** Sisältää strategiset rakenteet: Asiakkaat, Kanavat, Tulot ja Kulut.
@@ -236,7 +236,7 @@ app.post("/api/analyze", async (req, res) => {
         stepInstruction = "Arvioi hallinnon, lupien ja kiinteiden kulujen kokonaisuutta. Huomioi, onko jokin kriittinen yrityksen pyörittämiseen liittyvä kulu tai lupa mahdollisesti unohtunut.";
         break;
       case "LASKELMAT":
-        stepInstruction = "Analyseeraa koottuja talouslukuja ja budjetin tasapainoa. Huomauta ystävällisesti, jos käyttökate (EBITDA) näyttää pahasti miinusmerkkielten tai jos kulurakenne vaikuttaa epärealistisen matalalta tuottoihin nähden.";
+        stepInstruction = "Analyseeraa koottuja talouslukuja ja budjetin tasapainoa. Huomauta ystävällisesti, jos käyttökate (EBITDA) näyttää pahasti miinusmerkkiseltä tai jos kulurakenne vaikuttaa epärealistisen matalalta tuottoihin nähden.";
         break;
       case "TOTEUTUS":
       case "CONTRIBUTION":
@@ -247,7 +247,7 @@ app.post("/api/analyze", async (req, res) => {
         break;
     }
 
-    // --- UUSI SUUNNATTU SYSTEM INSTRUCTION VAIN LUONNOSANALYYSILLE ---
+    // --- TIUKAT SÄÄNNÖT VASTAUKSEN SÄVYLLE JA RAKENTEELLE: ---
     const systemInstructionText = `
 Toimit asiantuntevana, kannustavana ja sparraavana suomalaisena liiketoimintastrategina. 
 Tehtäväsi on antaa napakkaa, asiantuntevaa ja erittäin käytännönläheistä palautetta käyttäjän syöttämästä luonnoksesta.
@@ -264,6 +264,16 @@ Noudata täsmällisesti tätä osiokohtaista täsmäohjetta palautteen sisällö
 6. Vastaa aina suomen kielellä.
     `;
 
+    // --- MUOTOILLAAN SYÖTE: JOS CONTENT ON OBJEKTI, MUUTETAAN SE LUETTAVAKSI TEKSTIKSI ---
+    let formattedContent = "";
+    if (typeof content === "object" && content !== null) {
+      formattedContent = Object.entries(content)
+        .map(([key, val]) => `${key.toUpperCase()}:\n${val}`)
+        .join("\n\n");
+    } else {
+      formattedContent = String(content);
+    }
+
     // --- TILATON (STATELESS) GEMINI-KUTSU ---
     const generativeModel = vertexAI.getGenerativeModel({ 
       model: MODEL_NAME, 
@@ -276,7 +286,7 @@ Noudata täsmällisesti tätä osiokohtaista täsmäohjetta palautteen sisällö
     });
 
     const result = await generativeModel.generateContent({
-      contents: [{ role: "user", parts: [{ text: `KÄYTTÄJÄN LUONNOS VAIHEESTA [${step}]:\n${content}` }] }]
+      contents: [{ role: "user", parts: [{ text: `KÄYTTÄJÄN LUONNOS VAIHEESTA [${step}]:\n\n${formattedContent}` }] }]
     });
 
     const responseText = result.response.candidates?.[0].content.parts?.[0].text || "Palautteen generointi epäonnistui.";
@@ -311,3 +321,4 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
+     
