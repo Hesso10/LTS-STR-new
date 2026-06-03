@@ -1252,7 +1252,7 @@ const renderPersonnelWorkspace = () => {
         </div>
       </div>
 
-      {/* LISÄTTY AI-PANEELI TALOUSLASKELMILLE (KORJATTU JA SUOJATTU) */}
+      {/* LISÄTTY AI-PANEELI TALOUSLASKELMILLE (KORJATTU MUUTTUJALOGIIKKA) */}
       <AiAnalysisPanel 
         step="LASKELMAT" 
         content={{
@@ -1261,9 +1261,9 @@ const renderPersonnelWorkspace = () => {
           markkinointikulutVuosi: `${totalMarketingYear.toLocaleString()} €`,
           hallintokulutVuosi: `${totalAdminYear.toLocaleString()} €`,
           kayttokateEbitda: `${ebitda.toLocaleString()} €`,
-          investoinnit: (investments || []).length > 0 
-            ? investments.map(inv => `- ${inv.description || 'Investointi'}: ${inv.amount || 0} € (Vuosi: ${inv.year || ''}, Lähde: ${(inv as any).sourceOfFunding || 'Ei määritelty'})`).join('\n')
-            : 'Ei listattuja investointeja'
+          investoinnit: investments.map(inv => 
+            `- ${inv.description}: ${inv.amount} € (Vuosi: ${inv.year}, Lähde: ${(inv as any).sourceOfFunding || 'Ei määritelty'})`
+          ).join('\n')
         }} 
         isReadOnly={isReadOnly} 
       />
@@ -1271,126 +1271,124 @@ const renderPersonnelWorkspace = () => {
     </div>
   );
 };
- const renderBusinessModelWorkspace = () => {
-    return (
-      <div className="space-y-6 md:space-y-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-black tracking-tight uppercase">{t('businessModel')}</h2>
-            <p className="text-slate-400 font-medium text-sm md:text-base">{t('defineBusinessModel')}</p>
-          </div>
-          {!isReadOnly && renderSaveButton()}
+  const renderBusinessModelWorkspace = () => (
+    <div className="space-y-6 md:space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight uppercase">{t('businessModel')}</h2>
+          <p className="text-slate-400 font-medium text-sm md:text-base">{t('defineBusinessModel')}</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:h-[600px]">
-        {/* Left Column */}
-        <div className="col-span-1 md:col-span-3 flex flex-col gap-4">
-          <div className="flex-1 bg-white p-6 rounded-[24px] md:rounded-[32px] border border-black/5 shadow-lg flex flex-col min-h-[150px]">
-            <div className="flex items-center gap-2 mb-4">
-              <Users size={18} className="text-emerald-500" />
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('keyActivities')}</h3>
-            </div>
-            <textarea 
-              className="flex-1 w-full bg-transparent border-none focus:ring-0 resize-none text-sm font-medium" 
-              placeholder={t('writeHere')} 
-              disabled={isReadOnly}
-              value={businessModel.keyActivities}
-              onChange={(e) => setBusinessModel({ ...businessModel, keyActivities: e.target.value })}
-            />
+        {!isReadOnly && renderSaveButton()}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:h-[600px]">
+      {/* Left Column */}
+      <div className="col-span-1 md:col-span-3 flex flex-col gap-4">
+        <div className="flex-1 bg-white p-6 rounded-[24px] md:rounded-[32px] border border-black/5 shadow-lg flex flex-col min-h-[150px]">
+          <div className="flex items-center gap-2 mb-4">
+            <Users size={18} className="text-emerald-500" />
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('keyActivities')}</h3>
           </div>
-          <div className="flex-1 bg-white p-6 rounded-[24px] md:rounded-[32px] border border-black/5 shadow-lg flex flex-col min-h-[150px]">
-            <div className="flex items-center gap-2 mb-4">
-              <Briefcase size={18} className="text-emerald-500" />
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('keyResources')}</h3>
-            </div>
-            <textarea 
-              className="flex-1 w-full bg-transparent border-none focus:ring-0 resize-none text-sm font-medium" 
-              placeholder={t('writeHere')} 
-              disabled={isReadOnly}
-              value={businessModel.keyResources}
-              onChange={(e) => setBusinessModel({ ...businessModel, keyResources: e.target.value })}
-            />
-          </div>
-        </div>
-
-        {/* Middle Column */}
-        <div className="col-span-1 md:col-span-4 flex flex-col">
-          <div className="flex-1 bg-slate-800 p-6 md:p-8 rounded-[32px] md:rounded-[40px] border border-white/10 shadow-2xl flex flex-col text-white min-h-[300px] gap-6">
-            <div className="flex flex-col flex-1">
-              <div className="flex items-center gap-2 mb-4 md:mb-6">
-                <Target size={20} className="text-indigo-400 md:w-6 md:h-6" />
-                <h3 className="text-[10px] md:text-xs font-black uppercase tracking-widest text-indigo-300">{t('valueProposition')}</h3>
-              </div>
-              <textarea 
-                className="flex-1 w-full bg-transparent border-none focus:ring-0 resize-none text-base md:text-lg font-bold leading-relaxed placeholder:text-white/30 text-white" 
-                placeholder={t('valuePropositionPlaceholder')} 
-                disabled={isReadOnly}
-                value={businessModel.valueProposition}
-                onChange={(e) => setBusinessModel({ ...businessModel, valueProposition: e.target.value })}
-              />
-            </div>
-            
-            <div className="h-px w-full bg-white/10"></div>
-            
-            <div className="flex flex-col flex-1">
-              <div className="flex items-center gap-2 mb-4 md:mb-6">
-                <MessageSquare size={20} className="text-indigo-400 md:w-6 md:h-6" />
-                <h3 className="text-[10px] md:text-xs font-black uppercase tracking-widest text-indigo-300">{t('channels')}</h3>
-              </div>
-              <textarea 
-                className="flex-1 w-full bg-transparent border-none focus:ring-0 resize-none text-sm md:text-base font-medium leading-relaxed placeholder:text-white/30 text-white" 
-                placeholder={t('channelsPlaceholder')} 
-                disabled={isReadOnly}
-                value={businessModel.channels || ''}
-                onChange={(e) => setBusinessModel({ ...businessModel, channels: e.target.value })}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column */}
-        <div className="col-span-1 md:col-span-5 flex flex-col">
-          <div className="flex-1 bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] border border-black/5 shadow-lg flex flex-col min-h-[200px]">
-            <div className="flex items-center gap-2 mb-4 md:mb-6">
-              <Users size={20} className="text-emerald-500 md:w-6 md:h-6" />
-              <h3 className="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400">{t('customers')}</h3>
-            </div>
-            <textarea 
-              className="flex-1 w-full bg-transparent border-none focus:ring-0 resize-none text-base md:text-lg font-bold leading-relaxed placeholder:text-slate-100" 
-              placeholder={t('customersPlaceholder')} 
-              disabled={isReadOnly}
-              value={businessModel.customers}
-              onChange={(e) => setBusinessModel({ ...businessModel, customers: e.target.value })}
-            />
-          </div>
-        </div>
-
-        {/* Bottom Row */}
-        <div className="col-span-1 md:col-span-6 bg-slate-50 p-6 rounded-[24px] md:rounded-[32px] border border-black/5 flex flex-col min-h-[120px]">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">{t('costs')}</h3>
           <textarea 
-            className="w-full bg-transparent border-none focus:ring-0 resize-none text-sm font-medium" 
-            rows={3} 
-            placeholder={t('costsPlaceholder')} 
+            className="flex-1 w-full bg-transparent border-none focus:ring-0 resize-none text-sm font-medium" 
+            placeholder={t('writeHere')} 
             disabled={isReadOnly}
-            value={businessModel.costs}
-            onChange={(e) => setBusinessModel({ ...businessModel, costs: e.target.value })}
+            value={businessModel.keyActivities}
+            onChange={(e) => setBusinessModel({ ...businessModel, keyActivities: e.target.value })}
           />
         </div>
-        <div className="col-span-1 md:col-span-6 bg-slate-50 p-6 rounded-[24px] md:rounded-[32px] border border-black/5 flex flex-col min-h-[120px]">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">{t('revenues')}</h3>
+        <div className="flex-1 bg-white p-6 rounded-[24px] md:rounded-[32px] border border-black/5 shadow-lg flex flex-col min-h-[150px]">
+          <div className="flex items-center gap-2 mb-4">
+            <Briefcase size={18} className="text-emerald-500" />
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('keyResources')}</h3>
+          </div>
           <textarea 
-            className="w-full bg-transparent border-none focus:ring-0 resize-none text-sm font-medium" 
-            rows={3} 
-            placeholder={t('revenuesPlaceholder')} 
+            className="flex-1 w-full bg-transparent border-none focus:ring-0 resize-none text-sm font-medium" 
+            placeholder={t('writeHere')} 
             disabled={isReadOnly}
-            value={businessModel.revenues}
-            onChange={(e) => setBusinessModel({ ...businessModel, revenues: e.target.value })}
+            value={businessModel.keyResources}
+            onChange={(e) => setBusinessModel({ ...businessModel, keyResources: e.target.value })}
           />
         </div>
       </div>
+
+      {/* Middle Column */}
+      <div className="col-span-1 md:col-span-4 flex flex-col">
+        <div className="flex-1 bg-slate-800 p-6 md:p-8 rounded-[32px] md:rounded-[40px] border border-white/10 shadow-2xl flex flex-col text-white min-h-[300px] gap-6">
+          <div className="flex flex-col flex-1">
+            <div className="flex items-center gap-2 mb-4 md:mb-6">
+              <Target size={20} className="text-indigo-400 md:w-6 md:h-6" />
+              <h3 className="text-[10px] md:text-xs font-black uppercase tracking-widest text-indigo-300">{t('valueProposition')}</h3>
+            </div>
+            <textarea 
+              className="flex-1 w-full bg-transparent border-none focus:ring-0 resize-none text-base md:text-lg font-bold leading-relaxed placeholder:text-white/30 text-white" 
+              placeholder={t('valuePropositionPlaceholder')} 
+              disabled={isReadOnly}
+              value={businessModel.valueProposition}
+              onChange={(e) => setBusinessModel({ ...businessModel, valueProposition: e.target.value })}
+            />
+          </div>
+          
+          <div className="h-px w-full bg-white/10"></div>
+          
+          <div className="flex flex-col flex-1">
+            <div className="flex items-center gap-2 mb-4 md:mb-6">
+              <MessageSquare size={20} className="text-indigo-400 md:w-6 md:h-6" />
+              <h3 className="text-[10px] md:text-xs font-black uppercase tracking-widest text-indigo-300">{t('channels')}</h3>
+            </div>
+            <textarea 
+              className="flex-1 w-full bg-transparent border-none focus:ring-0 resize-none text-sm md:text-base font-medium leading-relaxed placeholder:text-white/30 text-white" 
+              placeholder={t('channelsPlaceholder')} 
+              disabled={isReadOnly}
+              value={businessModel.channels || ''}
+              onChange={(e) => setBusinessModel({ ...businessModel, channels: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Right Column */}
+      <div className="col-span-1 md:col-span-5 flex flex-col">
+        <div className="flex-1 bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] border border-black/5 shadow-lg flex flex-col min-h-[200px]">
+          <div className="flex items-center gap-2 mb-4 md:mb-6">
+            <Users size={20} className="text-emerald-500 md:w-6 md:h-6" />
+            <h3 className="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400">{t('customers')}</h3>
+          </div>
+          <textarea 
+            className="flex-1 w-full bg-transparent border-none focus:ring-0 resize-none text-base md:text-lg font-bold leading-relaxed placeholder:text-slate-100" 
+            placeholder={t('customersPlaceholder')} 
+            disabled={isReadOnly}
+            value={businessModel.customers}
+            onChange={(e) => setBusinessModel({ ...businessModel, customers: e.target.value })}
+          />
+        </div>
+      </div>
+
+      {/* Bottom Row */}
+      <div className="col-span-1 md:col-span-6 bg-slate-50 p-6 rounded-[24px] md:rounded-[32px] border border-black/5 flex flex-col min-h-[120px]">
+        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">{t('costs')}</h3>
+        <textarea 
+          className="w-full bg-transparent border-none focus:ring-0 resize-none text-sm font-medium" 
+          rows={3} 
+          placeholder={t('costsPlaceholder')} 
+          disabled={isReadOnly}
+          value={businessModel.costs}
+          onChange={(e) => setBusinessModel({ ...businessModel, costs: e.target.value })}
+        />
+      </div>
+      <div className="col-span-1 md:col-span-6 bg-slate-50 p-6 rounded-[24px] md:rounded-[32px] border border-black/5 flex flex-col min-h-[120px]">
+        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">{t('revenues')}</h3>
+        <textarea 
+          className="w-full bg-transparent border-none focus:ring-0 resize-none text-sm font-medium" 
+          rows={3} 
+          placeholder={t('revenuesPlaceholder')} 
+          disabled={isReadOnly}
+          value={businessModel.revenues}
+          onChange={(e) => setBusinessModel({ ...businessModel, revenues: e.target.value })}
+        />
+      </div>
     </div>
-    );
-  }; 
+    </div>
+  );
 
   const renderDownloadWorkspace = () => (
     <div className="space-y-6 md:space-y-12">
