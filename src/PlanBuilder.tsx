@@ -1022,15 +1022,12 @@ const renderPersonnelWorkspace = () => {
         </table>
       </div>
 
-      {/* LISÄTTY AI-PANEELI HALLINTOKULUILLE (KORJATTU TURVALLISEKSI) */}
+      {/* LISÄTTY AI-PANEELI HALLINTOKULUILLE (KORJATTU TEKSTIMUOTOISEKSI) */}
       <AiAnalysisPanel 
         step="HALLINTO" 
-        content={{ 
-          adminExpenses: (admin || []).map(a => 
-            `Kulu-erä: ${a.item || 'Nimetön'} | Kustannus: ${a.monthlyCost || 0} €/kk`
-          ).join('\n'),
-          totalAnnualAdminCost: `${(admin || []).reduce((acc, a) => acc + ((a.monthlyCost || 0) * 12), 0).toLocaleString()} €`
-        }} 
+        content={`Vuosittaiset hallintokulut yhteensä: ${(admin || []).reduce((acc, a) => acc + ((a.monthlyCost || 0) * 12), 0).toLocaleString()} €\n\nEritellyt kuluerät:\n${(admin || []).map(a => 
+          `- Kulu-erä: ${a.item || 'Nimetön'} | Kustannus: ${a.monthlyCost || 0} €/kk`
+        ).join('\n')}`} 
         isReadOnly={isReadOnly} 
       />
 
