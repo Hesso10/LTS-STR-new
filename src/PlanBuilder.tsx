@@ -1012,15 +1012,26 @@ const renderPersonnelWorkspace = () => {
             )}
           </tbody>
           <tfoot>
-            <tr className="bg-slate-900 text-white">
-              <td colSpan={2} className="px-4 md:px-8 py-4 md:py-6 font-black uppercase tracking-widest text-[10px] md:text-xs">{t('totalAdminCostsYear')}</td>
-              <td colSpan={2} className="px-4 md:px-8 py-4 md:py-6 font-black text-lg md:text-xl">
-                {admin.reduce((acc, a) => acc + (a.monthlyCost * 12), 0).toLocaleString()} €
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+                <tr className="bg-slate-900 text-white">
+                  <td colSpan={2} className="px-4 md:px-8 py-4 md:py-6 font-black uppercase tracking-widest text-[10px] md:text-xs">{t('totalAdminCostsYear')}</td>
+                  <td colSpan={2} className="px-4 md:px-8 py-4 md:py-6 font-black text-lg md:text-xl">
+                    {admin.reduce((acc, a) => acc + (a.monthlyCost * 12), 0).toLocaleString()} €
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+      {/* LISÄTTY AI-PANEELI HALLINTOKULUILLE (VARMA TEKSTIMUOTO) */}
+      <AiAnalysisPanel 
+        step="HALLINTO" 
+        content={`Vuosittaiset hallintokulut yhteensä: ${(admin || []).reduce((acc, a) => acc + ((a.monthlyCost || 0) * 12), 0).toLocaleString()} €\n\nEritellyt kuluerät:\n${(admin || []).map(a => 
+          `- Kulu-erä: ${a.item || 'Nimetön'} | Kustannus: ${a.monthlyCost || 0} €/kk`
+        ).join('\n')}`} 
+        isReadOnly={isReadOnly} 
+      />
+
     </div>
   );
 
