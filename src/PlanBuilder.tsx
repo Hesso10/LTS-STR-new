@@ -1363,7 +1363,25 @@ const renderPersonnelWorkspace = () => {
           onChange={(e) => setBusinessModel({ ...businessModel, revenues: e.target.value })}
         />
       </div>
-    </div>
+      </div>
+
+      {/* AI-ANALYYSIPANEELI LIIKETOIMINTAMALLILLE */}
+      <div className="mt-6">
+        <AiAnalysisPanel 
+          step="BUSINESS_MODEL" 
+          content={{ 
+            keyActivities: businessModel.keyActivities,
+            keyResources: businessModel.keyResources,
+            valueProposition: businessModel.valueProposition,
+            channels: businessModel.channels || '',
+            customers: businessModel.customers,
+            costs: businessModel.costs,
+            revenues: businessModel.revenues
+          }} 
+          isReadOnly={isReadOnly} 
+        />
+      </div>
+
     </div>
   );
 
