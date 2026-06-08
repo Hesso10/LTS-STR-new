@@ -2490,6 +2490,24 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
             </div>
           </div>
         </div>
+
+        {/* AI-ANALYYSIPANEELI PROJEKTILLE */}
+        <div className="mt-8">
+          <AiAnalysisPanel 
+            step="PROJECT_WORKSPACE" 
+            content={{ 
+              title: project.title || '',
+              description: project.description || '',
+              strategicAlignment: project.strategicAlignment || '',
+              businessModelAlignment: project.businessModelAlignment || '',
+              phases: (project.phases || []).map(p => 
+                `Vaihe: ${p.name || 'Nimetön'} | Kuvaus: ${p.description || '-'} | Tila: ${p.status}`
+              ).join('\n')
+            }} 
+            isReadOnly={isReadOnly} 
+          />
+        </div>
+
       </div>
     );
   };
