@@ -68,7 +68,7 @@ export const StrategyPortal: React.FC<StrategyPortalProps> = ({ onNavigate, user
       icon: Layout 
     },
     { 
-      id: 'PROJEKTINI', 
+      id: 'CONTRIBUTION', 
       label: '5. PROJEKTINI', 
       shortDesc: 'Toteuta strategian ja liiketoimintamallin vaatimat projektit.',
       longDesc: 'Toteuta projekti, joka toteuttaa sekä Miten-kohtia että liiketoimintamallin tärkeimpiä resursseja. Tässä vaiheessa suunnitelma muuttuu konkreettisiksi aikataulutetuiksi tehtäviksi.',
