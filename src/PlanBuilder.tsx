@@ -1677,67 +1677,6 @@ const renderPersonnelWorkspace = () => {
           isReadOnly={isReadOnly} 
         />
 
-        {/* NÄYTETÄÄN KASVU JA SEN PERUSTA -OSIO VAIN STR-PORTAALISSA */}
-        {portalType === 'STR' && (
-          <div className="space-y-12 mt-12 border-t border-black/5 pt-12">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-2xl md:text-3xl font-black tracking-tight uppercase">Kasvu ja sen perusta</h2>
-                <p className="text-slate-400 font-medium text-sm md:text-base">Määritä yksikön tai organisaation kasvustrategia ja sen vaatimat resurssit</p>
-              </div>
-              {!isReadOnly && renderSaveButton()}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-              {/* Solu 1: Kasvun suunta ja keinot */}
-              <div className="bg-white p-6 md:p-8 rounded-[32px] border border-black/5 shadow-xl flex flex-col min-h-[300px]">
-                <h3 className="text-sm font-black uppercase tracking-tight text-slate-800 mb-2">
-                  1. Kasvun suunta ja keinot
-                </h3>
-                <p className="text-xs text-slate-500 mb-4 font-medium leading-relaxed">
-                  Miten ja mistä yksikön tai organisaation dynaaminen kasvu tulevina vuosina ensisijaisesti luodaan? Perustuuko se esimerkiksi uusien markkina-alueiden haltuunottoon, palvelutarjonnan laajentamiseen vai operatiivisen kapasiteetin merkittävään kasvattamiseen?
-                </p>
-                <textarea
-                  className="flex-1 w-full bg-slate-50 border-none rounded-2xl p-4 focus:ring-2 focus:ring-emerald-500/10 outline-none text-sm font-medium resize-none placeholder:text-slate-200"
-                  placeholder="Esim. Kasvua haetaan laajentamalla yksikön dynaamista palvelutarjontaa B2B-asiakkuuksiin ja skaalaamalla asiantuntijatiimiä maantieteellisesti uusille alueille. Tämä toteutetaan monistamalla nykyinen toimiva konseptimme..."
-                  value={(strategy as any).kasvunSuunta || ''}
-                  onChange={(e) => setStrategy({ ...strategy, kasvunSuunta: e.target.value } as any)}
-                  disabled={isReadOnly}
-                  rows={6}
-                />
-              </div>
-
-              {/* Solu 2: Kasvun resursointi ja rahoitus */}
-              <div className="bg-white p-6 md:p-8 rounded-[32px] border border-black/5 shadow-xl flex flex-col min-h-[300px]">
-                <h3 className="text-sm font-black uppercase tracking-tight text-slate-800 mb-2">
-                  2. Kasvun resursointi ja rahoitus
-                </h3>
-                <p className="text-xs text-slate-500 mb-4 font-medium leading-relaxed">
-                  Miten tämä kasvu käytännössä resursoidaan ja rahoitetaan organisaatiossa (esim. konsernin sisäiset investointibudjetit, kohdistetut projektituet tai yksikön oman katteen dynaaminen uudelleeninvestointi)? Mitä kriittisiä avainresursseja tai osaamista tarvitaan?
-                </p>
-                <textarea
-                  className="flex-1 w-full bg-slate-50 border-none rounded-2xl p-4 focus:ring-2 focus:ring-emerald-500/10 outline-none text-sm font-medium resize-none placeholder:text-slate-200"
-                  placeholder="Esim. Kasvuhankkeelle haetaan dynaamista investointirahoitusta konsernin sisäisestä kehitysbudjetista vuodelle 2026. Lisäksi hyödynnetään kohdennettuja julkisia kehitystuksia. Alkuvaiheen rekrytoinnit ja laiteinvestoinnit katetaan..."
-                  value={(strategy as any).kasvunRahoitus || ''}
-                  onChange={(e) => setStrategy({ ...strategy, kasvunRahoitus: e.target.value } as any)}
-                  disabled={isReadOnly}
-                  rows={6}
-                />
-              </div>
-            </div>
-
-            {/* OMA ANALYSOI LUONNOS -PANEELI KASVULLE */}
-            <AiAnalysisPanel 
-              step="KASVU" 
-              content={{ 
-                suunta: (strategy as any).kasvunSuunta || '', 
-                rahoitus: (strategy as any).kasvunRahoitus || '' 
-              }} 
-              isReadOnly={isReadOnly} 
-            />
-          </div>
-        )}
-
       </div>
     );
   };
