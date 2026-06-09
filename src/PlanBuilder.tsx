@@ -1677,12 +1677,12 @@ const renderPersonnelWorkspace = () => {
           isReadOnly={isReadOnly} 
         />
 
-        {/* NÄYTETÄÄN KASVU-OSIO VAIN STRATEGIAPORTAALISSA */}
-        {portalType === 'STRATEGY' && (
+        {/* NÄYTETÄÄN KASVU JA SEN PERUSTA -OSIO VAIN STR-PORTAALISSA */}
+        {portalType === 'STR' && (
           <div className="space-y-12 mt-12 border-t border-black/5 pt-12">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl md:text-3xl font-black tracking-tight uppercase">Kasvu</h2>
+                <h2 className="text-2xl md:text-3xl font-black tracking-tight uppercase">Kasvu ja sen perusta</h2>
                 <p className="text-slate-400 font-medium text-sm md:text-base">Määritä yksikön tai organisaation kasvustrategia ja sen vaatimat resurssit</p>
               </div>
               {!isReadOnly && renderSaveButton()}
