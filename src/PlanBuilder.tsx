@@ -1244,6 +1244,65 @@ const renderPersonnelWorkspace = () => {
           isReadOnly={isReadOnly} 
         />
 
+        {/* ================= KASVU-OSIO ================= */}
+        <div className="space-y-12 mt-12 border-t border-black/5 pt-12">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight uppercase">Kasvu</h2>
+              <p className="text-slate-400 font-medium text-sm md:text-base">Suunnittele yrityksesi seuraavat kasvuloikat ja niiden rahoitus</p>
+            </div>
+            {!isReadOnly && renderSaveButton()}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+            {/* Solu 1: Seuraava suuri peliliike */}
+            <div className="bg-white p-6 md:p-8 rounded-[32px] border border-black/5 shadow-xl flex flex-col min-h-[300px]">
+              <h3 className="text-sm font-black uppercase tracking-tight text-slate-800 mb-2">
+                1. Seuraava suuri peliliike ja sen riskit
+              </h3>
+              <p className="text-xs text-slate-500 mb-4 font-medium leading-relaxed">
+                Mikä on konkreettinen seuraava askel, jolla kasvatat liikevaihtoa (esim. uusi työntekijä, laitehankinta tai uusi myyntikanava)? Kuinka monta kuukautta kassa kestää tätä panostusta ennen kuin se alkaa tuottaa rahaa takaisin?
+              </p>
+              <textarea
+                className="flex-1 w-full bg-slate-50 border-none rounded-2xl p-4 focus:ring-2 focus:ring-blue-500/10 outline-none text-sm font-medium resize-none placeholder:text-slate-200"
+                placeholder="Esim. Palkataan ensimmäinen kokopäiväinen myyjä vapauttamaan yrittäjän aikaa. Investointi vaatii 4 kuukauden puskurin..."
+                value={genericNotes.kasvuPeliliike || ''}
+                onChange={(e) => setGenericNotes({ ...genericNotes, kasvuPeliliike: e.target.value })}
+                disabled={isReadOnly}
+                rows={6}
+              />
+            </div>
+
+            {/* Solu 2: Kasvun rahoitus */}
+            <div className="bg-white p-6 md:p-8 rounded-[32px] border border-black/5 shadow-xl flex flex-col min-h-[300px]">
+              <h3 className="text-sm font-black uppercase tracking-tight text-slate-800 mb-2">
+                2. Kasvun rahoitus ja taustojen kunto
+              </h3>
+              <p className="text-xs text-slate-500 mb-4 font-medium leading-relaxed">
+                Paljonko ulkopuolista rahaa tarvitaan ja mistä sitä haetaan (pankki, tuet, oma raha, sijoittajat)? Miten varmistat, että kirjanpito ja yrityksen paperit ovat niin siistit, että rahoittaja tai pankki myöntää lainan?
+              </p>
+              <textarea
+                className="flex-1 w-full bg-slate-50 border-none rounded-2xl p-4 focus:ring-2 focus:ring-blue-500/10 outline-none text-sm font-medium resize-none placeholder:text-slate-200"
+                placeholder="Esim. Haetaan 50 000 € pankkilainaa + Finnveran takausta. Kirjanpito on ulkoistettu tilitoimistolle ja sopimukset ovat kunnossa..."
+                value={genericNotes.kasvuRahoitus || ''}
+                onChange={(e) => setGenericNotes({ ...genericNotes, kasvuRahoitus: e.target.value })}
+                disabled={isReadOnly}
+                rows={6}
+              />
+            </div>
+          </div>
+
+          {/* OMA ANALYSOI LUONNOS -PANEELI KASVULLE */}
+          <AiAnalysisPanel 
+            step="KASVU" 
+            content={{ 
+              peliliike: genericNotes.kasvuPeliliike || '', 
+              rahoitus: genericNotes.kasvuRahoitus || '' 
+            }} 
+            isReadOnly={isReadOnly} 
+          />
+        </div>
+
       </div>
     );
   };
