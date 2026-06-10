@@ -2978,6 +2978,7 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
         {/* Osasuunnitelmat Pages (Only for LTS) */}
         {isLTS && (
           <>
+            {/* SIVU: Osasuunnitelmien listaukset */}
             <Page>
               <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlans')}</h2>
               <div className="space-y-2">
@@ -3020,6 +3021,7 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
               </div>
             </Page>
 
+            {/* SIVU: Laskelmat ja Talouskooste staattisella kaaviolla ilman ResponsiveContaineria */}
             <Page>
               <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlansContinued')}</h2>
               <div className="space-y-6">
@@ -3041,11 +3043,11 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                       </p>
                     </div>
                   </div>
-                  <div className="h-[300px] w-full flex justify-center">
-                    <BarChart data={chartData} width={600} height={280}>
+                  <div className="w-full flex justify-center bg-white p-4 rounded-xl">
+                    <BarChart data={chartData} width={640} height={280} margin={{ top: 20, right: 20, left: 10, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                      <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `${value}€`} />
+                      <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `${(value / 1000).toFixed(0)}k€`} />
                       <Bar dataKey="value" radius={[4, 4, 0, 0]} isAnimationActive={false}>
                         {chartData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
@@ -3054,6 +3056,21 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                     </BarChart>
                   </div>
                 </div>
+              </div>
+            </Page>
+
+            {/* SIVU: Uusi Kasvu-osio tulosteeseen */}
+            <Page>
+              <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>Kasvu ja tulevaisuus</h2>
+              <div className="space-y-2">
+                <SectionBox 
+                  title="1. Seuraava suuri peliliike ja sen riskit" 
+                  content={genericNotes.kasvuPeliliike || 'Ei määritelty'} 
+                />
+                <SectionBox 
+                  title="2. Kasvun rahoitus ja dokumentaatio" 
+                  content={genericNotes.kasvuRahoitus || 'Ei määritelty'} 
+                />
               </div>
             </Page>
           </>
@@ -3097,7 +3114,7 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">{t('costStructure')}</h3>
                   <p className="text-sm text-slate-800 flex-1 whitespace-pre-wrap">{businessModel.costs || '-'}</p>
                 </div>
-                {/* KORJATTU: Poistettu 'parent-element}' rikkonaisuus tältä riviltä */}
+                {/* KORJATTU: parent-element -rikkonaisuus poistettu tästä alta */}
                 <div className={`p-4 rounded-2xl ${themeBg} flex flex-col`}>
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">{t('revenues')}</h3>
                   <p className="text-sm text-slate-800 flex-1 whitespace-pre-wrap">{businessModel.revenues || '-'}</p>
@@ -3162,6 +3179,7 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                     )}
                   </div>
                 } />
+                {/* KORJATTU: Ylimääräinen välilyönti poistettu avaimesta 'howProjectRelatesToStrategy' */}
                 <SectionBox title={t('strategicAlignment')} content={
                   <div>
                     <h4 className="text-xs font-bold uppercase text-slate-500 mb-1">{t('howProjectRelatesToStrategy')}</h4>
