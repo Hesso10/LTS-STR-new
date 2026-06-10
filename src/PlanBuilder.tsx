@@ -1261,7 +1261,7 @@ const renderPersonnelWorkspace = () => {
                 1. Seuraava suuri peliliike ja sen riskit
               </h3>
               <p className="text-xs text-slate-500 mb-4 font-medium leading-relaxed">
-                Mikä on konkreettinen seuraava askel, jolla kasvatat liikevaihtoa (esim. uusi työntekijä, laitehankinta tai uusi myyntikanava)? Kuinka monta kuukautta kassa kestää tätä panostusta ennen kuin se alkaa tuottaa rahaa takaisin?
+                Mikä on konkreettinen seuraava askel, jolla kasvatat liikevaihtoa (esim. yritysosto, merkittävä laitekannan uudistus tms)? Kuinka monta kuukautta kassa kestää tätä panostusta ennen kuin se alkaa tuottaa rahaa takaisin?
               </p>
               <textarea
                 className="flex-1 w-full bg-slate-50 border-none rounded-2xl p-4 focus:ring-2 focus:ring-blue-500/10 outline-none text-sm font-medium resize-none placeholder:text-slate-200"
@@ -1276,10 +1276,10 @@ const renderPersonnelWorkspace = () => {
             {/* Solu 2: Kasvun rahoitus */}
             <div className="bg-white p-6 md:p-8 rounded-[32px] border border-black/5 shadow-xl flex flex-col min-h-[300px]">
               <h3 className="text-sm font-black uppercase tracking-tight text-slate-800 mb-2">
-                2. Kasvun rahoitus ja taustojen kunto
+                2. Kasvun rahoitus 
               </h3>
               <p className="text-xs text-slate-500 mb-4 font-medium leading-relaxed">
-                Paljonko ulkopuolista rahaa tarvitaan ja mistä sitä haetaan (pankki, tuet, oma raha, sijoittajat)? Miten varmistat, että kirjanpito ja yrityksen paperit ovat niin siistit, että rahoittaja tai pankki myöntää lainan?
+                Paljonko ulkopuolista rahaa tarvitaan ja mistä sitä haetaan (pankki, tuet, oma raha, sijoittajat)? Miten varmistat, että kirjanpito ja yrityksen dokumentaatio on niin siisti, että rahoittaja tai pankki myöntää lainan?
               </p>
               <textarea
                 className="flex-1 w-full bg-slate-50 border-none rounded-2xl p-4 focus:ring-2 focus:ring-blue-500/10 outline-none text-sm font-medium resize-none placeholder:text-slate-200"
