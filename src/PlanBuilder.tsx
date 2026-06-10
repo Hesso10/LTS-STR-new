@@ -2887,19 +2887,21 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                   <div>
                     <h4 className="text-xs font-bold uppercase text-emerald-600 mb-2">{t('positivePhenomena')}</h4>
                     <ul className="list-disc pl-4 space-y-1">
-                      {[...externalEnv.filter(i => i.type === 'positive'), ...internalEnv.filter(i => i.type === 'positive')].length > 0 ? 
+                      {[...externalEnv.filter(i => i.type === 'positive'), ...internalEnv.filter(i => i.type === 'positive')].length > 0 ? (
                         [...externalEnv.filter(i => i.type === 'positive'), ...internalEnv.filter(i => i.type === 'positive')].map(item => (
-                        <li key={item.id} className="text-sm text-slate-800">{item.text}</li>
-                      )) : <li className="text-sm text-slate-500 italic">-</li>}
+                          <li key={item.id} className="text-sm text-slate-800">{item.text}</li>
+                        ))
+                      ) : <li className="text-sm text-slate-500 italic">-</li>}
                     </ul>
                   </div>
                   <div>
                     <h4 className="text-xs font-bold uppercase text-red-600 mb-2">{t('negativePhenomena')}</h4>
                     <ul className="list-disc pl-4 space-y-1">
-                      {[...externalEnv.filter(i => i.type === 'negative'), ...internalEnv.filter(i => i.type === 'negative')].length > 0 ? 
+                      {[...externalEnv.filter(i => i.type === 'negative'), ...internalEnv.filter(i => i.type === 'negative')].length > 0 ? (
                         [...externalEnv.filter(i => i.type === 'negative'), ...internalEnv.filter(i => i.type === 'negative')].map(item => (
-                        <li key={item.id} className="text-sm text-slate-800">{item.text}</li>
-                      )) : <li className="text-sm text-slate-500 italic">-</li>}
+                          <li key={item.id} className="text-sm text-slate-800">{item.text}</li>
+                        ))
+                      ) : <li className="text-sm text-slate-500 italic">-</li>}
                     </ul>
                   </div>
                 </div>
@@ -2911,18 +2913,23 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                 )}
               </div>
             } />
-            <SectionBox title={t('how')} content={
-              (strategy.howItems || []).length > 0 ? (
-                <ul className="space-y-3">
-                  {(strategy.howItems || []).map((item, idx) => (
-                    <li key={item.id} className="flex gap-3 text-slate-800">
-                      <span className={`font-bold ${themeTitle}`}>{idx + 1}.</span>
-                      <span>{item.text}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : '-'
-            } />
+
+            {/* CSS-PAKOSTETTU SIVUNVAIHTO: Muutettu sulkutagi </li> oikeaksi */}
+            <div style={{ pageBreakBefore: 'always', breakBefore: 'page', marginTop: '40px' }}>
+              <SectionBox title={t('how')} content={
+                (strategy.howItems || []).length > 0 ? (
+                  <ul className="space-y-3">
+                    {(strategy.howItems || []).map((item, idx) => (
+                      <li key={item.id} className="flex gap-3 text-slate-800">
+                        <span className={`font-bold ${themeTitle}`}>{idx + 1}.</span>
+                        <span>{item.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : '-'
+              } />
+            </div>
+
           </div>
         </Page>
 
