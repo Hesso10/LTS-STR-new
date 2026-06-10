@@ -2808,35 +2808,7 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
             <div className="space-y-2">
               <SectionBox title={t('companyForm')} content={basics.companyForm} />
               <SectionBox title={t('background')} content={basics.background} />
-              
-              {/* Täysin varusteltu Liikeidea-laatikko, joka tulostaa kaikki alakentät */}
-              <SectionBox title={t('businessIdea')} content={
-                <div className="space-y-3 text-sm text-slate-800">
-                  {basics.businessIdeaWhat && (
-                    <p className="leading-relaxed">
-                      <strong className="text-slate-900 block mb-0.5">Mitä yritys myy (Tuotteet ja palvelut):</strong> 
-                      {basics.businessIdeaWhat}
-                    </p>
-                  )}
-                  {basics.businessIdeaHow && (
-                    <p className="leading-relaxed">
-                      <strong className="text-slate-900 block mb-0.5">Miten tuotetaan (Toimintatapa ja tilat):</strong> 
-                      {basics.businessIdeaHow}
-                    </p>
-                  )}
-                  {basics.businessIdeaForWhom && (
-                    <p className="leading-relaxed">
-                      <strong className="text-slate-900 block mb-0.5">Kenelle (Asiakkaat ja kohderyhmät):</strong> 
-                      {basics.businessIdeaForWhom}
-                    </p>
-                  )}
-                  {basics.businessIdea && (
-                    <div className="border-t border-black/5 pt-2 mt-2 text-slate-600 italic whitespace-pre-wrap leading-relaxed">
-                      {basics.businessIdea}
-                    </div>
-                  )}
-                </div>
-              } />
+              <SectionBox title={t('businessIdea')} content={basics.businessIdea} />
             </div>
           </Page>
         )}
