@@ -2808,7 +2808,16 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
             <div className="space-y-2">
               <SectionBox title={t('companyForm')} content={basics.companyForm} />
               <SectionBox title={t('background')} content={basics.background} />
-              <SectionBox title={t('businessIdea')} content={basics.businessIdea} />
+              
+              {/* Päivitetty Liikeidea-laatikko, joka hakee kaikki alakentät */}
+              <SectionBox title={t('businessIdea')} content={
+                <div className="space-y-2 text-sm text-slate-800">
+                  {basics.businessIdeaWhat && <p><strong>Mitä:</strong> {basics.businessIdeaWhat}</p>}
+                  {basics.businessIdeaHow && <p><strong>Miten:</strong> {basics.businessIdeaHow}</p>}
+                  {basics.businessIdeaForWhom && <p><strong>Kenelle:</strong> {basics.businessIdeaForWhom}</p>}
+                  {basics.businessIdea && <p className="border-t border-black/5 pt-2 mt-2 text-slate-600 italic">{basics.businessIdea}</p>}
+                </div>
+              } />
             </div>
           </Page>
         )}
@@ -2962,20 +2971,40 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
         {/* Osasuunnitelmat Pages (Only for LTS) */}
         {isLTS && (
           <>
+            {/* SIVU 1: Markkinointi, Myynti, Henkilöstö ja Hallinto + uudet tuoterivit & markkinan koko */}
             <Page>
               <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlans')}</h2>
               <div className="space-y-2">
                 <SectionBox title={t('marketingSales')} content={
-                  marketing.length > 0 ? (
-                    <div className="space-y-4">
-                      {marketing.map(m => (
-                        <div key={m.id} className="flex justify-between pb-2">
-                          <span className="text-slate-800">{m.activity}</span>
-                          <span className="font-bold whitespace-nowrap text-right min-w-[120px]">{Number(m.monthlyCost).toLocaleString('fi-FI')} {t('perMonth')}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : '-'
+                  <div className="space-y-4">
+                    {genericNotes.marketSize && (
+                      <div className="pb-2 border-b border-black/5">
+                        <p className="font-bold text-slate-500 mb-1">Markkinan koko ja kohderyhmät:</p>
+                        <p className="text-slate-700 font-normal italic">{genericNotes.marketSize}</p>
+                      </div>
+                    )}
+                    {marketing.length > 0 && (
+                      <div className="space-y-1">
+                        {marketing.map(m => (
+                          <div key={m.id} className="flex justify-between pb-1">
+                            <span className="text-slate-800">{m.activity}</span>
+                            <span className="font-bold whitespace-nowrap text-right min-w-[120px]">{Number(m.monthlyCost).toLocaleString('fi-FI')} {t('perMonth')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {products.length > 0 && (
+                      <div className="pt-2 border-t border-black/5">
+                        <p className="font-bold text-slate-500 mb-1">Myyntitavoitteet ja tuotteet:</p>
+                        {products.map(p => (
+                          <div key={p.id} className="flex justify-between py-1 text-slate-800">
+                            <span>{p.name} ({p.volume} kpl / vuosi)</span>
+                            <span className="font-bold">{(p.price * p.volume).toLocaleString()} €</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 } />
                 <SectionBox title={t('personnel')} content={
                   personnel.length > 0 ? (
@@ -3001,9 +3030,24 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                     </div>
                   ) : '-'
                 } />
+
+                {/* LISÄYS: Investoinnit ja rahoitus mukaan osasuunnitelmien loppuun */}
+                {investments.length > 0 && (
+                  <SectionBox title="Investoinnit ja rahoitus" content={
+                    <div className="space-y-2 text-sm text-slate-800">
+                      {investments.map(inv => (
+                        <div key={inv.id} className="flex justify-between border-b border-black/5 pb-1">
+                          <span>{inv.description} (Lähde: {(inv as any).sourceOfFunding || 'Oma rahoitus'})</span>
+                          <span className="font-bold">{inv.amount.toLocaleString()} € ({inv.year})</span>
+                        </div>
+                      ))}
+                    </div>
+                  } />
+                )}
               </div>
             </Page>
 
+            {/* SIVU 2: Laskelmat (Kaavio) + UUSI KASVU-OSIO ELEMENTTIEN ALLE */}
             <Page>
               <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlansContinued')}</h2>
               <div className="space-y-6">
@@ -3038,10 +3082,35 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                     </BarChart>
                   </div>
                 </div>
+
+                {/* Kasvu-osio tulostuu siististi tähän kaavion alle */}
+                {(genericNotes.kasvuPeliliike || genericNotes.kasvuRahoitus) && (
+                  <div className="mt-4 pt-4 border-t border-black/5">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-3">KASVU & RAHOITUS</h3>
+                    {genericNotes.kasvuPeliliike && (
+                      <div className="mb-3 text-sm text-slate-800">
+                        <p className="font-bold text-slate-600">Seuraava suuri peliliike ja sen riskit:</p>
+                        <p className="italic">{genericNotes.kasvuPeliliike}</p>
+                      </div>
+                    )}
+                    {genericNotes.kasvuRahoitus && (
+                      <div className="text-sm text-slate-800">
+                        <p className="font-bold text-slate-600">Kasvun rahoitus:</p>
+                        <p className="italic">{genericNotes.kasvuRahoitus}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </Page>
           </>
         )}
+
+        {/* Business Model Canvas Page (Only for Strategia) */}
+        {!isLTS && (
+          <Page>
+            <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('businessModel')}</h2>
+            <div className="flex flex-col gap-4 h-[800px]">
 
         {/* Business Model Canvas Page (Only for Strategia) */}
         {!isLTS && (
