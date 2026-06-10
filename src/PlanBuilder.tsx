@@ -2876,7 +2876,7 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
           </div>
         </Page>
 
-        {/* Strategia Page */}
+        {/* Strategia Page - SIVU 1: Visio & Diagnoosi */}
         <Page>
           <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('strategy')}</h2>
           <div className="space-y-2">
@@ -2887,19 +2887,21 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                   <div>
                     <h4 className="text-xs font-bold uppercase text-emerald-600 mb-2">{t('positivePhenomena')}</h4>
                     <ul className="list-disc pl-4 space-y-1">
-                      {[...externalEnv.filter(i => i.type === 'positive'), ...internalEnv.filter(i => i.type === 'positive')].length > 0 ? 
+                      {[...externalEnv.filter(i => i.type === 'positive'), ...internalEnv.filter(i => i.type === 'positive')].length > 0 ? (
                         [...externalEnv.filter(i => i.type === 'positive'), ...internalEnv.filter(i => i.type === 'positive')].map(item => (
-                        <li key={item.id} className="text-sm text-slate-800">{item.text}</li>
-                      )) : <li className="text-sm text-slate-500 italic">-</li>}
+                          <li key={item.id} className="text-sm text-slate-800">{item.text}</li>
+                        ))
+                      ) : <li className="text-sm text-slate-500 italic">-</li>}
                     </ul>
                   </div>
                   <div>
                     <h4 className="text-xs font-bold uppercase text-red-600 mb-2">{t('negativePhenomena')}</h4>
                     <ul className="list-disc pl-4 space-y-1">
-                      {[...externalEnv.filter(i => i.type === 'negative'), ...internalEnv.filter(i => i.type === 'negative')].length > 0 ? 
+                      {[...externalEnv.filter(i => i.type === 'negative'), ...internalEnv.filter(i => i.type === 'negative')].length > 0 ? (
                         [...externalEnv.filter(i => i.type === 'negative'), ...internalEnv.filter(i => i.type === 'negative')].map(item => (
-                        <li key={item.id} className="text-sm text-slate-800">{item.text}</li>
-                      )) : <li className="text-sm text-slate-500 italic">-</li>}
+                          <li key={item.id} className="text-sm text-slate-800">{item.text}</li>
+                        ))
+                      ) : <li className="text-sm text-slate-500 italic">-</li>}
                     </ul>
                   </div>
                 </div>
@@ -2911,6 +2913,14 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                 )}
               </div>
             } />
+          </div>
+        </Page>
+
+        {/* Strategia Page - SIVU 2: Toimenpiteet (MITEN) 
+            Oma sivu varmistaa, että kaikki dynaamiset rivit mahtuvat katkeamatta mukaan. */}
+        <Page>
+          <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('strategy')}</h2>
+          <div className="space-y-2">
             <SectionBox title={t('how')} content={
               (strategy.howItems || []).length > 0 ? (
                 <ul className="space-y-3">
