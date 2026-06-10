@@ -2941,7 +2941,6 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
         {/* Ostajapersoonat Page */}
         {buyerPersonas.length > 0 && (
           <Page>
-          <Page>
             <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('buyerPersonas')}</h2>
             <div className="grid grid-cols-2 gap-6">
               {buyerPersonas.map((persona, idx) => {
@@ -3056,11 +3055,11 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                   </div>
                 </div>
               </div>
-           </Page>
+            </Page>
           </>
         )}
 
-        {/* Business Model Canvas Page (Only for Strategia) - KORJATTU JA SIISTITTY */}
+        {/* Business Model Canvas Page (Only for Strategia) */}
         {!isLTS && (
           <Page>
             <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('businessModel')}</h2>
@@ -3098,6 +3097,7 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">{t('costStructure')}</h3>
                   <p className="text-sm text-slate-800 flex-1 whitespace-pre-wrap">{businessModel.costs || '-'}</p>
                 </div>
+                {/* KORJATTU: Poistettu 'parent-element}' rikkonaisuus tältä riviltä */}
                 <div className={`p-4 rounded-2xl ${themeBg} flex flex-col`}>
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">{t('revenues')}</h3>
                   <p className="text-sm text-slate-800 flex-1 whitespace-pre-wrap">{businessModel.revenues || '-'}</p>
@@ -3117,7 +3117,7 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
               <SectionBox title={t('projectPhases')} content={
                 implementationPhases.length > 0 ? (
                   <div className="space-y-8 pb-20">
-                    {implementationPhases.map((phase, idx) => (
+                    {implementationPhases.map((phase) => (
                       <div key={phase.id} className="relative pl-6 pb-8 last:pb-0">
                         <div className={`absolute left-0 top-2 w-1.5 h-1.5 rounded-full ${isLTS ? 'bg-blue-400' : 'bg-emerald-400'}`} />
                         <h4 className="font-bold text-slate-800">{phase.task || '-'}</h4>
@@ -3149,7 +3149,7 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                     <h4 className="text-xs font-bold uppercase text-slate-500 mb-4">{t('divideProjectIntoPhases')}</h4>
                     {project?.phases && project.phases.length > 0 ? (
                       <div className="space-y-4">
-                        {project.phases.map((phase, idx) => (
+                        {project.phases.map((phase) => (
                           <div key={phase.id} className="relative pl-6 pb-4">
                             <div className={`absolute left-0 top-2 w-1.5 h-1.5 rounded-full bg-emerald-400`} />
                             <h4 className="font-bold text-slate-800">{phase.name || '-'}</h4>
