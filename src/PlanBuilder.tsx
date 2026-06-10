@@ -2978,17 +2978,21 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
         {/* Osasuunnitelmat Pages (Only for LTS) */}
         {isLTS && (
           <>
-            {/* SIVU: Markkinan koko & Osasuunnitelmien listaukset */}
+            {/* UUSI SIVU 1: Markkinan koko ja kohderyhmät erikseen, jotta tila ei lopu kesken */}
             <Page>
               <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlans')}</h2>
               <div className="space-y-2">
-                
-                {/* LISÄTTY: Markkinan koko ja kohderyhmät tulosteeseen ennen toimintalistoja */}
                 <SectionBox 
                   title={t('marketSize')} 
                   content={genericNotes.marketSize || 'Ei määritelty'} 
                 />
+              </div>
+            </Page>
 
+            {/* SIVU 2: Osasuunnitelmien toimintalistat (Nyt täydellisesti tilaa!) */}
+            <Page>
+              <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlans')}</h2>
+              <div className="space-y-2">
                 <SectionBox title={t('marketingSales')} content={
                   marketing.length > 0 ? (
                     <div className="space-y-4">
@@ -3028,7 +3032,7 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
               </div>
             </Page>
 
-            {/* SIVU: Laskelmat ja Talouskooste staattisella kaaviolla ilman ResponsiveContaineria */}
+            {/* SIVU 3: Laskelmat ja Talouskooste staattisella kaaviolla ilman ResponsiveContaineria */}
             <Page>
               <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlansContinued')}</h2>
               <div className="space-y-6">
@@ -3066,7 +3070,7 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
               </div>
             </Page>
 
-            {/* SIVU: Uusi Kasvu-osio tulosteeseen */}
+            {/* SIVU 4: Uusi Kasvu-osio tulosteeseen */}
             <Page>
               <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>Kasvu ja tulevaisuus</h2>
               <div className="space-y-2">
