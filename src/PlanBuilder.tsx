@@ -3043,11 +3043,11 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                   </div>
                 </div>
               </div>
-            </Page>
+           </Page>
           </>
         )}
 
-        {/* Business Model Canvas Page (Only for Strategia) */}
+        {/* Business Model Canvas Page (Only for Strategia) - KORJATTU JA SIISTITTY */}
         {!isLTS && (
           <Page>
             <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('businessModel')}</h2>
