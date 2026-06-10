@@ -2978,10 +2978,17 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
         {/* Osasuunnitelmat Pages (Only for LTS) */}
         {isLTS && (
           <>
-            {/* SIVU: Osasuunnitelmien listaukset */}
+            {/* SIVU: Markkinan koko & Osasuunnitelmien listaukset */}
             <Page>
               <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlans')}</h2>
               <div className="space-y-2">
+                
+                {/* LISÄTTY: Markkinan koko ja kohderyhmät tulosteeseen ennen toimintalistoja */}
+                <SectionBox 
+                  title={t('marketSize')} 
+                  content={genericNotes.marketSize || 'Ei määritelty'} 
+                />
+
                 <SectionBox title={t('marketingSales')} content={
                   marketing.length > 0 ? (
                     <div className="space-y-4">
