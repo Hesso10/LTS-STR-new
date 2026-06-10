@@ -2751,38 +2751,26 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
     }
   };
 
-  // TÄMÄ KORVAA VANHAN renderPrintView-FUNKTION JA TIEDOSTON LOPPUOSAN:
-
   const renderPrintView = () => {
     const isLTS = portalType === 'LTS';
-    
-    // JOS PORTAALI EI OLE LTS, TÄMÄ OSUUS EI TULOSTU LAINKAAN
-    if (!isLTS) {
-      return null; 
-    }
-
-    const themeBg = 'bg-blue-50/50';
-    const themeText = 'text-blue-900';
-    const themeTitle = 'text-blue-600';
+    const themeBg = isLTS ? 'bg-blue-50/50' : 'bg-emerald-50/50';
+    const themeText = isLTS ? 'text-blue-900' : 'text-emerald-900';
+    const themeTitle = isLTS ? 'text-blue-600' : 'text-emerald-600';
 
     const Page = ({ children }: { children: React.ReactNode }) => (
-      <div className="pdf-page bg-white relative overflow-hidden" style={{ width: '794px', height: '1123px', padding: '60px', boxSizing: 'border-box' }}>
-        <div className="absolute top-0 left-0 w-full h-3 bg-blue-500" />
-        <div className="h-full flex flex-col justify-between">
-          <div className="flex-1">{children}</div>
-          <div className="text-[10px] text-slate-400 flex justify-between border-t border-slate-100 pt-4">
-            <span>{basics.companyForm || 'Liiketoimintasuunnitelma'}</span>
-            <span>{t('businessPlan')}</span>
-          </div>
+      <div className="pdf-page bg-white relative overflow-hidden" style={{ width: '794px', height: '1123px', padding: '50px', boxSizing: 'border-box' }}>
+        <div className={`absolute top-0 left-0 w-full h-2 ${isLTS ? 'bg-blue-500' : 'bg-emerald-500'}`} />
+        <div className="h-full flex flex-col">
+          {children}
         </div>
       </div>
     );
 
     const SectionBox = ({ title, content }: { title: string, content: string | React.ReactNode }) => (
       <div className={`p-6 rounded-2xl ${themeBg} mb-6`}>
-        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">{title}</h3>
+        <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-3">{title}</h3>
         {typeof content === 'string' ? (
-          <p className="text-slate-800 text-sm whitespace-pre-wrap leading-relaxed">{content || '-'}</p>
+          <p className="text-slate-800 whitespace-pre-wrap leading-relaxed">{content || '-'}</p>
         ) : (
           content
         )}
@@ -2793,237 +2781,384 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
       <div id="pdf-export-container" style={{ position: 'absolute', left: '-9999px', top: 0 }}>
         <style dangerouslySetInnerHTML={{__html: `
           #pdf-export-container * {
+            border: none !important;
             box-shadow: none !important;
             outline: none !important;
           }
         `}} />
-        
-        {/* SIVU 1: KANSILEHTI */}
+        {/* Cover Page */}
         <Page>
-          <div className="h-full flex flex-col items-center justify-center text-center pt-20">
-            {basics.coverImage ? (
-              <img src={basics.coverImage} alt="Cover" className="w-48 h-48 object-cover rounded-full mb-12 border-4 border-slate-50" />
-            ) : (
-              <div className={`w-32 h-32 rounded-3xl ${themeBg} flex items-center justify-center mb-12`}>
-                <FileText size={64} className={themeTitle} />
-              </div>
+          <div className="flex-1 flex flex-col items-center justify-center text-center">
+            {basics.coverImage && (
+              <img src={basics.coverImage} alt="Cover" className="w-64 h-64 object-cover rounded-full mb-12" />
             )}
-            <h1 className={`text-4xl font-black uppercase tracking-tight mb-4 ${themeText}`}>
-              {t('businessPlan')}
+            <h1 className={`text-3xl font-thin uppercase tracking-widest mb-6 ${themeTitle}`}>
+              {isLTS ? t('businessPlan') : t('strategyPlan')}
             </h1>
-            <div className="w-16 h-1 bg-slate-200 my-4" />
-            <p className="text-lg text-slate-600 font-medium max-w-md">
-              {genericNotes['PERUSTEET'] || basics.businessIdea || 'Liiketoiminnan kattava kuvaus ja kehityssuunnitelma'}
+            <p className="text-xl text-slate-600 font-light">
+              {basics.companyDescription || t('missingCompanyDescription')}
             </p>
           </div>
         </Page>
 
-        {/* SIVU 2: PERUSTEET (Yritysmuoto, Taustani, Liikeidea) */}
+        {/* Perusteet Page (Only for LTS) */}
+        {isLTS && (
+          <Page>
+            <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('basics')}</h2>
+            <div className="space-y-2">
+              <SectionBox title={t('companyForm')} content={basics.companyForm} />
+              <SectionBox title={t('background')} content={basics.background} />
+              <SectionBox title={t('businessIdea')} content={basics.businessIdea} />
+            </div>
+          </Page>
+        )}
+
+        {/* Yritys Page (Only for Strategia) */}
+        {!isLTS && (
+          <Page>
+            <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('company')}</h2>
+            <div className="space-y-2">
+              <SectionBox title={t('companyInfo')} content={basics.companyDescription} />
+              <SectionBox title={t('organizationModel')} content={
+                <div>
+                  <p className="text-slate-800 font-bold mb-2">{t('type')}: {basics.organizationModel?.type || 'LINE'}</p>
+                  <ul className="list-disc pl-5">
+                    {(basics.organizationModel?.boxes || []).map(box => (
+                      <li key={box.id} className="text-slate-800">{box.text}</li>
+                    ))}
+                  </ul>
+                </div>
+              } />
+            </div>
+          </Page>
+        )}
+
+        {/* Toimintaympäristö Page */}
         <Page>
-          <h2 className={`text-2xl font-black uppercase tracking-tight mb-8 ${themeTitle}`}>{t('basics')}</h2>
-          <div className="space-y-4">
-            <SectionBox title={t('companyForm')} content={basics.companyForm || genericNotes['COMPANY_FORM']} />
-            <SectionBox title={t('background')} content={basics.background || genericNotes['BACKGROUND']} />
-            
-            <SectionBox title={t('businessIdea')} content={
-              <div className="space-y-3">
-                {basics.businessIdeaWhat && <p className="text-sm"><strong>Mitä?</strong> {basics.businessIdeaWhat}</p>}
-                {basics.businessIdeaHow && <p className="text-sm"><strong>Miten?</strong> {basics.businessIdeaHow}</p>}
-                {basics.businessIdeaForWhom && <p className="text-sm"><strong>Kenelle?</strong> {basics.businessIdeaForWhom}</p>}
-                {(basics.businessIdea || genericNotes['BUSINESS_IDEA']) && (
-                  <p className="text-sm text-slate-600 border-t border-black/5 pt-2 mt-2">
-                    {basics.businessIdea || genericNotes['BUSINESS_IDEA']}
-                  </p>
+          <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('environment')}</h2>
+          <div className="space-y-2">
+            <SectionBox title={t('externalEnv')} content={
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-xs font-bold uppercase text-emerald-600 mb-2">{t('opportunities')}</h4>
+                  <ul className="list-disc pl-4 space-y-1">
+                    {externalEnv.filter(e => e.type === 'positive').map(env => <li key={env.id} className="text-sm text-slate-800">{env.text}</li>)}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold uppercase text-red-600 mb-2">{t('threats')}</h4>
+                  <ul className="list-disc pl-4 space-y-1">
+                    {externalEnv.filter(e => e.type === 'negative').map(env => <li key={env.id} className="text-sm text-slate-800">{env.text}</li>)}
+                  </ul>
+                </div>
+              </div>
+            } />
+            <SectionBox title={t('internalEnv')} content={
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-xs font-bold uppercase text-emerald-600 mb-2">{t('strengths')}</h4>
+                  <ul className="list-disc pl-4 space-y-1">
+                    {internalEnv.filter(e => e.type === 'positive').map(env => <li key={env.id} className="text-sm text-slate-800">{env.text}</li>)}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold uppercase text-red-600 mb-2">{t('weaknesses')}</h4>
+                  <ul className="list-disc pl-4 space-y-1">
+                    {internalEnv.filter(e => e.type === 'negative').map(env => <li key={env.id} className="text-sm text-slate-800">{env.text}</li>)}
+                  </ul>
+                </div>
+              </div>
+            } />
+          </div>
+        </Page>
+
+        {/* Strategia Page */}
+        <Page>
+          <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('strategy')}</h2>
+          <div className="space-y-2">
+            <SectionBox title={t('visionAndValues')} content={strategy.visionAndValues} />
+            <SectionBox title={t('diagnosis')} content={
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-xs font-bold uppercase text-emerald-600 mb-2">{t('positivePhenomena')}</h4>
+                    <ul className="list-disc pl-4 space-y-1">
+                      {[...externalEnv.filter(i => i.type === 'positive'), ...internalEnv.filter(i => i.type === 'positive')].length > 0 ? 
+                        [...externalEnv.filter(i => i.type === 'positive'), ...internalEnv.filter(i => i.type === 'positive')].map(item => (
+                        <li key={item.id} className="text-sm text-slate-800">{item.text}</li>
+                      )) : <li className="text-sm text-slate-500 italic">-</li>}
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold uppercase text-red-600 mb-2">{t('negativePhenomena')}</h4>
+                    <ul className="list-disc pl-4 space-y-1">
+                      {[...externalEnv.filter(i => i.type === 'negative'), ...internalEnv.filter(i => i.type === 'negative')].length > 0 ? 
+                        [...externalEnv.filter(i => i.type === 'negative'), ...internalEnv.filter(i => i.type === 'negative')].map(item => (
+                        <li key={item.id} className="text-sm text-slate-800">{item.text}</li>
+                      )) : <li className="text-sm text-slate-500 italic">-</li>}
+                    </ul>
+                  </div>
+                </div>
+                {strategy.diagnosis && (
+                  <div className="mt-4 pt-4">
+                    <h4 className="text-xs font-bold uppercase text-slate-500 mb-2">{t('summary')}</h4>
+                    <p className="text-slate-800 whitespace-pre-wrap leading-relaxed">{strategy.diagnosis}</p>
+                  </div>
                 )}
               </div>
             } />
-          </div>
-        </Page>
-
-        {/* SIVU 3: TOIMINTAYMPÄRISTÖ (Ulkoinen ja sisäinen toimintaympäristö) */}
-        <Page>
-          <h2 className={`text-2xl font-black uppercase tracking-tight mb-8 ${themeTitle}`}>{t('environment')}</h2>
-          <div className="space-y-4">
-            <SectionBox title={t('externalEnv')} content={
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <h4 className="text-xs font-black uppercase text-emerald-600 mb-3">➔ {t('opportunities')}</h4>
-                  <ul className="list-disc pl-4 space-y-2 text-xs text-slate-700">
-                    {externalEnv.filter(e => e.type === 'positive').map(env => <li key={env.id}>{env.text}</li>)}
-                    {externalEnv.filter(e => e.type === 'positive').length === 0 && <li className="italic text-slate-400">Ei määritelty</li>}
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="text-xs font-black uppercase text-red-600 mb-3">➔ {t('threats')}</h4>
-                  <ul className="list-disc pl-4 space-y-2 text-xs text-slate-700">
-                    {externalEnv.filter(e => e.type === 'negative').map(env => <li key={env.id}>{env.text}</li>)}
-                    {externalEnv.filter(e => e.type === 'negative').length === 0 && <li className="italic text-slate-400">Ei määritelty</li>}
-                  </ul>
-                </div>
-              </div>
-            } />
-
-            <SectionBox title={t('internalEnv')} content={
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <h4 className="text-xs font-black uppercase text-emerald-600 mb-3">➔ {t('strengths')}</h4>
-                  <ul className="list-disc pl-4 space-y-2 text-xs text-slate-700">
-                    {internalEnv.filter(e => e.type === 'positive').map(env => <li key={env.id}>{env.text}</li>)}
-                    {internalEnv.filter(e => e.type === 'positive').length === 0 && <li className="italic text-slate-400">Ei määritelty</li>}
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="text-xs font-black uppercase text-red-600 mb-3">➔ {t('weaknesses')}</h4>
-                  <ul className="list-disc pl-4 space-y-2 text-xs text-slate-700">
-                    {internalEnv.filter(e => e.type === 'negative').map(env => <li key={env.id}>{env.text}</li>)}
-                    {internalEnv.filter(e => e.type === 'negative').length === 0 && <li className="italic text-slate-400">Ei määritelty</li>}
-                  </ul>
-                </div>
-              </div>
-            } />
-          </div>
-        </Page>
-
-        {/* SIVU 4: STRATEGIA */}
-        <Page>
-          <h2 className={`text-2xl font-black uppercase tracking-tight mb-8 ${themeTitle}`}>{t('strategy')}</h2>
-          <div className="space-y-4">
-            {strategy.visionAndValues && <SectionBox title={t('visionAndValues')} content={strategy.visionAndValues} />}
-            {strategy.diagnosis && <SectionBox title="Strateginen Diagnoosi" content={strategy.diagnosis} />}
-            
-            <SectionBox title="Strategiset Toimenpiteet" content={
+            <SectionBox title={t('how')} content={
               (strategy.howItems || []).length > 0 ? (
                 <ul className="space-y-3">
                   {(strategy.howItems || []).map((item, idx) => (
-                    <li key={item.id} className="flex gap-3 text-sm text-slate-800">
-                      <span className={`font-black ${themeTitle}`}>{idx + 1}.</span>
+                    <li key={item.id} className="flex gap-3 text-slate-800">
+                      <span className={`font-bold ${themeTitle}`}>{idx + 1}.</span>
                       <span>{item.text}</span>
                     </li>
                   ))}
                 </ul>
-              ) : <p className="text-sm italic text-slate-400">Ei toimenpiteitä listattuna</p>
+              ) : '-'
             } />
           </div>
         </Page>
 
-        {/* SIVU 5: OSASUUNNITELMAT (Markkinointi & myynti, Henkilöstö, Hallinto) */}
-        <Page>
-          <h2 className={`text-2xl font-black uppercase tracking-tight mb-8 ${themeTitle}`}>{t('subPlans')}</h2>
-          <div className="space-y-4 text-xs">
-            <SectionBox title={t('marketingSales')} content={
-              <div className="space-y-4">
-                {genericNotes.marketSize && (
-                  <div className="pb-2 border-b border-black/5">
-                    <p className="font-bold text-slate-500 mb-1">Markkinan koko ja kohderyhmät:</p>
-                    <p className="text-slate-700 font-normal italic">{genericNotes.marketSize}</p>
-                  </div>
-                )}
-                {marketing.length > 0 && (
-                  <div>
-                    <p className="font-bold text-slate-500 mb-1">Markkinointitoimenpiteet:</p>
-                    {marketing.map(m => (
-                      <div key={m.id} className="flex justify-between py-1 border-b border-slate-100 last:border-0">
-                        <span>{m.activity}</span>
-                        <span className="font-bold">{m.monthlyCost.toLocaleString()} € / kk</span>
+        {/* Ostajapersoonat Page */}
+        {buyerPersonas.length > 0 && (
+          <Page>
+            <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('buyerPersonas')}</h2>
+            <div className="grid grid-cols-2 gap-6">
+              {buyerPersonas.map((persona, idx) => {
+                const icons = [User, UserCircle, UserSquare, UserRound];
+                const Icon = icons[idx % icons.length];
+                return (
+                  <div key={persona.id} className={`p-6 rounded-2xl ${themeBg} flex flex-col`}>
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-white`}>
+                        <Icon className={`w-6 h-6 ${themeTitle}`} />
                       </div>
-                    ))}
-                  </div>
-                )}
-                {products.length > 0 && (
-                  <div className="pt-2">
-                    <p className="font-bold text-slate-500 mb-1">Myyntitavoitteet ja tuotteet:</p>
-                    {products.map(p => (
-                      <div key={p.id} className="flex justify-between py-1 border-b border-slate-100 last:border-0">
-                        <span>{p.name} ({p.volume} kpl/v)</span>
-                        <span className="font-bold">{(p.price * p.volume).toLocaleString()} €/v</span>
+                      <h3 className={`text-xl font-bold ${themeText}`}>{persona.name || t('unnamedPersona')}</h3>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-xs font-bold uppercase text-slate-500 mb-1">{t('description')}</h4>
+                        <p className="text-sm text-slate-800">{persona.description || '-'}</p>
                       </div>
-                    ))}
+                      <div>
+                        <h4 className="text-xs font-bold uppercase text-slate-500 mb-1">{t('painPoints')}</h4>
+                        <p className="text-sm text-slate-800">{persona.painPoints || '-'}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold uppercase text-slate-500 mb-1">{t('goals')}</h4>
+                        <p className="text-sm text-slate-800">{persona.goals || '-'}</p>
+                      </div>
+                    </div>
                   </div>
-                )}
+                );
+              })}
+            </div>
+          </Page>
+        )}
+
+        {/* Osasuunnitelmat Pages (Only for LTS) */}
+        {isLTS && (
+          <>
+            <Page>
+              <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlans')}</h2>
+              <div className="space-y-2">
+                <SectionBox title={t('marketingSales')} content={
+                  marketing.length > 0 ? (
+                    <div className="space-y-4">
+                      {marketing.map(m => (
+                        <div key={m.id} className="flex justify-between pb-2">
+                          <span className="text-slate-800">{m.activity}</span>
+                          <span className="font-bold whitespace-nowrap text-right min-w-[120px]">{Number(m.monthlyCost).toLocaleString('fi-FI')} {t('perMonth')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : '-'
+                } />
+                <SectionBox title={t('personnel')} content={
+                  personnel.length > 0 ? (
+                    <div className="space-y-4">
+                      {personnel.map(p => (
+                        <div key={p.id} className="flex justify-between pb-2">
+                          <span className="text-slate-800">{p.role} ({p.count} {t('person')})</span>
+                          <span className="font-bold whitespace-nowrap text-right min-w-[120px]">{Number(p.salary).toLocaleString('fi-FI')} {t('perMonth')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : '-'
+                } />
+                <SectionBox title={t('administration')} content={
+                  admin.length > 0 ? (
+                    <div className="space-y-4">
+                      {admin.map(a => (
+                        <div key={a.id} className="flex justify-between pb-2">
+                          <span className="text-slate-800">{a.item}</span>
+                          <span className="font-bold whitespace-nowrap text-right min-w-[120px]">{Number(a.monthlyCost).toLocaleString('fi-FI')} {t('perMonth')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : '-'
+                } />
               </div>
-            } />
-            
-            <SectionBox title={t('personnel')} content={
-              personnel.length > 0 ? (
-                <div className="space-y-1">
-                  {personnel.map(p => (
-                    <div key={p.id} className="flex justify-between py-1 border-b border-slate-100">
-                      <span>{p.role} ({p.count} hlö)</span>
-                      <span className="font-bold">{p.salary.toLocaleString()} € / kk</span>
-                    </div>
-                  ))}
-                </div>
-              ) : <p className="italic text-slate-400">Ei henkilöstökuluja</p>
-            } />
+            </Page>
 
-            <SectionBox title={t('administration')} content={
-              admin.length > 0 ? (
-                <div className="space-y-1">
-                  {admin.map(a => (
-                    <div key={a.id} className="flex justify-between py-1 border-b border-slate-100">
-                      <span>{a.item}</span>
-                      <span className="font-bold">{a.monthlyCost.toLocaleString()} € / kk</span>
+            <Page>
+              <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlansContinued')}</h2>
+              <div className="space-y-6">
+                <div className={`p-6 rounded-2xl ${themeBg} mb-6`}>
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6">{t('calculations')}</h3>
+                  <div className="grid grid-cols-3 gap-6 mb-8">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">{t('totalRevenue')}</h4>
+                      <p className={`text-2xl font-light ${themeText}`}>{totalRevenue.toLocaleString('fi-FI')} €</p>
                     </div>
-                  ))}
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">{t('totalExpenses')}</h4>
+                      <p className={`text-2xl font-light ${themeText}`}>{totalExpenses.toLocaleString('fi-FI')} €</p>
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">{t('result')}</h4>
+                      <p className={`text-2xl font-light ${ebitda >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {ebitda.toLocaleString('fi-FI')} €
+                      </p>
+                    </div>
+                  </div>
+                  <div className="h-[300px] w-full flex justify-center">
+                    <BarChart data={chartData} width={600} height={280}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                      <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `${value}€`} />
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                        {chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </div>
                 </div>
-              ) : <p className="italic text-slate-400">Ei kiinteitä hallintokuluja</p>
-            } />
-          </div>
-        </Page>
+              </div>
+            </Page>
+          </>
+        )}
 
-        {/* SIVU 6: OSASUUNNITELMAT (Laskelmat) */}
-        <Page>
-          <h2 className={`text-2xl font-black uppercase tracking-tight mb-8 ${themeTitle}`}>{t('calculations')}</h2>
-          <div className="space-y-4">
-            <div className={`p-6 rounded-2xl ${themeBg} text-xs`}>
-              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Vuosibudjetin Kooste</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span>Arvioitu Vuosiliikevaihto:</span><span className="font-bold text-emerald-600">+{totalRevenue.toLocaleString()} €</span></div>
-                <div className="flex justify-between"><span>Henkilöstökulut (sis. sivukulut 23%):</span><span className="font-bold text-red-500">-{totalPersonnelYear.toLocaleString()} €</span></div>
-                <div className="flex justify-between"><span>Markkinointipanostukset:</span><span className="font-bold text-red-500">-{totalMarketingYear.toLocaleString()} €</span></div>
-                <div className="flex justify-between"><span>Hallinnon kiinteät kulut:</span><span className="font-bold text-red-500">-{totalAdminYear.toLocaleString()} €</span></div>
-                <div className="h-px bg-slate-200 my-2" />
-                <div className="flex justify-between text-base font-black"><span>Käyttökate (EBITDA):</span><span className={ebitda >= 0 ? 'text-emerald-600' : 'text-red-600'}>{ebitda.toLocaleString()} €</span></div>
+        {/* Business Model Canvas Page (Only for Strategia) */}
+        {!isLTS && (
+          <Page>
+            <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('businessModel')}</h2>
+            <div className="flex flex-col gap-4 h-[800px]">
+              <div className="flex-1 grid grid-cols-12 gap-4">
+                <div className="col-span-4 grid grid-rows-2 gap-4">
+                  <div className={`p-4 rounded-2xl ${themeBg} flex flex-col`}>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">{t('keyActivities')}</h3>
+                    <p className="text-sm text-slate-800 flex-1 whitespace-pre-wrap">{businessModel.keyActivities || '-'}</p>
+                  </div>
+                  <div className={`p-4 rounded-2xl ${themeBg} flex flex-col`}>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">{t('keyResources')}</h3>
+                    <p className="text-sm text-slate-800 flex-1 whitespace-pre-wrap">{businessModel.keyResources || '-'}</p>
+                  </div>
+                </div>
+                <div className="col-span-4 grid grid-rows-2 gap-4">
+                  <div className={`p-4 rounded-2xl ${themeBg} flex flex-col`}>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">{t('valueProposition')}</h3>
+                    <p className="text-sm text-slate-800 flex-1 whitespace-pre-wrap">{businessModel.valueProposition || '-'}</p>
+                  </div>
+                  <div className={`p-4 rounded-2xl ${themeBg} flex flex-col`}>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">{t('channels')}</h3>
+                    <p className="text-sm text-slate-800 flex-1 whitespace-pre-wrap">{businessModel.channels || '-'}</p>
+                  </div>
+                </div>
+                <div className="col-span-4 flex flex-col">
+                  <div className={`p-4 rounded-2xl ${themeBg} flex flex-col flex-1`}>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">{t('customers')}</h3>
+                    <p className="text-sm text-slate-800 flex-1 whitespace-pre-wrap">{businessModel.customers || '-'}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="h-1/3 grid grid-cols-2 gap-4">
+                <div className={`p-4 rounded-2xl ${themeBg} flex flex-col`}>
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">{t('costStructure')}</h3>
+                  <p className="text-sm text-slate-800 flex-1 whitespace-pre-wrap">{businessModel.costs || '-'}</p>
+                </div>
+                <div className={`p-4 rounded-2xl ${themeBg} flex flex-col`}>
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">{t('revenues')}</h3>
+                  <p className="text-sm text-slate-800 flex-1 whitespace-pre-wrap">{businessModel.revenues || '-'}</p>
+                </div>
               </div>
             </div>
+          </Page>
+        )}
 
-            {investments.length > 0 && (
-              <SectionBox title="Investoinnit ja rahoitus" content={
-                <div className="space-y-1 text-xs">
-                  {investments.map(inv => (
-                    <div key={inv.id} className="flex justify-between py-1 border-b border-slate-100">
-                      <span>{inv.description} (Lähde: {(inv as any).sourceOfFunding || 'Ei määritelty'})</span>
-                      <span className="font-bold">{inv.amount.toLocaleString()} € ({inv.year})</span>
-                    </div>
-                  ))}
-                </div>
-              } />
-            )}
-          </div>
-        </Page>
-
-        {/* SIVU 7: TOTEUTUS */}
+        {/* Toteutus / Projektini Page */}
         <Page>
-          <h2 className={`text-2xl font-black uppercase tracking-tight mb-8 ${themeTitle}`}>{t('implementation')}</h2>
-          <div className="space-y-4">
-            {implementationPhases.length > 0 ? (
-              <SectionBox title="Toimenpidevaiheet ja aikataulutus" content={
-                <div className="space-y-3 text-xs">
-                  {implementationPhases.map((phase) => (
-                    <div key={phase.id} className="border-b border-black/5 pb-2 last:border-none">
-                      <div className="flex justify-between font-bold text-slate-800">
-                        <span>🚀 {phase.task || 'Nimetön tehtävä'}</span>
-                        <span className="uppercase text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-600">{phase.status}</span>
+          <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>
+            {isLTS ? t('implementation') : t('myProject')}
+          </h2>
+          <div className="space-y-2">
+            {isLTS ? (
+              <SectionBox title={t('projectPhases')} content={
+                implementationPhases.length > 0 ? (
+                  <div className="space-y-8 pb-20">
+                    {implementationPhases.map((phase, idx) => (
+                      <div key={phase.id} className="relative pl-6 pb-8 last:pb-0">
+                        <div className={`absolute left-0 top-2 w-1.5 h-1.5 rounded-full ${isLTS ? 'bg-blue-400' : 'bg-emerald-400'}`} />
+                        <h4 className="font-bold text-slate-800">{phase.task || '-'}</h4>
+                        <div className="flex gap-4 text-sm text-slate-500 mt-2">
+                          <span><strong>{t('schedule')}:</strong> {phase.schedule || '-'}</span>
+                          <span><strong>{t('responsible')}:</strong> {phase.responsible || '-'}</span>
+                        </div>
                       </div>
-                      <div className="flex gap-4 text-slate-500 mt-1">
-                        <span><strong>Aikataulu:</strong> {phase.schedule || '-'}</span>
-                        <span><strong>Vastuuhenkilö:</strong> {phase.responsible || '-'}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : '-'
               } />
-            ) : <p className="text-sm italic text-slate-400">Ei määritettyä toteutusaikataulua</p>}
+            ) : (
+              <>
+                <SectionBox title={t('projectName')} content={
+                  <div>
+                    <h4 className="text-xs font-bold uppercase text-slate-500 mb-1">{t('giveProjectName')}</h4>
+                    <p className="text-slate-800">{project?.title || '-'}</p>
+                  </div>
+                } />
+                <SectionBox title={t('projectDescription')} content={
+                  <div>
+                    <h4 className="text-xs font-bold uppercase text-slate-500 mb-1">{t('whatProjectAimsToAchieve')}</h4>
+                    <p className="text-slate-800 whitespace-pre-wrap">{project?.description || '-'}</p>
+                  </div>
+                } />
+                <SectionBox title={t('projectPhases')} content={
+                  <div>
+                    <h4 className="text-xs font-bold uppercase text-slate-500 mb-4">{t('divideProjectIntoPhases')}</h4>
+                    {project?.phases && project.phases.length > 0 ? (
+                      <div className="space-y-4">
+                        {project.phases.map((phase, idx) => (
+                          <div key={phase.id} className="relative pl-6 pb-4">
+                            <div className={`absolute left-0 top-2 w-1.5 h-1.5 rounded-full bg-emerald-400`} />
+                            <h4 className="font-bold text-slate-800">{phase.name || '-'}</h4>
+                            <p className="text-sm text-slate-600 mt-1">{phase.description || '-'}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-slate-500 italic">{t('noPhasesYet')}</p>
+                    )}
+                  </div>
+                } />
+                <SectionBox title={t('strategicAlignment')} content={
+                  <div>
+                    <h4 className="text-xs font-bold uppercase text-slate-500 mb-1">{t('howProjectRelatesToStrategy')}</h4>
+                    <p className="text-slate-800 whitespace-pre-wrap">{project?.strategicAlignment || '-'}</p>
+                  </div>
+                } />
+                <SectionBox title={t('businessModel')} content={
+                  <div>
+                    <h4 className="text-xs font-bold uppercase text-slate-500 mb-1">{t('businessModelAlignment')}</h4>
+                    <p className="text-slate-800 whitespace-pre-wrap">{project?.businessModelAlignment || '-'}</p>
+                  </div>
+                } />
+              </>
+            )}
           </div>
         </Page>
       </div>
