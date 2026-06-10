@@ -2876,68 +2876,71 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
           </div>
         </Page>
 
-        {/* Strategia Page - SIVU 1: Visio & Diagnoosi */}
-        <Page>
-          <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('strategy')}</h2>
-          <div className="space-y-2">
-            <SectionBox title={t('visionAndValues')} content={strategy.visionAndValues} />
-            <SectionBox title={t('diagnosis')} content={
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="text-xs font-bold uppercase text-emerald-600 mb-2">{t('positivePhenomena')}</h4>
-                    <ul className="list-disc pl-4 space-y-1">
-                      {[...externalEnv.filter(i => i.type === 'positive'), ...internalEnv.filter(i => i.type === 'positive')].length > 0 ? (
-                        [...externalEnv.filter(i => i.type === 'positive'), ...internalEnv.filter(i => i.type === 'positive')].map(item => (
-                          <li key={item.id} className="text-sm text-slate-800">{item.text}</li>
-                        ))
-                      ) : <li className="text-sm text-slate-500 italic">-</li>}
-                    </ul>
+        {/* Strategia-osion molemmat sivut kääritty fragmenttiin, jotta koodi jatkuu alla oleviin osioihin */}
+        <>
+          {/* Strategia Page - SIVU 1: Visio & Diagnoosi */}
+          <Page>
+            <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('strategy')}</h2>
+            <div className="space-y-2">
+              <SectionBox title={t('visionAndValues')} content={strategy.visionAndValues} />
+              <SectionBox title={t('diagnosis')} content={
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase text-emerald-600 mb-2">{t('positivePhenomena')}</h4>
+                      <ul className="list-disc pl-4 space-y-1">
+                        {[...externalEnv.filter(i => i.type === 'positive'), ...internalEnv.filter(i => i.type === 'positive')].length > 0 ? (
+                          [...externalEnv.filter(i => i.type === 'positive'), ...internalEnv.filter(i => i.type === 'positive')].map(item => (
+                            <li key={item.id} className="text-sm text-slate-800">{item.text}</li>
+                          ))
+                        ) : <li className="text-sm text-slate-500 italic">-</li>}
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold uppercase text-red-600 mb-2">{t('negativePhenomena')}</h4>
+                      <ul className="list-disc pl-4 space-y-1">
+                        {[...externalEnv.filter(i => i.type === 'negative'), ...internalEnv.filter(i => i.type === 'negative')].length > 0 ? (
+                          [...externalEnv.filter(i => i.type === 'negative'), ...internalEnv.filter(i => i.type === 'negative')].map(item => (
+                            <li key={item.id} className="text-sm text-slate-800">{item.text}</li>
+                          ))
+                        ) : <li className="text-sm text-slate-500 italic">-</li>}
+                      </ul>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold uppercase text-red-600 mb-2">{t('negativePhenomena')}</h4>
-                    <ul className="list-disc pl-4 space-y-1">
-                      {[...externalEnv.filter(i => i.type === 'negative'), ...internalEnv.filter(i => i.type === 'negative')].length > 0 ? (
-                        [...externalEnv.filter(i => i.type === 'negative'), ...internalEnv.filter(i => i.type === 'negative')].map(item => (
-                          <li key={item.id} className="text-sm text-slate-800">{item.text}</li>
-                        ))
-                      ) : <li className="text-sm text-slate-500 italic">-</li>}
-                    </ul>
-                  </div>
+                  {strategy.diagnosis && (
+                    <div className="mt-4 pt-4">
+                      <h4 className="text-xs font-bold uppercase text-slate-500 mb-2">{t('summary')}</h4>
+                      <p className="text-slate-800 whitespace-pre-wrap leading-relaxed">{strategy.diagnosis}</p>
+                    </div>
+                  )}
                 </div>
-                {strategy.diagnosis && (
-                  <div className="mt-4 pt-4">
-                    <h4 className="text-xs font-bold uppercase text-slate-500 mb-2">{t('summary')}</h4>
-                    <p className="text-slate-800 whitespace-pre-wrap leading-relaxed">{strategy.diagnosis}</p>
-                  </div>
-                )}
-              </div>
-            } />
-          </div>
-        </Page>
+              } />
+            </div>
+          </Page>
 
-        {/* Strategia Page - SIVU 2: Toimenpiteet (MITEN) 
-            Oma täysiverinen sivu takaa sen, että pitkä teksti alkaa ylhäältä ja tulostuu kokonaan! */}
-        <Page>
-          <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('strategy')}</h2>
-          <div className="space-y-2">
-            <SectionBox title={t('how')} content={
-              (strategy.howItems || []).length > 0 ? (
-                <ul className="space-y-3">
-                  {(strategy.howItems || []).map((item, idx) => (
-                    <li key={item.id} className="flex gap-3 text-slate-800">
-                      <span className={`font-bold ${themeTitle}`}>{idx + 1}.</span>
-                      <span>{item.text}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : '-'
-            } />
-          </div>
-        </Page>
+          {/* Strategia Page - SIVU 2: Toimenpiteet (MITEN) */}
+          <Page>
+            <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('strategy')}</h2>
+            <div className="space-y-2">
+              <SectionBox title={t('how')} content={
+                (strategy.howItems || []).length > 0 ? (
+                  <ul className="space-y-3">
+                    {(strategy.howItems || []).map((item, idx) => (
+                      <li key={item.id} className="flex gap-3 text-slate-800">
+                        <span className={`font-bold ${themeTitle}`}>{idx + 1}.</span>
+                        <span>{item.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : '-'
+              } />
+            </div>
+          </Page>
+        </>
 
         {/* Ostajapersoonat Page */}
         {buyerPersonas.length > 0 && (
+          <Page>
           <Page>
             <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('buyerPersonas')}</h2>
             <div className="grid grid-cols-2 gap-6">
