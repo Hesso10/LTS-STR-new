@@ -2876,7 +2876,7 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
           </div>
         </Page>
 
-        {/* Strategia Page */}
+        {/* Strategia Page - SIVU 1: Visio & Diagnoosi */}
         <Page>
           <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('strategy')}</h2>
           <div className="space-y-2">
@@ -2913,23 +2913,26 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                 )}
               </div>
             } />
+          </div>
+        </Page>
 
-            {/* CSS-PAKOSTETTU SIVUNVAIHTO: Muutettu sulkutagi </li> oikeaksi */}
-            <div style={{ pageBreakBefore: 'always', breakBefore: 'page', marginTop: '40px' }}>
-              <SectionBox title={t('how')} content={
-                (strategy.howItems || []).length > 0 ? (
-                  <ul className="space-y-3">
-                    {(strategy.howItems || []).map((item, idx) => (
-                      <li key={item.id} className="flex gap-3 text-slate-800">
-                        <span className={`font-bold ${themeTitle}`}>{idx + 1}.</span>
-                        <span>{item.text}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : '-'
-              } />
-            </div>
-
+        {/* Strategia Page - SIVU 2: Toimenpiteet (MITEN) 
+            Oma täysiverinen sivu takaa sen, että pitkä teksti alkaa ylhäältä ja tulostuu kokonaan! */}
+        <Page>
+          <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('strategy')}</h2>
+          <div className="space-y-2">
+            <SectionBox title={t('how')} content={
+              (strategy.howItems || []).length > 0 ? (
+                <ul className="space-y-3">
+                  {(strategy.howItems || []).map((item, idx) => (
+                    <li key={item.id} className="flex gap-3 text-slate-800">
+                      <span className={`font-bold ${themeTitle}`}>{idx + 1}.</span>
+                      <span>{item.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : '-'
+            } />
           </div>
         </Page>
 
