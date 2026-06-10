@@ -2808,7 +2808,11 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
             <div className="space-y-2">
               <SectionBox title={t('companyForm')} content={basics.companyForm} />
               <SectionBox title={t('background')} content={basics.background} />
-              <SectionBox title={t('businessIdea')} content={basics.businessIdea} />
+              
+              {/* Liikeidea jaettu kolmeen selkeään laatikkoon suoralla logiikalla */}
+              <SectionBox title="Liikeidea: Mitä?" content={basics.businessIdeaWhat} />
+              <SectionBox title="Liikeidea: Miten?" content={basics.businessIdeaHow} />
+              <SectionBox title="Liikeidea: Kenelle?" content={basics.businessIdeaForWhom} />
             </div>
           </Page>
         )}
