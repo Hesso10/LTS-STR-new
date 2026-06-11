@@ -2837,45 +2837,7 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
           </Page>
         )}
 
-        {/* Toimintaympäristö Page */}
-        <Page>
-          <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('environment')}</h2>
-          <div className="space-y-2">
-            <SectionBox title={t('externalEnv')} content={
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-xs font-bold uppercase text-emerald-600 mb-2">{t('opportunities')}</h4>
-                  <ul className="list-disc pl-4 space-y-1">
-                    {externalEnv.filter(e => e.type === 'positive').map(env => <li key={env.id} className="text-sm text-slate-800">{env.text}</li>)}
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold uppercase text-red-600 mb-2">{t('threats')}</h4>
-                  <ul className="list-disc pl-4 space-y-1">
-                    {externalEnv.filter(e => e.type === 'negative').map(env => <li key={env.id} className="text-sm text-slate-800">{env.text}</li>)}
-                  </ul>
-                </div>
-              </div>
-            } />
-            <SectionBox title={t('internalEnv')} content={
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-xs font-bold uppercase text-emerald-600 mb-2">{t('strengths')}</h4>
-                  <ul className="list-disc pl-4 space-y-1">
-                    {internalEnv.filter(e => e.type === 'positive').map(env => <li key={env.id} className="text-sm text-slate-800">{env.text}</li>)}
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold uppercase text-red-600 mb-2">{t('weaknesses')}</h4>
-                  <ul className="list-disc pl-4 space-y-1">
-                    {internalEnv.filter(e => e.type === 'negative').map(env => <li key={env.id} className="text-sm text-slate-800">{env.text}</li>)}
-                  </ul>
-                </div>
-              </div>
-            } />
-          </div>
-        </Page>
-
+       
         {/* Strategia-osion molemmat sivut kääritty fragmenttiin, jotta koodi jatkuu alla oleviin osioihin */}
         <>
           {/* Strategia Page - SIVU 1: Visio & Diagnoosi */}
