@@ -2940,7 +2940,7 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
         {/* Osasuunnitelmat Pages (Only for LTS) */}
         {isLTS && (
           <>
-            {/* UUSI SIVU 1: Markkinan koko ja kohderyhmät erikseen, jotta tila ei lopu kesken */}
+            {/* SIVU 1: Markkinan koko */}
             <Page>
               <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlans')}</h2>
               <div className="space-y-2">
@@ -2951,15 +2951,15 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
               </div>
             </Page>
 
-            {/* SIVU 2: Osasuunnitelmien toimintalistat (Nyt täydellisesti tilaa!) */}
+            {/* SIVU 2: Markkinointi ja Myyntitavoitteet */}
             <Page>
-              <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlans')}</h2>
+              <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlans')} – Markkinointi & Myynti</h2>
               <div className="space-y-2">
                 <SectionBox title={t('marketingSales')} content={
                   marketing.length > 0 ? (
                     <div className="space-y-4">
                       {marketing.map(m => (
-                        <div key={m.id} className="flex justify-between pb-2">
+                        <div key={m.id} className="flex justify-between pb-2 border-b border-slate-100">
                           <span className="text-slate-800">{m.activity}</span>
                           <span className="font-bold whitespace-nowrap text-right min-w-[120px]">{Number(m.monthlyCost).toLocaleString('fi-FI')} {t('perMonth')}</span>
                         </div>
@@ -2967,11 +2967,37 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                     </div>
                   ) : '-'
                 } />
+
+                <SectionBox title="Myyntitavoitteet ja Tuotteet" content={
+                  products.length > 0 ? (
+                    <div className="space-y-4">
+                      {products.map(p => (
+                        <div key={p.id} className="flex justify-between pb-2 border-b border-slate-100 items-center">
+                          <span className="text-slate-800 font-medium">{p.name}</span>
+                          <span className="text-sm text-slate-500 text-center">{p.volume} kpl / vuosi</span>
+                          <span className="font-bold whitespace-nowrap text-right min-w-[140px]">
+                            {Number(p.price).toLocaleString('fi-FI')} € / kpl
+                            <span className="text-xs text-slate-400 block font-normal">
+                              Yht: {(p.price * p.volume).toLocaleString('fi-FI')} €
+                            </span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : 'Ei määriteltyjä tuotteita tai myyntitavoitteita.'
+                } />
+              </div>
+            </Page>
+
+            {/* SIVU 3: Henkilöstö ja Hallinto */}
+            <Page>
+              <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlans')} – Henkilöstö & Hallinto</h2>
+              <div className="space-y-2">
                 <SectionBox title={t('personnel')} content={
                   personnel.length > 0 ? (
                     <div className="space-y-4">
                       {personnel.map(p => (
-                        <div key={p.id} className="flex justify-between pb-2">
+                        <div key={p.id} className="flex justify-between pb-2 border-b border-slate-100">
                           <span className="text-slate-800">{p.role} ({p.count} {t('person')})</span>
                           <span className="font-bold whitespace-nowrap text-right min-w-[120px]">{Number(p.salary).toLocaleString('fi-FI')} {t('perMonth')}</span>
                         </div>
@@ -2979,11 +3005,12 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                     </div>
                   ) : '-'
                 } />
+                
                 <SectionBox title={t('administration')} content={
                   admin.length > 0 ? (
                     <div className="space-y-4">
                       {admin.map(a => (
-                        <div key={a.id} className="flex justify-between pb-2">
+                        <div key={a.id} className="flex justify-between pb-2 border-b border-slate-100">
                           <span className="text-slate-800">{a.item}</span>
                           <span className="font-bold whitespace-nowrap text-right min-w-[120px]">{Number(a.monthlyCost).toLocaleString('fi-FI')} {t('perMonth')}</span>
                         </div>
@@ -2994,9 +3021,9 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
               </div>
             </Page>
 
-            {/* SIVU 3: Laskelmat ja Talouskooste staattisella kaaviolla ilman ResponsiveContaineria */}
+            {/* SIVU 4: Laskelmat ja Talouskooste omalla sivullaan */}
             <Page>
-              <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlansContinued')}</h2>
+              <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlansContinued')} – Talouslaskelmat</h2>
               <div className="space-y-6">
                 <div className={`p-6 rounded-2xl ${themeBg} mb-6`}>
                   <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6">{t('calculations')}</h3>
@@ -3032,7 +3059,7 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
               </div>
             </Page>
 
-            {/* SIVU 4: Uusi Kasvu-osio tulosteeseen */}
+            {/* SIVU 5: Kasvu ja tulevaisuus */}
             <Page>
               <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>Kasvu ja tulevaisuus</h2>
               <div className="space-y-2">
