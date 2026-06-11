@@ -2955,6 +2955,26 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
             <Page>
               <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlans')}</h2>
               <div className="space-y-2">
+                
+                {/* LISÄTTY: Myyntitavoitteet ja tuotteet tulosteeseen */}
+                <SectionBox title="Myyntitavoitteet, tuotteet ja palvelut" content={
+                  products.length > 0 ? (
+                    <div className="space-y-4">
+                      {products.map(p => (
+                        <div key={p.id} className="flex justify-between pb-2 border-b border-slate-100 last:border-none">
+                          <div className="flex flex-col">
+                            <span className="text-slate-800 font-bold">{p.name || 'Nimetön tuote'}</span>
+                            <span className="text-xs text-slate-500">Määrä: {Number(p.volume).toLocaleString('fi-FI')} kpl/vuosi | Yksikköhinta: {Number(p.price).toLocaleString('fi-FI')} €</span>
+                          </div>
+                          <span className="font-bold whitespace-nowrap text-right min-w-[120px] text-emerald-600">
+                            +{(p.price * p.volume).toLocaleString('fi-FI')} € / vuosi
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : '-'
+                } />
+
                 <SectionBox title={t('marketingSales')} content={
                   marketing.length > 0 ? (
                     <div className="space-y-4">
