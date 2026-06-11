@@ -2956,7 +2956,7 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
               <h2 className={`text-3xl font-light uppercase tracking-wider mb-8 ${themeTitle}`}>{t('subPlans')}</h2>
               <div className="space-y-2">
                 
-                {/* LISÄTTY: Myyntitavoitteet ja tuotteet tulosteeseen */}
+                {/* Myyntitavoitteet ja tuotteet tulosteeseen */}
                 <SectionBox title="Myyntitavoitteet, tuotteet ja palvelut" content={
                   products.length > 0 ? (
                     <div className="space-y-4">
@@ -3107,7 +3107,6 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">{t('costStructure')}</h3>
                   <p className="text-sm text-slate-800 flex-1 whitespace-pre-wrap">{businessModel.costs || '-'}</p>
                 </div>
-                {/* KORJATTU: parent-element -rikkonaisuus poistettu tästä alta */}
                 <div className={`p-4 rounded-2xl ${themeBg} flex flex-col`}>
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">{t('revenues')}</h3>
                   <p className="text-sm text-slate-800 flex-1 whitespace-pre-wrap">{businessModel.revenues || '-'}</p>
@@ -3172,7 +3171,6 @@ const renderEnvironmentWorkspace = (type: 'EXTERNAL_ENV' | 'INTERNAL_ENV') => {
                     )}
                   </div>
                 } />
-                {/* KORJATTU: Ylimääräinen välilyönti poistettu avaimesta 'howProjectRelatesToStrategy' */}
                 <SectionBox title={t('strategicAlignment')} content={
                   <div>
                     <h4 className="text-xs font-bold uppercase text-slate-500 mb-1">{t('howProjectRelatesToStrategy')}</h4>
