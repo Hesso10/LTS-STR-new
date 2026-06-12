@@ -19,7 +19,7 @@ export const AiAnalysisPanel: React.FC<AiAnalysisPanelProps> = ({ step, content,
 
   const handleAnalyze = async () => {
     if (isReadOnly) {
-      setResult("💡 **Tekoälyanalyysi (Demo):** Luonnoksesi näyttää hyvältä! Oikeassa versiossa järjestelmä ajaa tässä kohdassa täydellisen analyysin hyödyntäen Google Vertex AI -mallia ja ajankohtaista markkinadataa. Luo oma tunnus testataksesi toiminnallisuutta.");
+      setResult("💡 **Tekoälyanalyysi tulee tähän! (Demo):** Oikeassa versiossa järjestelmä hyödyntää Google Vertex AI -mallia, ajankohtaista markkinadataa sekä vektoroitua dataa muun muassa Suomen tulevaisuusselonteon ja enkelisijoittajien haastattelumateriaalin osalta. Saat todellisen stressitestin suunnitelmallesi");
       return;
     }
 
