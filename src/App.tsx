@@ -28,22 +28,7 @@ const DEFAULT_KNOWLEDGE: SystemKnowledge = {
   instructions: 'Olet kokenut ja ytimekäs liiketoimintastrategi.'
 };
 
-{view === 'LANDING' ? (
-  <LandingPage 
-    onSelectPortal={setPortalType} 
-    onLogin={() => setView('AUTH')} 
-    onDemo={(selectedPortal) => { 
-      // 1. Asetetaan valittu portaali (LTS tai STRATEGY)
-      setPortalType(selectedPortal);
-      // 2. Aktivoidaan demotila
-      setIsDemo(true);
-      // 3. Luodaan vale-käyttäjä, jotta uudet näkymät saavat datan
-      setUser(MOCK_DEMO_USER(selectedPortal));
-      // 4. Ohjataan päänäkymään
-      setView('DASHBOARD'); 
-    }} 
-  />
-) : view === 'AUTH' ? (
+const MOCK_DEMO_USER = (portal: PortalType): UserAccount => ({ uid: 'demo-user-123', email: 'demo@suunnitelma.com', displayName: 'Demo Yrittäjä', role: UserRole.STUDENT, portalType: portal, companyName: 'Esimerkkiyritys Oy', canInviteTeamMembers: false });
 
 export default function App() {
   const [user, setUser] = useState<UserAccount | null>(null);
