@@ -17,9 +17,6 @@ export const AiAnalysisPanel: React.FC<AiAnalysisPanelProps> = ({ step, content,
     setResult(null);
   }, [step]);
 
-  // Jos ollaan katselutilassa, ei näytetä koko paneelia
-  if (isReadOnly) return null;
-
   const handleAnalyze = async () => {
     if (isReadOnly) {
       setResult("💡 **Tekoälyanalyysi (Demo):** Luonnoksesi näyttää hyvältä! Oikeassa versiossa järjestelmä ajaa tässä kohdassa täydellisen analyysin hyödyntäen Google Vertex AI -mallia ja ajankohtaista markkinadataa. Luo oma tunnus testataksesi toiminnallisuutta.");
@@ -54,6 +51,7 @@ export const AiAnalysisPanel: React.FC<AiAnalysisPanelProps> = ({ step, content,
       const resData = await res.json();
       
       if (res.ok) {
+        doc.id
         setResult(resData.analysis);
       } else {
         setResult("Virhe analysoinnissa: " + (resData.error || 'Tuntematon virhe'));
