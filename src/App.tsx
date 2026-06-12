@@ -28,6 +28,23 @@ const DEFAULT_KNOWLEDGE: SystemKnowledge = {
   instructions: 'Olet kokenut ja ytimekäs liiketoimintastrategi.'
 };
 
+{view === 'LANDING' ? (
+  <LandingPage 
+    onSelectPortal={setPortalType} 
+    onLogin={() => setView('AUTH')} 
+    onDemo={(selectedPortal) => { 
+      // 1. Asetetaan valittu portaali (LTS tai STRATEGY)
+      setPortalType(selectedPortal);
+      // 2. Aktivoidaan demotila
+      setIsDemo(true);
+      // 3. Luodaan vale-käyttäjä, jotta uudet näkymät saavat datan
+      setUser(MOCK_DEMO_USER(selectedPortal));
+      // 4. Ohjataan päänäkymään
+      setView('DASHBOARD'); 
+    }} 
+  />
+) : view === 'AUTH' ? (
+
 export default function App() {
   const [user, setUser] = useState<UserAccount | null>(null);
   const [portalType, setPortalType] = useState<PortalType | null>(null);
@@ -167,14 +184,14 @@ export default function App() {
     <LanguageProvider>
       <div className="font-sans antialiased text-slate-900">
         {view === 'LANDING' ? (
-          <LandingPage onSelectPortal={setPortalType} onLogin={() => setView('AUTH')} onDemo={() => { setIsDemo(true); setView('DASHBOARD'); }} />
+          <LandingPage onSelectPortal={setPortalType} onLogin={() => setView('AUTH')} onDemo={(selectedPortal) => { setPortalType(selectedPortal); setIsDemo(true); setUser(MOCK_DEMO_USER(selectedPortal)); setView('DASHBOARD'); }} />
         ) : view === 'AUTH' ? (
           <Auth onLogin={handleLogin} portalType={portalType || undefined} />
         ) : (
           <div className="flex h-screen bg-slate-100 overflow-hidden">
             <Sidebar 
               portalType={portalType || PortalType.LTS} userRole={user?.role || UserRole.STUDENT}
-              activeView={view} setActiveView={setView} onLogout={() => { auth.signOut(); setIsDemo(false); }}
+              activeView={view} setActiveView={setView} onLogout={() => { if (isDemo) { setIsDemo(false); setUser(null); setPortalType(null); setView('LANDING'); } else { auth.signOut(); setIsDemo(false); } }}
               sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user}
               invites={invites} onOpenInviteModal={() => setIsInviteModalOpen(true)}
             />
