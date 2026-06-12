@@ -21,6 +21,11 @@ export const AiAnalysisPanel: React.FC<AiAnalysisPanelProps> = ({ step, content,
   if (isReadOnly) return null;
 
   const handleAnalyze = async () => {
+    if (isReadOnly) {
+      setResult("💡 **Tekoälyanalyysi (Demo):** Luonnoksesi näyttää hyvältä! Oikeassa versiossa järjestelmä ajaa tässä kohdassa täydellisen analyysin hyödyntäen Google Vertex AI -mallia ja ajankohtaista markkinadataa. Luo oma tunnus testataksesi toiminnallisuutta.");
+      return;
+    }
+
     let payloadContent = '';
 
     // Muutetaan content-prop tekstiksi sen tyypin mukaan
