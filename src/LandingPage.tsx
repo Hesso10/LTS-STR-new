@@ -208,7 +208,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectPortal, onDemo
                 answer="Tällä hetkellä portaalin voi ostaa kuukausiveloituksella esimerkiksi oppilaitos- tai yritysneuvontakäyttöön. Hinta yhtä oppilasta tms. käyttäjää kohden on noin 15-20euroa kuussa. Ole yhteydessä johannes@hessonpaja.com"
               />
             </div>
-            </div>
           </div>
         </section>
       </main>
