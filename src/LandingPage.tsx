@@ -185,7 +185,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectPortal, onDemo
             <div className="bg-white rounded-[32px] p-6 md:p-10 shadow-xl border border-black/5">
               <FAQItem 
                 question="Miten aloitan palvelun käytön?" 
-                answer="Olet saanut sähköpostitse kutsun LTS tai STR-portaaliin. Valitse haluamasi portaali (LTS tai STRATEGIA), tee tunnukset ja kirjaudu sisään. Voit myös kokeilla demoa ennen ostopäätöstä."
+                answer="Olet saanut sähköpostitse kutsun LTS tai STR-portaaliin. Valitse haluamasi portaali (LTS tai STRATEGIA), tee tunnukset ja kirjaudu sisään."
               />
               <FAQItem 
                 question="Mitä LLM-malli tarkoittaa tässä yhteydessä?" 
@@ -193,11 +193,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectPortal, onDemo
               />
               <FAQItem 
                 question="Miten Aichat -toimii?" 
-                answer="Aichatissa on kaksi toiminnallisuutta. 1.) Voit käyttää sitä tiedonhakuun ja saat Aichatilta neuvoja portaalien eri kohtien täyttämiseen. 2.) "Haasta suunnitelma -nappi" Aichatin yläreunassa aktivoi Red team -ominaisuuden. Kun tekeleesi on valmis, voit aktivoida Red teamin, joka haastaa liiketoimintasuunnitelmasi tai yrityksesi strategian tiukalla ja melko kohteliaalla tyylillä. Red team -etsii R.Rummeltin tyylistä loogisuutta, selkeyttä sekä aidosti sinut muista erilaistavaa juonta liiketoimintasuunnitelmastasi tai strategiastasi."
+                answer="Aichatissa on kaksi toiminnallisuutta. 1.) Voit käyttää sitä tiedonhakuun ja saat Aichatilta neuvoja portaalien eri kohtien täyttämiseen. 2.) 'Haasta suunnitelma -nappi' Aichatin yläreunassa aktivoi Red team -ominaisuuden. Kun tekeleesi on valmis, voit aktivoida Red teamin, joka haastaa liiketoimintasuunnitelmasi tai yrityksesi strategian tiukalla ja melko kohteliaalla tyylillä. Red team -etsii R.Rummeltin tyylistä loogisuutta, selkeyttä sekä aidosti sinut muista erilaistavaa juonta liiketoimintasuunnitelmastasi tai strategiastasi."
               />
               <FAQItem 
-                question="Mitä "Analysoi luonnos"-nappi tekee? Demotilassa näkyy vain esimerkkiteksti?" 
-                answer="Analysoi-luonnos"-nappi ajaa kyseisen osan tekemääsi suunnitelmaa Geminin Google gounding- ja vektoroidun RAG -haun "läpi". Esimerkki: Kerrot suunnittelevasi 200000 euron rahoituksen hakua uuden liikuntakeskuksen perustamiseksi, koska korkokanta on suosiollinen ja yrityksesi on valmis kannattavaan kasvuun. "Analysoi luonnos" -nappi hakee esimerkiksi tämän hetkisen korkokannan ja analysoi eri sijoitustapojen kriteereitä sekä pääomasijoittajien haastattelujen perusteella luodut vektoroidut lähdemateriaalit. Saat analyysin lopputulemana analyysin rahoituksen vaihtoehdoista ja rahoituksen saamisen realistisuudesta."
+                question="Mitä 'Analysoi luonnos'-nappi tekee? Demotilassa näkyy vain esimerkkiteksti?" 
+                answer="'Analysoi-luonnos'-nappi ajaa kyseisen osan tekemääsi suunnitelmaa Geminin Google gounding- ja vektoroidun RAG -haun 'läpi'. Esimerkki: Kerrot suunnittelevasi 200000 euron rahoituksen hakua uuden liikuntakeskuksen perustamiseksi, koska korkokanta on suosiollinen ja yrityksesi on valmis kannattavaan kasvuun. 'Analysoi luonnos' -nappi hakee esimerkiksi tämän hetkisen korkokannan ja analysoi eri sijoitustapojen kriteereitä sekä pääomasijoittajien haastattelujen perusteella luodut vektoroidut lähdemateriaalit. Saat analyysin lopputulemana analyysin rahoituksen vaihtoehdoista ja rahoituksen saamisen realistisuudesta."
               />
               <FAQItem 
                 question="Voinko muokata suunnitelmiani myöhemmin?" 
@@ -205,8 +205,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectPortal, onDemo
               />
               <FAQItem 
                 question="Miten aloitan palvelun käytön?" 
-                answer="."
+                answer="Tällä hetkellä portaalin voi ostaa kuukausiveloituksella esimerkiksi oppilaitos- tai yritysneuvontakäyttöön. Hinta yhtä oppilasta tms. käyttäjää kohden on noin 15-20euroa kuussa. Ole yhteydessä johannes@hessonpaja.com"
               />
+            </div>
             </div>
           </div>
         </section>
