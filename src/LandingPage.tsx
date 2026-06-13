@@ -205,7 +205,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectPortal, onDemo
                 answer="Kyllä, kaikki suunnitelmasi tallentuvat tunnuksellesi ja voit palata muokkaamaan niitä milloin tahansa."
               />
               <FAQItem 
-                question="Miten aloitan palvelun käytön?" 
+                question="Miten ostan palvelun?" 
                 answer="Tällä hetkellä portaalin voi ostaa kuukausiveloituksella esimerkiksi oppilaitos- tai yritysneuvontakäyttöön. Hinta yhtä oppilasta tms. käyttäjää kohden on noin 15-20euroa kuussa. Ole yhteydessä johannes@hessonpaja.com"
               />
             </div>
