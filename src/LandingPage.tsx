@@ -151,6 +151,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectPortal, onDemo
               <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Interaktiivinen suunnitelman rakentaja</li>
               <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Toimintaympäristön analyysi</li>
               <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Strategia ja liiketoimintamalli</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Strategian ja liiketoimintamallin tallennus- ja analyysi</li>
               <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> LLM-malli sparrauskumppanina</li>
             </ul>
             <div className="space-y-3 mt-auto">
