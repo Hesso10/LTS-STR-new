@@ -118,7 +118,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectPortal, onDemo
             </p>
             <ul className="space-y-2 md:space-y-3 mb-8 md:mb-10 text-xs md:text-sm font-medium text-slate-600">
               <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" /> Interaktiivinen liiketoimintasuunnitelman rakentaja</li>
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" /> Toimintaympäriorientointi / analyysi</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" /> Toimintaympäristönanalyysi</li>
               <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" /> Strategia ja osasuunnitelmat</li>
               <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" /> LTS:n tallennus ja analyysi</li>
               <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" /> LLM-malli sparrauskumppanina</li>
@@ -185,15 +185,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectPortal, onDemo
             <div className="bg-white rounded-[32px] p-6 md:p-10 shadow-xl border border-black/5">
               <FAQItem 
                 question="Miten aloitan palvelun käytön?" 
-                answer="Valitse haluamasi portaali (LTS tai STRATEGIA) ja kirjaudu sisään. Voit myös kokeilla demoa ennen ostopäätöstä."
+                answer="Olet saanut sähköpostitse kutsun LTS tai STR-portaaliin. Valitse haluamasi portaali (LTS tai STRATEGIA), tee tunnukset ja kirjaudu sisään. Voit myös kokeilla demoa ennen ostopäätöstä."
               />
               <FAQItem 
                 question="Mitä LLM-malli tarkoittaa tässä yhteydessä?" 
-                answer="Käytämme uusimpia kielimalleja (kuten Gemini), jotka on ohjeistettu auttamaan nimenomaan liiketoiminnan suunnittelussa suomalaisessa markkinassa."
+                answer="Käytämme uusimpia kielimalleja (kuten Gemini), jotka on ohjeistettu auttamaan nimenomaan liiketoiminnan suunnittelussa suomalaisessa markkinassa. Ai hyödyntää tarkkaan valittua tietopankkia, jossa on vektoroitua dataa muun muassa pääomasijoittajien haastattelujen ja Suomen talouden ennuste- ja tutkimusraporttien muodossa."
+              />
+              <FAQItem 
+                question="Miten Aichat -toimii?" 
+                answer="Aichatissa on kaksi toiminnallisuutta. 1.) Voit käyttää sitä tiedonhakuun ja saat Aichatilta neuvoja portaalien eri kohtien täyttämiseen. 2.) "Haasta suunnitelma -nappi" Aichatin yläreunassa aktivoi Red team -ominaisuuden. Kun tekeleesi on valmis, voit aktivoida Red teamin, joka haastaa liiketoimintasuunnitelmasi tai yrityksesi strategian tiukalla ja melko kohteliaalla tyylillä. Red team -etsii R.Rummeltin tyylistä loogisuutta, selkeyttä sekä aidosti sinut muista erilaistavaa juonta liiketoimintasuunnitelmastasi tai strategiastasi."
+              />
+              <FAQItem 
+                question="Mitä "Analysoi luonnos"-nappi tekee? Demotilassa näkyy vain esimerkkiteksti?" 
+                answer="Analysoi-luonnos"-nappi ajaa kyseisen osan tekemääsi suunnitelmaa Geminin Google gounding- ja vektoroidun RAG -haun "läpi". Esimerkki: Kerrot suunnittelevasi 200000 euron rahoituksen hakua uuden liikuntakeskuksen perustamiseksi, koska korkokanta on suosiollinen ja yrityksesi on valmis kannattavaan kasvuun. "Analysoi luonnos" -nappi hakee esimerkiksi tämän hetkisen korkokannan ja analysoi eri sijoitustapojen kriteereitä sekä pääomasijoittajien haastattelujen perusteella luodut vektoroidut lähdemateriaalit. Saat analyysin lopputulemana analyysin rahoituksen vaihtoehdoista ja rahoituksen saamisen realistisuudesta."
               />
               <FAQItem 
                 question="Voinko muokata suunnitelmiani myöhemmin?" 
                 answer="Kyllä, kaikki suunnitelmasi tallentuvat tunnuksellesi ja voit palata muokkaamaan niitä milloin tahansa."
+              />
+              <FAQItem 
+                question="Miten aloitan palvelun käytön?" 
+                answer="."
               />
             </div>
           </div>
